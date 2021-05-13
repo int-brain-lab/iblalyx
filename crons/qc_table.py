@@ -1,8 +1,13 @@
-from actions.models import Session
-from django.db.models import Count, Q
+import time
+from pathlib import Path
+
 import pandas as pd
 import numpy as np
-import time
+
+from django.db.models import Count, Q
+
+from alyx.settings import TABLES_ROOT
+from actions.models import Session
 
 
 task_keys = ['_task_iti_delays',
@@ -58,5 +63,5 @@ for key in task_keys:
 end = time.time()
 print(end-start)
 
-save_path = "/home/ubuntu/qc_table.pqt"
+save_path = Path(TABLES_ROOT).joinpath("qc_table.pqt")
 task_qc_summary.to_parquet(save_path)
