@@ -1,4 +1,6 @@
 from datetime import datetime
+import json
+
 from jobs.models import Task
 from django.db.models import Avg, Count
 # status - 20: Waiting / 25: Held / 30: Started / 40: Errored / 45: Abandoned / 50: Empty / 60: Complete
@@ -12,4 +14,4 @@ for c in count:
     d[k] = c['n']
 
 t = datetime.now()
-print(t, c)
+print(t, json.dumps(d))
