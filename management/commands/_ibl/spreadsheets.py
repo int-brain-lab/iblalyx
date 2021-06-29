@@ -1,6 +1,8 @@
 """
-Generates reports through Google spreadsheets for IBL
+Randomly assign ephys session to do histology alignment.
+Assign new person to do histology alignment.
 """
+
 from pathlib import Path
 import pandas as pd
 import numpy as np
@@ -13,15 +15,32 @@ from data.models import Session
 from misc.models import LabMember
 from experiments.models import ProbeInsertion, TrajectoryEstimate
 
+# -- FUNCTIONS TO TEST DATASET TYPE EXISTENCE
+LIST_STR_ID = [
+    'ephys_raw_probe_ds',
+    'ephys_raw_qc_ds',
+    'ks2_probe_ds',
+    'ephys_raw_sess_ds',
+    'ephys_passive_raw',
+    'ephys_passive_sess_ds',
+    'trials_raw_ds',
+    'trials_ds',
+    'wheel_ds',
+    'camera_raw_ds',
+    'camera_framecount',
+    'dlc_ds'
+]
 
-def check_all_ds_exist_bool(insertion, str_identifier):
+
+def _select_dataset(str_identifier):
     '''
     Check if all datasets associated to insertion/session exist.
-    Consider nomenclature the same for session / insertion.
-    :param: ds_list: List of datasets to check existence of
-    :param: identifier string to know what ds to check for
-    :return: boolean indicating whether all DS are found
+    :param: str_identifier: identifier string to know what ds to check for
+    :return: ds_spec: list of ds type, ins_or_sess: str "ins" or "sess"
     '''
+
+    if str_identifier not in LIST_STR_ID:
+        raise ValueError("str_identifier value not matching any predefined possible values.")
 
     # A) --- DATASET AT INSERTION LEVEL
 
@@ -90,23 +109,23 @@ def check_all_ds_exist_bool(insertion, str_identifier):
             '_ibl_passiveRFM.times',
             '_ibl_passiveGabor.table',
             '_ibl_passiveStims.table'
-        ]
+            ]
         ins_or_sess = 'sess'
 
     # -- TRIALS RAW FILES
     elif str_identifier == 'trials_raw_ds':
         ds_spec = [
             # '_iblrig_codeFiles.raw',
-            '_iblrig_encoderEvents.raw',
-            '_iblrig_encoderPositions.raw',
-            '_iblrig_encoderTrialInfo.raw',
-            # '_iblrig_micData.raw',
-            '_iblrig_stimPositionScreen.raw',
-            '_iblrig_syncSquareUpdate.raw',
-            '_iblrig_taskData.raw',
-            '_iblrig_taskSettings.raw',
-            # '_iblrig_VideoCodeFiles.raw'
-        ]
+             '_iblrig_encoderEvents.raw',
+             '_iblrig_encoderPositions.raw',
+             '_iblrig_encoderTrialInfo.raw',
+             # '_iblrig_micData.raw',
+             '_iblrig_stimPositionScreen.raw',
+             '_iblrig_syncSquareUpdate.raw',
+             '_iblrig_taskData.raw',
+             '_iblrig_taskSettings.raw',
+             # '_iblrig_VideoCodeFiles.raw'
+            ]
         ins_or_sess = 'sess'
 
     # -- TRIALS EXTRACTED DS
@@ -119,7 +138,7 @@ def check_all_ds_exist_bool(insertion, str_identifier):
             'trials.feedbackType',
             # 'trials.firstMovement_times',    # should be there on new session
             'trials.goCue_times',
-            # 'trials.goCueTrigger_times',
+            #'trials.goCueTrigger_times',
             # 'trials.included',
             'trials.intervals',
             # 'trials.itiDuration',
@@ -127,7 +146,7 @@ def check_all_ds_exist_bool(insertion, str_identifier):
             # 'trials.repNum',
             'trials.response_times',
             'trials.rewardVolume',
-            # 'trials.stimOff_times',   # should be there on new session
+            #'trials.stimOff_times',   # should be there on new session
             'trials.stimOn_times'
         ]
         ins_or_sess = 'sess'
@@ -135,10 +154,10 @@ def check_all_ds_exist_bool(insertion, str_identifier):
     # -- WHEEL DS
     elif str_identifier == 'wheel_ds':
         ds_spec = [
-            'wheelMoves.intervals',
-            'wheelMoves.peakAmplitude',
-            'wheel.position',
-            'wheel.timestamps']
+             'wheelMoves.intervals',
+             'wheelMoves.peakAmplitude',
+             'wheel.position',
+             'wheel.timestamps']
         ins_or_sess = 'sess'
 
     # -- CAMERA RAW FILES
@@ -175,17 +194,50 @@ def check_all_ds_exist_bool(insertion, str_identifier):
         ]
         ins_or_sess = 'sess'
 
+    return ds_spec, ins_or_sess
+
+
+def _test_select_dataset():
+    out1, out2 = _select_dataset(str_identifier='dlc_ds')
+    exp_out1 = ['_ibl_bodyCamera.dlc',
+                '_ibl_bodyCamera.times',
+                '_ibl_rightCamera.dlc',
+                '_ibl_rightCamera.times',
+                '_ibl_leftCamera.dlc',
+                '_ibl_leftCamera.times']
+    exp_out2 = 'sess'
+    assert (out1 == exp_out1)
+    assert (out2 == exp_out2)
+
+
+def _check_ds_exist(insertion, ds_spec, ins_or_sess):
+    '''
+    Check whether there is at least one DS type of each kind per ins/sess.
+    :param insertion: object Insertion
+    :param ds_spec: list of datasets
+    :param ins_or_sess: string "ins" or "sess"
+    :return: count_overall: bool indicating if all ds are found
+    '''
+
     # Count N dataset present and assign bool output
     count_overall = True
     for dataset in ds_spec:
         if ins_or_sess == 'ins':
             count_ds = insertion.datasets.filter(dataset_type__name__icontains=dataset).count() >= 1
         elif ins_or_sess == 'sess':
-            count_ds = insertion.session.data_dataset_session_related.filter(name__icontains=dataset).count() >= 1
+            count_ds = insertion.session.data_dataset_session_related.filter(name__icontains=dataset).count() >=1
 
         # Combine count ds
         count_overall = count_overall and count_ds
     return count_overall
+
+
+def _check_ds_exist_main(insertion, str_identifier):
+    ds_spec, ins_or_sess = _select_dataset(str_identifier)
+    count_overall = _check_ds_exist(insertion, ds_spec, ins_or_sess)
+    return count_overall
+
+# -- END OF FUNCTIONS
 
 
 def histology_assign_update():
@@ -195,8 +247,8 @@ def histology_assign_update():
     """
     # -- FUNCTION TO TEST DATASET TYPE EXISTENCE
 
-    users = LabMember.objects.all()
 
+    users = LabMember.objects.all()
     # Define paths to authentication details
     credentials_file_path = Path.home().joinpath('.google', 'credentials.json')
     clientsecret_file_path = Path.home().joinpath('.google', 'client_secret.json')
@@ -249,6 +301,7 @@ def histology_assign_update():
     #  'churchlandlab': 174,
     #  'cortexlab': 117}
 
+
     ## creates temp dataframe
     df_tp = {'eids': [str(i[0]) for i in sessions.values_list('id')],
              'origin_labs': [i[0] for i in sessions.values_list('lab__name')],
@@ -265,6 +318,7 @@ def histology_assign_update():
         lab_min = min(d_remove, key=d_remove.get)
         df_tp['assign_labs'][i] = lab_min
         d[lab_min] = d[lab_min] + 1  # increase sum value
+
 
     # ======================================
     # Update insertion sheet
@@ -343,9 +397,6 @@ def histology_assign_update():
             is_critical |= insertion.json.get('qc', None) == 'CRITICAL'
             is_critical |= not insertion.json.get('extended_qc', {}).get('tracing_exists', True)
 
-            # # Ephys Raw TODO CALL FUNC CODE HERE
-            # is_ephys_raw_ap = insertion.datasets.filter(dataset_type__name__icontains='ephysData.raw.ap').count() >= 1
-
             # Form dict
             dict_ins = {
                 "sess_id": eid,
@@ -358,8 +409,14 @@ def histology_assign_update():
                 "assign_lab": assign_lab,
                 "assign_lab_done": assign_lab_done,
                 "align_solved": aligned,
-                "is_critical": is_critical,
+                "is_critical": is_critical
             }
+
+            # Check all datasets exist and append
+            for str_identifier in LIST_STR_ID:
+                out_bool = _check_ds_exist_main(insertion, str_identifier)
+                dict_ins[str_identifier] = out_bool
+
             list_all.append(dict_ins)
 
     # Create DF and write to sheet
