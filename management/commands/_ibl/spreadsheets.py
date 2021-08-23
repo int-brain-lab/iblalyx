@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 import sys
 from datetime import date
+import os
 
 from googleapiclient.discovery import build
 from httplib2 import Http
@@ -18,14 +19,24 @@ from misc.models import LabMember
 from experiments.models import ProbeInsertion, TrajectoryEstimate
 
 # -- Save print into text file
-path_save_txt = '~/report_gc_temp'
-filename = 'histology_assign_update__varout'
-# append date
+path_save_txt = Path.home().joinpath('report_gc_temp')
+
+# Filename with appended date
 today = date.today()
 d1 = today.strftime("%Y-%m-%d")
+file_str = 'histology_assign_update'
+filename = f'{d1}__{file_str}__varout.txt'
+
+# Delete any older file
+list_file_out = os.listdir(path_save_txt)
+matching_file_str = [s for s in list_file_out if file_str in s]
+for i_file in matching_file_str:
+    file_to_del = path_save_txt.joinpath(i_file)
+    os.remove(file_to_del)
+
 # Save printed text - init
 orig_stdout = sys.stdout
-f = open(f'{path_save_txt}/{d1}__{filename}.txt', 'w')
+f = open(path_save_txt.joinpath(filename), 'w')
 sys.stdout = f
 
 
