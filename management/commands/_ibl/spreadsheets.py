@@ -6,6 +6,8 @@ Assign new person to do histology alignment.
 from pathlib import Path
 import pandas as pd
 import numpy as np
+import sys
+from datetime import date
 
 from googleapiclient.discovery import build
 from httplib2 import Http
@@ -14,6 +16,18 @@ from oauth2client import client, file, tools
 from data.models import Session
 from misc.models import LabMember
 from experiments.models import ProbeInsertion, TrajectoryEstimate
+
+# -- Save print into text file
+path_save_txt = '~/report_gc_temp'
+filename = 'histology_assign_update__varout'
+# append date
+today = date.today()
+d1 = today.strftime("%Y-%m-%d")
+# Save printed text - init
+orig_stdout = sys.stdout
+f = open(f'{path_save_txt}/{d1}__{filename}.txt', 'w')
+sys.stdout = f
+
 
 # -- FUNCTIONS TO TEST DATASET TYPE EXISTENCE
 LIST_STR_ID = [
@@ -358,7 +372,8 @@ def histology_assign_update():
             date = str(insertion.session.start_time)[:10]
             # Insertion missing Json - flag bug
             if insertion.json is None:
-                print(f'WARNING: Data inconsistency: insertion id {insertion.id} does not have json field (NoneType)')
+                print(f'WARNING: Data inconsistency: insertion id {insertion.id} does not have json field (NoneType);'
+                      f'setting aligned = False')
                 aligned = False
             else:
                 ext_qc = insertion.json.get('extended_qc', None)
@@ -400,7 +415,8 @@ def histology_assign_update():
             if insertion.session.extended_qc is not None:
                 is_critical |= insertion.session.extended_qc.get('behavior', 1) == 0  # behaviour critical
             if insertion.json is None:
-                print(f'WARNING: Data inconsistency: insertion id {insertion.id} does not have json field (NoneType)')
+                print(f'WARNING: Data inconsistency: insertion id {insertion.id} does not have json field (NoneType);'
+                      f'setting is_critical = False')
                 is_critical = False
             else:
                 is_critical |= insertion.json.get('qc', None) == 'CRITICAL'
@@ -443,3 +459,7 @@ def histology_assign_update():
                         body=dict(majorDimension='ROWS',
                                   values=df.T.reset_index().T.values.tolist())).execute()
     print('Sheet successfully Updated')
+
+    # Save printed text
+    sys.stdout = orig_stdout
+    f.close()
