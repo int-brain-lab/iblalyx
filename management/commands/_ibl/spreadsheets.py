@@ -399,8 +399,12 @@ def histology_assign_update():
             is_critical = insertion.session.qc == 50  # session critical status
             if insertion.session.extended_qc is not None:
                 is_critical |= insertion.session.extended_qc.get('behavior', 1) == 0  # behaviour critical
-            is_critical |= insertion.json.get('qc', None) == 'CRITICAL'
-            is_critical |= not insertion.json.get('extended_qc', {}).get('tracing_exists', True)
+            if insertion.json is None:
+                print(f'WARNING: Data inconsistency: insertion id {insertion.id} does not have json field (NoneType)')
+                is_critical = False
+            else:
+                is_critical |= insertion.json.get('qc', None) == 'CRITICAL'
+                is_critical |= not insertion.json.get('extended_qc', {}).get('tracing_exists', True)
 
             # Form dict
             dict_ins = {
