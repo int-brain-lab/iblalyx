@@ -356,8 +356,13 @@ def histology_assign_update():
         for i_ins, insertion in enumerate(insertions):
             subject = insertion.session.subject.nickname
             date = str(insertion.session.start_time)[:10]
-            ext_qc = insertion.json.get('extended_qc', None)
-            aligned = False if ext_qc is None else ext_qc.get('alignment_resolved', False)
+            # Insertion missing Json - flag bug
+            if insertion.json is None:
+                print(f'WARNING: Data inconsistency: insertion id {insertion.id} does not have json field (NoneType)')
+                aligned = False
+            else:
+                ext_qc = insertion.json.get('extended_qc', None)
+                aligned = False if ext_qc is None else ext_qc.get('alignment_resolved', False)
             # Check if user assigned did align
             origin_lab = data['origin_labs'][i_sess]
             assign_lab = data['assign_labs'][i_sess]
