@@ -18,6 +18,8 @@ from data.models import Session
 from misc.models import LabMember
 from experiments.models import ProbeInsertion, TrajectoryEstimate
 
+# TODO remove printed txt to file for debugging
+'''
 # -- Save print into text file
 path_save_txt = Path.home().joinpath('report_gc_temp')
 
@@ -38,7 +40,7 @@ for i_file in matching_file_str:
 orig_stdout = sys.stdout
 f = open(path_save_txt.joinpath(filename), 'w')
 sys.stdout = f
-
+'''
 
 # -- FUNCTIONS TO TEST DATASET TYPE EXISTENCE
 LIST_STR_ID = [
@@ -392,6 +394,7 @@ def histology_assign_update():
             # Check if user assigned did align
             origin_lab = data['origin_labs'][i_sess]
             assign_lab = data['assign_labs'][i_sess]
+
             # provenance - 70: Ephys aligned histology track / 50: Histology track / 30: Micro-manipulator / 10: Planned
             traj = TrajectoryEstimate.objects.filter(provenance=70, probe_insertion=insertion.id)
 
@@ -410,6 +413,9 @@ def histology_assign_update():
                         # rename hoferlab to mrsicflogel (1 lab for both)
                         if user_lab == 'hoferlab':
                             user_lab = 'mrsicflogellab'
+                        # take common user lab in case of multiplicity (e.g. chrisk)
+                        if origin_lab in user.lab:
+                            user_lab = origin_lab  # redundant but Q&D for now
 
                         if user_lab == origin_lab:
                             origin_lab_done = True
@@ -471,6 +477,9 @@ def histology_assign_update():
                                   values=df.T.reset_index().T.values.tolist())).execute()
     print('Sheet successfully Updated')
 
+    # TODO remove printed txt to file for debugging
+    '''
     # Save printed text
     sys.stdout = orig_stdout
     f.close()
+    '''
