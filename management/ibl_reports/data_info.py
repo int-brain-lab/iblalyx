@@ -1,3 +1,57 @@
+# RAW DATA
+RAW_BEHAVIOUR = [
+    ('_iblrig_ambientSensorData.raw', 'raw_behavior_data', True),
+    ('_iblrig_encoderEvents.raw', 'raw_behavior_data', True),
+    ('_iblrig_encoderPositions.raw', 'raw_behavior_data', True),
+    ('_iblrig_encoderTrialInfo.raw', 'raw_behavior_data', True),
+    ('_iblrig_micData.raw', 'raw_behavior_data', False),
+    ('_iblrig_stimPositionScreen.raw', 'raw_behavior_data', False),
+    ('_iblrig_syncSquareUpdate.raw', 'raw_behavior_data', False),
+    ('_iblrig_taskData.raw', 'raw_behavior_data', True),
+    ('_iblrig_taskSettings.raw', 'raw_behavior_data', True),
+]
+
+RAW_PASSIVE = [
+    ('_iblrig_RFMapStim.raw', 'raw_passive_data', True),
+    ('_iblrig_stimPositionScreen.raw', 'raw_passive_data', False),
+    ('_iblrig_syncSquareUpdate.raw', 'raw_passive_data', False),
+    ('_iblrig_taskSettings.raw', 'raw_passive_data', False),
+    ('_iblrig_encoderEvents.raw', 'raw_passive_data', False),
+    ('_iblrig_encoderPositions.raw', 'raw_passive_data', False),
+    ('_iblrig_encoderTrialInfo.raw', 'raw_passive_data', False),
+]
+
+# Data common to both 3A and 3B
+RAW_EPHYS = [
+    ['ephysData.raw.ap', 'raw_ephys_data/XX', True],
+    ['ephysData.raw.ch', 'raw_ephys_data/XX', True, ['ap', 'lf']],
+    ['ephysData.raw.lf', 'raw_ephys_data/XX', True],
+    ['ephysData.raw.meta', 'raw_ephys_data/XX', True, ['ap', 'lf']],
+]
+
+# These are for both 3B probes but only main probe for 3A
+RAW_EPHYS_EXTRA = [
+    ['ephysData.raw.sync', 'raw_ephys_data/XX', True],
+    ['ephysData.raw.timestamps', 'raw_ephys_data/XX', True],
+    ['ephysData.raw.wiring', 'raw_ephys_data/XX', False],
+]
+
+# Only for 3B
+RAW_EPHYS_NIDAQ = [
+    ('ephysData.raw.nidq', 'raw_ephys_data', True),
+    ('ephysData.raw.meta', 'raw_ephys_data', True, ['nidq']),
+    ('ephysData.raw.ch', 'raw_ephys_data', True, ['nidq']),
+]
+
+
+RAW_VIDEO = [
+    ('_iblrig_Camera.raw', 'raw_video_data', True, ['left', 'right', 'body']),
+    ('_iblrig_Camera.timestamps', 'raw_video_data', True, ['left', 'right', 'body']),
+    ('_iblrig_Camera.GPIO', 'raw_video_data', False, ['left', 'right', 'body']),
+    ('_iblrig_Camera.frame_counter', 'raw_video_data', False, ['left', 'right', 'body']),
+]
+
+# PROCESSED DATA
 TRIALS = [
     ('trials.choice', 'alf', True),
     ('trials.contrastLeft', 'alf', True),
@@ -16,20 +70,6 @@ TRIALS = [
     ('trials.stimOn_times', 'alf', True),
 ]
 
-PASSIVE = [
-    ('_iblrig_RFMapStim.raw', 'raw_passive_data', True),
-    ('_iblrig_stimPositionScreen.raw', 'raw_passive_data', False),
-    ('_iblrig_syncSquareUpdate.raw', 'raw_passive_data', False),
-    ('_iblrig_taskSettings.raw', 'raw_passive_data', False),
-    ('_iblrig_encoderEvents.raw', 'raw_passive_data', False),
-    ('_iblrig_encoderPositions.raw', 'raw_passive_data', False),
-    ('_iblrig_encoderTrialInfo.raw', 'raw_passive_data', False),
-    ('_ibl_passiveGabor.table', 'alf', True),
-    ('_ibl_passivePeriods.intervalsTable', 'alf', True),
-    ('_ibl_passiveRFM.times', 'alf', True),
-    ('_ibl_passiveStims.table', 'alf', True),
-]
-
 WHEEL = [
     ('wheel.position', 'alf', True),
     ('wheel.timestamps', 'alf', True),
@@ -37,17 +77,13 @@ WHEEL = [
     ('wheelMoves.peakAmplitude', 'alf', True),
 ]
 
-BEHAVIOUR = [
-    ('_iblrig_ambientSensorData.raw', 'raw_behavior_data', True),
-    ('_iblrig_encoderEvents.raw', 'raw_behavior_data', True),
-    ('_iblrig_encoderPositions.raw', 'raw_behavior_data', True),
-    ('_iblrig_encoderTrialInfo.raw', 'raw_behavior_data', True),
-    ('_iblrig_micData.raw', 'raw_behavior_data', False),
-    ('_iblrig_stimPositionScreen.raw', 'raw_behavior_data', False),
-    ('_iblrig_syncSquareUpdate.raw', 'raw_behavior_data', False),
-    ('_iblrig_taskData.raw', 'raw_behavior_data', True),
-    ('_iblrig_taskSettings.raw', 'raw_behavior_data', True),
+PASSIVE = [
+    ('_ibl_passiveGabor.table', 'alf', True),
+    ('_ibl_passivePeriods.intervalsTable', 'alf', True),
+    ('_ibl_passiveRFM.times', 'alf', True),
+    ('_ibl_passiveStims.table', 'alf', True),
 ]
+
 
 DLC = [
     ('camera.dlc', 'alf', True, ['left', 'right', 'body']),
@@ -57,19 +93,11 @@ DLC = [
 ]
 
 VIDEO = [
-    ('_iblrig_Camera.raw', 'raw_video_data', True, ['left', 'right', 'body']),
-    ('_iblrig_Camera.timestamps', 'raw_video_data', True, ['left', 'right', 'body']),
-    ('_iblrig_Camera.GPIO', 'raw_video_data', False, ['left', 'right', 'body']),
-    ('_iblrig_Camera.frame_counter', 'raw_video_data', False, ['left', 'right', 'body']),
     ('camera.times', 'alf', True, ['left', 'right', 'body']),
 ]
 
 # Data common to both 3A and 3B
-RAW_EPHYS = [
-    ['ephysData.raw.ap', 'raw_ephys_data/XX', True],
-    ['ephysData.raw.ch', 'raw_ephys_data/XX', True, ['ap', 'lf']],
-    ['ephysData.raw.lf', 'raw_ephys_data/XX', True],
-    ['ephysData.raw.meta', 'raw_ephys_data/XX', True, ['ap', 'lf']],
+EPHYS = [
     ['_spikeglx_sync.channels', 'raw_ephys_data/XX', True],
     ['_spikeglx_sync.polarities', 'raw_ephys_data/XX', True],
     ['_spikeglx_sync.times', 'raw_ephys_data/XX', True],
@@ -79,18 +107,8 @@ RAW_EPHYS = [
     ['_iblqc_ephysTimeRms.timestamps', 'raw_ephys_data/XX', True, ['ap', 'lf']],
 ]
 
-# These are for both 3B probes but only main probe for 3A
-RAW_EPHYS_EXTRA = [
-    ['ephysData.raw.sync', 'raw_ephys_data/XX', True],
-    ['ephysData.raw.timestamps', 'raw_ephys_data/XX', True],
-    ['ephysData.raw.wiring', 'raw_ephys_data/XX', False],
-]
-
 # Only for 3B
-RAW_EPHYS_NIDAQ = [
-    ('ephysData.raw.nidq', 'raw_ephys_data', True),
-    ('ephysData.raw.meta', 'raw_ephys_data', True, ['nidq']),
-    ('ephysData.raw.ch', 'raw_ephys_data', True, ['nidq']),
+EPHYS_NIDAQ = [
     ('_spikeglx_sync.channels', 'raw_ephys_data', True),
     ('_spikeglx_sync.polarities', 'raw_ephys_data', True),
     ('_spikeglx_sync.times', 'raw_ephys_data', True),
@@ -126,12 +144,19 @@ SPIKE_SORTING = [
     ['templates.waveformsChannels', 'alf/XX', True],
 ]
 
+
+# RAW DATA TASKS
+RAW_BEHAVIOUR_TASKS = ['TrainingRegisterRaw', 'EphysAudio']
+RAW_PASSIVE_TASKS = ['TrainingRegisterRaw']
+RAW_EPHYS_TASKS = ['EphysMtscomp']
+RAW_VIDEO_TASKS = ['TrainingRegisterRaw', 'EphysVideoCompress']
+
+# PROCESSED DATA TASKS
 PASSIVE_TASKS = ['EphysPassive']
+EPHYS_TASKS = ['EphysPulses', 'RawEphysQC']
 VIDEO_TASKS = ['EphysVideoCompress']
 TRIAL_TASKS = ['EphysTrials']
 WHEEL_TASKS = ['EphysTrials']
-BEHAVIOUR_TASKS = ['TrainingRegisterRaw', 'EphysAudio']
 SPIKE_SORTING_TASKS = ['SpikeSorting', 'EphysCellsQc']
-RAW_EPHYS_TASKS = ['EphysMtscomp', 'EphysPulses', 'RawEphysQC']
 DLC_TASKS = ['EphysDLC']
 

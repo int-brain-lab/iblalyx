@@ -22,14 +22,17 @@ class InsertionOverview(ListView):
 
         context['probe'] = probe
         context['data'] = {}
-        context['data']['passive'] = data_check.passive_data_status(dsets, probe)
-        context['data']['behaviour'] = data_check.behaviour_data_status(dsets, probe)
+        context['data']['raw_behaviour'] = data_check.raw_behaviour_data_status(dsets, probe)
+        context['data']['raw_passive'] = data_check.raw_passive_data_status(dsets, probe)
+        context['data']['raw_ephys'] = data_check.raw_ephys_data_status(dsets, probe)
+        context['data']['raw_video'] = data_check.raw_video_data_status(dsets, probe)
         context['data']['trials'] = data_check.trial_data_status(dsets, probe)
         context['data']['wheel'] = data_check.wheel_data_status(dsets, probe)
-        context['data']['raw_ephys'] = data_check.raw_ephys_data_status(dsets, probe)
-        context['data']['dlc'] = data_check.dlc_data_status(dsets, probe)
-        context['data']['video'] = data_check.video_data_status(dsets, probe)
+        context['data']['passive'] = data_check.passive_data_status(dsets, probe)
+        context['data']['ephys'] = data_check.ephys_data_status(dsets, probe)
         context['data']['spikesort'] = data_check.spikesort_data_status(dsets, probe)
+        context['data']['video'] = data_check.video_data_status(dsets, probe)
+        context['data']['dlc'] = data_check.dlc_data_status(dsets, probe)
 
         return context
 
