@@ -8,6 +8,10 @@ In practice a symlink sends the ibl.py file and the private package _ibl to the 
 ```
 ln -s ~/iblalyx/management/commands/_ibl /var/www/alyx-main/alyx/data/management/commands/_ibl
 ln -s ~/iblalyx/management/commands/ibl.py /var/www/alyx-main/alyx/data/management/commands/ibl.py
+
+# to link the ibl_reports page
+ln -s ~/iblalyx/management/ibl_reports /var/www/alyx-main/alyx/ibl_reports
+ln -s ~/iblalyx/management/ibl_reports/templates /var/www/alyx-main/alyx/templates/ibl_reports
 ```
 
 ## Commands
