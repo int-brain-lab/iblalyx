@@ -163,7 +163,7 @@ def ephys_data_status(datasets, probe):
         if len(dset[1].split('/')) == 2:
             dset[1] = f'raw_ephys_data/{probe.name}'
 
-    data = get_data_status(datasets, expected_dsets, 'Raw ephys data')
+    data = get_data_status(datasets, expected_dsets, 'Ephys data')
     data['tasks'] = get_tasks(expected_data.EPHYS_TASKS, probe)
 
     return data
