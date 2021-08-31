@@ -17,8 +17,10 @@ def get_task_qc_colours(task_qc_data):
         '_task_reward_volumes',
         '_task_reward_volume_set',
         '_task_stimulus_move_before_goCue',
-        '_task_audio_pre_trial'
+        '_task_audio_pre_trial',
+        '_task_n_trial_events'
     ]
+
     for key, val in task_qc_data.items():
         if val < 0.9:
             col = FAIL_COLOUR

@@ -70,7 +70,7 @@ def plot_video_qc(request, pid):
     return JsonResponse({
         'title': f'Video Left QC: {extended_qc.get("videoLeft", "Not computed")} '
                  f'Video Right QC: {extended_qc.get("videoRight", "Not computed")} '
-                 f'Video Body QC: {extended_qc.get("videoBdy", "Not computed")}',
+                 f'Video Body QC: {extended_qc.get("videoBody", "Not computed")}',
         'data': {
             'labels': video_data['label'],
             'datasets': [{
