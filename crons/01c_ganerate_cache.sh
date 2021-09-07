@@ -1,4 +1,4 @@
-# NB This is not run on a cron job; 01_backup_ibl.sh is used instead
+# NB This is run on a cron job
 # Alyx cache tables
 source /var/www/alyx-main/venv/bin/activate
 python /var/www/alyx-main/alyx/manage.py one_cache --int-id
