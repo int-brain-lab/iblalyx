@@ -5,14 +5,17 @@ from django.template import loader
 from django.views.generic.list import ListView
 from experiments.models import TrajectoryEstimate, ProbeInsertion
 from django.db.models import Count, Q, F, Max, OuterRef, Exists
+from django.contrib.auth.mixins import LoginRequiredMixin
+
 from misc.models import Lab
 import numpy as np
 from ibl_reports import qc_check
 from ibl_reports import data_check
 
 
-class InsertionOverview(ListView):
+class InsertionOverview(LoginRequiredMixin, ListView):
     template_name = 'ibl_reports/plots.html'
+    login_url = '/login/'
 
     def get_context_data(self, **kwargs):
         context = super(InsertionOverview, self).get_context_data(**kwargs)
@@ -81,8 +84,9 @@ def plot_video_qc(request, pid):
     })
 
 
-class AlertsLabView(ListView):
+class AlertsLabView(LoginRequiredMixin, ListView):
     template_name = 'reports/plots.html'
+    login_url = '/login/'
 
     def get_context_data(self, **kwargs):
         lab_name = self.kwargs.get('lab', None)
@@ -230,8 +234,9 @@ def current_datetime(request):
 # Q1 : how to link item to insertion when they relate to session
 # Q2 : how to put new fields in (e.g. result of test for datasets)
 
-class InsertionTableWithFilter(ListView):
+class InsertionTableWithFilter(LoginRequiredMixin, ListView):
 
+    login_url = '/login/'
     template_name = 'ibl_reports/table.html'
     paginate_by = 50
 
@@ -286,8 +291,3 @@ class InsertionFilter(django_filters.FilterSet):
 
     def filter_resolved(self, queryset, name, value):
         return queryset.filter(resolved=value)
-
-
-
-
-
