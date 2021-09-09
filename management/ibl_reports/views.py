@@ -12,10 +12,12 @@ import numpy as np
 from ibl_reports import qc_check
 from ibl_reports import data_check
 
+LOGIN_URL = '/admin/login/'
+
 
 class InsertionOverview(LoginRequiredMixin, ListView):
     template_name = 'ibl_reports/plots.html'
-    login_url = '/login/'
+    login_url = LOGIN_URL
 
     def get_context_data(self, **kwargs):
         context = super(InsertionOverview, self).get_context_data(**kwargs)
@@ -86,7 +88,7 @@ def plot_video_qc(request, pid):
 
 class AlertsLabView(LoginRequiredMixin, ListView):
     template_name = 'reports/plots.html'
-    login_url = '/login/'
+    login_url = LOGIN_URL
 
     def get_context_data(self, **kwargs):
         lab_name = self.kwargs.get('lab', None)
@@ -236,7 +238,7 @@ def current_datetime(request):
 
 class InsertionTableWithFilter(LoginRequiredMixin, ListView):
 
-    login_url = '/login/'
+    login_url = LOGIN_URL
     template_name = 'ibl_reports/table.html'
     paginate_by = 50
 
@@ -278,7 +280,7 @@ class InsertionFilter(django_filters.FilterSet):
 
     class Meta:
         model = ProbeInsertion
-        fields = ['id', 'session__lab', 'session__project']
+        fields = ['id', 'session__lab', 'session__project', 'session']
         exclude = ['json']
 
     def __init__(self, *args, **kwargs):
@@ -288,6 +290,7 @@ class InsertionFilter(django_filters.FilterSet):
         self.filters['id'].label = "Probe ID"
         self.filters['session__lab'].label = "Lab"
         self.filters['session__project'].label = "Project"
+        self.filters['session'].label = "Eid"
 
     def filter_resolved(self, queryset, name, value):
         return queryset.filter(resolved=value)
