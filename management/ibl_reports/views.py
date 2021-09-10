@@ -251,7 +251,9 @@ class InsertionTableWithFilter(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
 
-        qs = ProbeInsertion.objects.all()
+        qs = ProbeInsertion.objects.all().prefetch_related('session__data_dataset_session_related',
+                                                           'session', 'session__project',
+                                                           'session__subject__lab',)
         # self.f = InsertionFilter(self.request.GET, queryset=qs)
         # qs = self.f.qs
         qs = qs.annotate(task=F('session__extended_qc__task'),
@@ -280,7 +282,7 @@ class InsertionFilter(django_filters.FilterSet):
 
     class Meta:
         model = ProbeInsertion
-        fields = ['id', 'session__lab', 'session__project', 'session']
+        fields = ['id', 'session__lab', 'session__project']
         exclude = ['json']
 
     def __init__(self, *args, **kwargs):
@@ -290,7 +292,6 @@ class InsertionFilter(django_filters.FilterSet):
         self.filters['id'].label = "Probe ID"
         self.filters['session__lab'].label = "Lab"
         self.filters['session__project'].label = "Project"
-        self.filters['session'].label = "Eid"
 
     def filter_resolved(self, queryset, name, value):
         return queryset.filter(resolved=value)
