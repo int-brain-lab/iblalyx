@@ -24,13 +24,3 @@ def ftp_delete_local():
     dsets_2del = Dataset.objects.filter(pk__in=frs.values_list('dataset', flat=True))
 
     transfers.globus_delete_local_datasets(dsets_2del, dry=False)
-
-
-def held_status_reset():
-    # looks for held statuses task if parents are all complete or waiting, in which case reset to waiting
-    t = Task.objects.filter(status=25)
-    t = t.annotate(n_parents=Count('parents'), n_parents_ok=Count('parents', filter=Q(status=60) | Q(status=20)))
-    t = t.annotate(n_parents_ko=F('n_parents') - F('n_parents_ok'))
-    t_reset = t.filter(n_parents_ko=0)
-    logger.info(f'reset {t_reset.count()} held tasks to waiting with parents')
-    t_reset.update(status=20)
