@@ -15,13 +15,14 @@ def held_status_reset():
     t = t.annotate(n_parents_ko=F('n_parents') - F('n_parents_ok'))
     t_reset = t.filter(n_parents_ko=0)
     logger.info(f'reset {t_reset.count()} held tasks to waiting with parents')
-    t_reset.update(status=20, log='')
+    _reset_queryset(t_reset)
 
 
 def task_reset(task_ids):
     t = Task.objects.filter(id='38bee792-1f8e-485e-86f8-6732bf999098')
-    t.update(log='', status=20)
+    _reset_queryset(t)
 
 
 def _reset_queryset(tqs):
+    logger.info(f'reset {tqs.count()} tasks')
     tqs.update(log=None, status=20, version=None, time_elapsed_secs=None)

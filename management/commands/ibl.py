@@ -49,4 +49,4 @@ class Command(BaseCommand):
         elif action == 'task_reset':
             task_reset(options.get('tid'))
         else:
-            ValueError(f'No action for command {action}')
+            raise ValueError(f'No action for command {action}')
