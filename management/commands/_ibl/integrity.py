@@ -4,10 +4,7 @@ does the synchronisation of IBL patcher files DMZ
 
 import logging
 
-from django.db.models import Count, Q, F
-
 from data.models import FileRecord, Dataset
-from jobs.models import Task
 import data.transfers as transfers
 
 logger = logging.getLogger('data.transfers')

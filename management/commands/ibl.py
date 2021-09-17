@@ -48,3 +48,5 @@ class Command(BaseCommand):
             qc_table()
         elif action == 'task_reset':
             task_reset(options.get('tid'))
+        else:
+            ValueError(f'No action for command {action}')

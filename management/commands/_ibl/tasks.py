@@ -1,4 +1,7 @@
 import logging
+
+from django.db.models import Count, F, Q
+
 from jobs.models import Task
 
 logger = logging.getLogger('data.transfers')
@@ -18,3 +21,7 @@ def held_status_reset():
 def task_reset(task_ids):
     t = Task.objects.filter(id='38bee792-1f8e-485e-86f8-6732bf999098')
     t.update(log='', status=20)
+
+
+def _reset_queryset(tqs):
+    tqs.update(log=None, status=20, version=None, time_elapsed_secs=None)
