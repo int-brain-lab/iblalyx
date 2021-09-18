@@ -1,3 +1,4 @@
+import datetime
 import logging
 
 from django.db.models import Count, F, Q
@@ -16,6 +17,13 @@ def held_status_reset():
     t_reset = t.filter(n_parents_ko=0)
     logger.info(f'reset {t_reset.count()} held tasks to waiting with parents')
     _reset_queryset(t_reset)
+
+
+def started_status_reset():
+    # after 6 days we consider the job stalled
+    cut_off = datetime.datetime.now() - datetime.timedelta(days=6)
+    t = Task.objects.filter(status=30, datetime__lt=cut_off)
+    _reset_queryset(t)
 
 
 def task_reset(task_ids):
