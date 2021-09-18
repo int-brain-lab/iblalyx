@@ -19,7 +19,7 @@ def held_status_reset():
     _reset_queryset(t_reset)
 
 
-def started_status_reset():
+def started_stalled_reset():
     # after 6 days we consider the job stalled
     cut_off = datetime.datetime.now() - datetime.timedelta(days=6)
     t = Task.objects.filter(status=30, datetime__lt=cut_off)

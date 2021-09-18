@@ -4,7 +4,7 @@ from ._ibl.integrity import ftp_delete_local
 from ._ibl.monitor import monitor_dlc
 from ._ibl.spreadsheets import histology_assign_update
 from ._ibl.table import qc_table
-from ._ibl.tasks import held_status_reset, task_reset
+from ._ibl.tasks import held_status_reset, task_reset, started_stalled_reset
 
 
 class Command(BaseCommand):
@@ -13,9 +13,6 @@ class Command(BaseCommand):
 
     python ./manage.py ibl ftp_delete_local
         Removes files on the FTP server that exist on the SDSC
-
-    python ./manage.py ibl held_status_reset
-        Resets to waiting held status tasks for which all parents passed
 
     python ./manage.py ibl histology_assign_update
         Creates histology update spreadsheet to assign experimenters tasks
@@ -28,6 +25,12 @@ class Command(BaseCommand):
 
     python ./manage.py ibl task_reset --id {task_uuid}
         Resets a single task to waiting and clear log
+
+    python ./manage.py ibl task_held_status_reset
+        Resets to waiting held status tasks for which all parents passed
+
+    python ./manage.py ibl task_started_stalled_reset
+        Resets to waiting tasks that have been Started for more than 6 days
     """
     def add_arguments(self, parser):
         parser.add_argument('action', help='Action')
@@ -38,14 +41,17 @@ class Command(BaseCommand):
 
         if action == 'ftp_delete_local':
             ftp_delete_local()
-        elif action == 'held_status_reset':
-            held_status_reset()
+
         elif action == 'histology_assign_update':
             histology_assign_update()
         elif action == 'monitor_dlc':
             monitor_dlc()
         elif action == 'qc_table':
             qc_table()
+        elif action == 'task_held_status_reset':
+            held_status_reset()
+        elif action == 'task_started_stalled_reset':
+            started_stalled_reset()
         elif action == 'task_reset':
             task_reset(options.get('tid'))
         else:
