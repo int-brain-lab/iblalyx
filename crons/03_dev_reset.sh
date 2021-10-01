@@ -4,8 +4,6 @@ HOST=alyx.clfrcwlvymbw.eu-west-2.rds.amazonaws.com
 backup_dir="/backups/alyx-backups/$(date +%Y-%m-%d)"
 mkdir -p "$backup_dir"
 
-# Full SQL dump.
-/usr/bin/pg_dump -cOx -U ibl_dev -h $HOST -d alyx -f "$backup_dir/alyx_full.sql"
 # Delete the full dev database
 psql -q -U ibl_dev -h $HOST -d alyx_dev -c "drop schema public cascade"
 psql -q -U ibl_dev -h $HOST -d alyx_dev -c "create schema public"
@@ -22,3 +20,5 @@ cd /var/www/alyx-dev/alyx
 source ../venv/bin/activate
 ./manage.py makemigrations
 ./manage.py migrate
+
+python /var/www/alyx-main/scripts/deployment_examples/99_purge_duplicate_backups.py
