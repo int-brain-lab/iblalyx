@@ -26,8 +26,8 @@ def started_stalled_reset():
     _reset_queryset(t)
 
 
-def task_reset(task_ids):
-    t = Task.objects.filter(id='38bee792-1f8e-485e-86f8-6732bf999098')
+def task_reset(task_id):
+    t = Task.objects.filter(id=task_id)
     _reset_queryset(t)
 
 
