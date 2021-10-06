@@ -1,23 +1,19 @@
-"""
-does the synchronisation of IBL patcher files DMZ
-"""
-
+import datetime
 import logging
 
-from data.models import FileRecord, Dataset
-import data.transfers as transfers
+from data.models import Dataset
 
-logger = logging.getLogger('data.transfers')
-logger.setLevel(20)
+_logger = logging.getLogger()
 
 
-def ftp_delete_local():
-    # get the datasets that have one file record on the DMZ
-    dsets = FileRecord.objects.filter(data_repository__name='ibl_patcher'
-                                      ).values_list('dataset', flat=True).distinct()
-    dsets = Dataset.objects.filter(pk__in=dsets)
-
-    frs = FileRecord.objects.filter(dataset__in=dsets, data_repository__globus_is_personal=False, exists=True)
-    dsets_2del = Dataset.objects.filter(pk__in=frs.values_list('dataset', flat=True))
-
-    transfers.globus_delete_local_datasets(dsets_2del, dry=False)
+def remove_old_datasets_local_and_server_missing():
+    """
+    The sync tasks label file records that can't be found anywhere as local_missing in the json file
+    If after 30 days of daily attemps to upload them none can be found, this removes the datasets from the database
+    :return:
+    """
+    cut_off_date = datetime.datetime.now() - datetime.timedelta(days=30)
+    dsets = Dataset.objects.filter(file_records__json__local_missing=True, session__start_time__date__lt=cut_off_date)
+    for dset in dsets:
+        _logger.warning(f"deleting {dset.session},  {dset.collection}, {dset.name}")
+    dsets.delete()
