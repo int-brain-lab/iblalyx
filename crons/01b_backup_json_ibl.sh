@@ -2,6 +2,7 @@ backup_dir="/backups/alyx-backups/$(date +%Y-%m-%d)"
 
 # Full django JSON dump, used by datajoint
 mkdir -p "$backup_dir"
+cd "$backup_dir"
 # Full django JSON dump.
 source /var/www/alyx-main/venv/bin/activate
 python /var/www/alyx-main/alyx/manage.py dumpdata \
@@ -16,7 +17,7 @@ python /var/www/alyx-main/alyx/manage.py dumpdata \
     -e jobs.task \
     -e misc.note \
     -e subjects.subjectrequest \
-    --indent 1 -o "alyx_full.json"
+    --indent 1 -o "$backup_dir/alyx_full.json"
 
 gzip -f "$backup_dir/alyx_full.json"
 
