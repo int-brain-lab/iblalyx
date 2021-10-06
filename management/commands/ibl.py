@@ -1,6 +1,6 @@
 from django.core.management import BaseCommand
 
-from ._ibl.integrity import ftp_delete_local
+from ._ibl.transfers import ftp_delete_local, ftp_upload
 from ._ibl.monitor import monitor_dlc
 from ._ibl.spreadsheets import histology_assign_update
 from ._ibl.table import qc_table
@@ -41,7 +41,6 @@ class Command(BaseCommand):
 
         if action == 'ftp_delete_local':
             ftp_delete_local()
-
         elif action == 'histology_assign_update':
             histology_assign_update()
         elif action == 'monitor_dlc':
