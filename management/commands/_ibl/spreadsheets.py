@@ -293,7 +293,7 @@ def histology_assign_update():
     drive_service = build('drive', 'v3', http=credentials.authorize(Http()))
     sheets = build('sheets', 'v4', http=credentials.authorize(Http()))
     read_spreadsheetID = '1nidCu7MjLrjaA8NHWYnJavLzQBjILZhCkYt0OdCUTxg'
-    read_spreadsheetRange = 'TEST1'  # TODO'NEW_2'
+    read_spreadsheetRange = 'TEST1'  # TODO re-place to 'NEW_2' when done debugging
     rows = sheets.spreadsheets().values().get(spreadsheetId=read_spreadsheetID,
                                               range=read_spreadsheetRange).execute()
 
@@ -391,34 +391,42 @@ def histology_assign_update():
             else:
                 ext_qc = insertion.json.get('extended_qc', None)
                 aligned = False if ext_qc is None else ext_qc.get('alignment_resolved', False)
-            # Check if user assigned did align
+
+            # Init var
             origin_lab = data['origin_labs'][i_sess]
             assign_lab = data['assign_labs'][i_sess]
-
-            # provenance - 70: Ephys aligned histology track / 50: Histology track / 30: Micro-manipulator / 10: Planned
-            traj = TrajectoryEstimate.objects.filter(provenance=70, probe_insertion=insertion.id)
-
+            tracing_done = False
             origin_lab_done = False
             assign_lab_done = False
-            if traj.count() > 0:
-                if traj[0].json is not None:
-                    names = traj[0].json.keys()
-                    names = list(names)
 
-                    for i_name in range(0, len(names)):
-                        idx_str = str.find(names[i_name], '_')
-                        user_str = names[i_name][idx_str + 1:]
-                        user = LabMember.objects.get(username=user_str)
-                        user_lab = user.lab
-                        # add hoferlab to mrsicflogel (1 lab for both)
-                        if 'hoferlab' in user_lab:
-                            user_lab.append('mrsicflogellab')
+            # Check if tracing is done
+            # provenance - 70: Ephys aligned histology track / 50: Histology track / 30: Micro-manipulator / 10: Planned
+            traj = TrajectoryEstimate.objects.filter(provenance=50, probe_insertion=insertion.id)
+            if len(traj) > 0:
+                tracing_done = True
 
-                        # Note: One user (e.g. chrisk) can have multiple labs, hence the "in"
-                        if origin_lab in user_lab:
-                            origin_lab_done = True
-                        elif assign_lab in user_lab:
-                            assign_lab_done = True
+                # Check if user assigned did align
+                traj = TrajectoryEstimate.objects.filter(provenance=70, probe_insertion=insertion.id)
+
+                if traj.count() > 0:
+                    if traj[0].json is not None:
+                        names = traj[0].json.keys()
+                        names = list(names)
+
+                        for i_name in range(0, len(names)):
+                            idx_str = str.find(names[i_name], '_')
+                            user_str = names[i_name][idx_str + 1:]
+                            user = LabMember.objects.get(username=user_str)
+                            user_lab = user.lab
+                            # add hoferlab to mrsicflogel (1 lab for both)
+                            if 'hoferlab' in user_lab:
+                                user_lab.append('mrsicflogellab')
+
+                            # Note: One user (e.g. chrisk) can have multiple labs, hence the "in"
+                            if origin_lab in user_lab:
+                                origin_lab_done = True
+                            elif assign_lab in user_lab:
+                                assign_lab_done = True
 
             # Check if insertion is critical, criteria:
             # - session critical
@@ -449,7 +457,8 @@ def histology_assign_update():
                 "assign_lab": assign_lab,
                 "assign_lab_done": assign_lab_done,
                 "align_solved": aligned,
-                "is_critical": is_critical
+                "is_critical": is_critical,
+                "tracing_done": tracing_done
             }
 
             # Check all datasets exist and append
@@ -467,7 +476,7 @@ def histology_assign_update():
     # get data from sheet once again (broken pipe error otherwise)
     sheets = build('sheets', 'v4', http=credentials.authorize(Http()))
     write_spreadsheetID = read_spreadsheetID
-    write_spreadsheetRange = 'NEW_2'
+    write_spreadsheetRange = 'TEST1'  #TODO 'NEW_2'
     write_data = sheets.spreadsheets(). \
         values().update(spreadsheetId=write_spreadsheetID, valueInputOption='RAW',  # USER_ENTERED
                         range=write_spreadsheetRange,
