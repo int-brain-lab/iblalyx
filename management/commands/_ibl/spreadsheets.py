@@ -293,7 +293,7 @@ def histology_assign_update():
     drive_service = build('drive', 'v3', http=credentials.authorize(Http()))
     sheets = build('sheets', 'v4', http=credentials.authorize(Http()))
     read_spreadsheetID = '1nidCu7MjLrjaA8NHWYnJavLzQBjILZhCkYt0OdCUTxg'
-    read_spreadsheetRange = 'TEST1'  # TODO re-place to 'NEW_2' when done debugging
+    read_spreadsheetRange = 'NEW_2'
     rows = sheets.spreadsheets().values().get(spreadsheetId=read_spreadsheetID,
                                               range=read_spreadsheetRange).execute()
 
@@ -476,7 +476,7 @@ def histology_assign_update():
     # get data from sheet once again (broken pipe error otherwise)
     sheets = build('sheets', 'v4', http=credentials.authorize(Http()))
     write_spreadsheetID = read_spreadsheetID
-    write_spreadsheetRange = 'TEST1'  #TODO 'NEW_2'
+    write_spreadsheetRange = 'NEW_2'
     write_data = sheets.spreadsheets(). \
         values().update(spreadsheetId=write_spreadsheetID, valueInputOption='RAW',  # USER_ENTERED
                         range=write_spreadsheetRange,
