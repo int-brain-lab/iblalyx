@@ -1,0 +1,153 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_list%}
+{% load jobs_template_tags %} {# custom template tags in app #}
+
+{% block content %}
+
+<div class="row">
+    <div class="col">
+	<div class="card card-body">
+	<form method="get">
+           {{spikesortingFilter.form}}
+        <button class="btn btn-primary" type="submit">Search</button>
+	</form>
+	</div>
+    </div>
+</div>
+
+<table>
+<thead>
+    <tr>
+        <th>probe id</th>
+        <th>project</th>
+        <th>session</th>
+        <th>probe</th>
+        <th>session qc</th>
+        <th>insertion qc</th>
+        <th>raw data</th>
+        <th>kilosort</th>
+        <th>pykilosort</th>
+        <th>task</th>
+        <th>version</th>
+    </tr>
+</thead>
+
+<tbody>
+{% for obj,t in object_list|zip:task %}
+    <tr>
+        <td><a href="{% url 'insertion overview' obj.id %}">{{ obj.id }}</a></td>
+        <td>{{ obj.session.project.name }}</td>
+        <td><a href="{% url 'admin:actions_session_change' obj.session.id %}">{{ obj.session|get_session_path_with_eid }}</a></td>
+        <td><a href="{% url 'admin:experiments_probeinsertion_change' obj.id %}">{{ obj.name }}</a></td>
+        <td>{{ obj.session.get_qc_display }}</td>
+        <td>{{ obj.insertion_qc|assign_none_to_val }}</td>
+        <td>{{ obj.raw|get_icon }}</td>
+        <td>{{ obj.ks|get_icon }}</td>
+        <td>{{ obj.pyks|get_icon }}</td>
+        {% if t.id %}
+            <td><a style="{{ t.status|get_task_colour }}" href="{% url 'admin:jobs_task_change' t.id %}">{{ t.get_status_display }}</a></td>
+        {% else %}
+            <td>No Task</td>
+        {% endif %}
+        <td> {{ t.version }}</td>
+
+    </tr>
+{% endfor %}
+</tbody>
+</table>
+
+<div class="pagination">
+    <span class="step-links">
+        {% if page_obj.has_previous %}
+            <a href="?{% param_replace page=1 %}">&laquo; first</a>
+            <a href="?{% param_replace page=page_obj.previous_page_number %}">previous</a>
+        {% endif %}
+
+        <span class="current">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+        </span>
+
+        {% if page_obj.has_next %}
+            <a href="?{% param_replace page=page_obj.next_page_number %}">next</a>
+            <a href="?{% param_replace page=paginator.num_pages %}">last &raquo;</a>
+        {% endif %}
+    </span>
+</div>
+
+
+{% endblock %}
+
+{% block title %}
+{{ title|striptags }}
+{% endblock %}
+
+
+//    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.6.0"></script>
+//     <script>
+//      $(document).ready(function() {
+//          $.ajax({
+//
+//              success: function () {
+//                  loadAllCharts()
+//              }
+//          });
+//        });
+//
+//        function loadChart(chart, endpoint) {
+//          $.ajax({
+//            url: endpoint,
+//            type: "GET",
+//            dataType: "json",
+//            success: (jsonResponse) => {
+//              // Extract data from the response
+//              const title = jsonResponse.title;
+//              const labels = jsonResponse.data.labels;
+//              const datasets = jsonResponse.data.datasets;
+//
+//              // Reset the current chart
+//              chart.data.datasets = [];
+//              chart.data.labels = [];
+//
+//              // Load new data into the chart
+//              // chart.options.title.text = title;
+//              // chart.options.title.display = true;
+//              chart.data.labels = labels;
+//              datasets.forEach(dataset => {
+//                chart.data.datasets.push(dataset);
+//              });
+//              chart.update();
+//            },
+//            error: () => console.log("Failed to fetch chart data from " + endpoint + "!")
+//          });
+//        }
+//
+//        function loadAllCharts() {
+//          loadChart(spike_sorting_chart, `/ibl_reports/spikesortingdata`);
+//
+//        }
+//    </script>
+//
+//    <div class="col-lg-6 pad2">
+//        <h2 id="spike_sorting">Spike Sorting Status </h2>
+//        <canvas id="spike_sorting_chart" width="100" height="50"></canvas>
+//    </div>
+//
+//
+//    <script>
+//        let ctx_spikesort = document.getElementById("spike_sorting_chart").getContext("2d");
+//        let spike_sorting_chart = new Chart(ctx_spikesort, {
+//          type: "bar",
+//          options: {
+//              responsive: true,
+//              scales: {
+//                  x: {
+//                      stacked: true,
+//                  },
+//                  y: {
+//                      stacked: true
+//                  }
+//              }
+//          }
+//        });
+//    </script>
+//
