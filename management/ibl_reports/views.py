@@ -3,7 +3,9 @@ from django_filters.views import FilterView
 import django_filters
 from django.template import loader
 from django.views.generic.list import ListView
+from data.models import Dataset
 from experiments.models import TrajectoryEstimate, ProbeInsertion
+from jobs.models import Task
 from django.db.models import Count, Q, F, Max, OuterRef, Exists
 from django.contrib.auth.mixins import LoginRequiredMixin
 
@@ -278,7 +280,7 @@ class InsertionTableWithFilter(LoginRequiredMixin, ListView):
 
 class InsertionFilter(django_filters.FilterSet):
 
-    # resolved = django_filters.BooleanFilter(label='resolved', method='filter_published')
+    # resolved = django_filters.BooleanFilter(label='resolved', method='filter_resolved')
 
     class Meta:
         model = ProbeInsertion
@@ -295,3 +297,109 @@ class InsertionFilter(django_filters.FilterSet):
 
     def filter_resolved(self, queryset, name, value):
         return queryset.filter(resolved=value)
+
+
+# def spikesorting_plot(request):
+#
+#     # brainwide_map
+#     raw_ap_files_bwm = Dataset.objects.filter(name__iendswith='.ap.cbin', session__project__name='ibl_neuropixel_brainwide_01')
+#     spike_sorted_bwm = raw_ap_files_bwm.filter(probe_insertion__datasets__name='spikes.times.npy')
+#     spike_sorted_pyks_bwm = raw_ap_files_bwm.filter(probe_insertion__datasets__collection__icontains='pykilosort')
+#
+#     # non brainwide map
+#     raw_ap_files_pp = Dataset.objects.filter(name__iendswith='.ap.cbin').exclude(
+#         session__project__name='ibl_neuropixel_brainwide_01')
+#     spike_sorted_pp = raw_ap_files_pp.filter(probe_insertion__datasets__name='spikes.times.npy')
+#     spike_sorted_pyks_pp = raw_ap_files_pp.filter(probe_insertion__datasets__collection__icontains='pykilosort')
+#
+#     return JsonResponse({
+#         'title': 'Spike sorting status',
+#         'data': {
+#             'labels': ['Brainwide map', 'Personal projects'],
+#             'datasets': [
+#                 {
+#                     'label': 'All insertions',
+#                     'data': [raw_ap_files_bwm.count(), raw_ap_files_pp.count()],
+#                     'backgroundColor': "#FF6384",
+#                 },
+#                 {
+#                     'label': 'Kilosort',
+#                     'data': [spike_sorted_bwm.count(), spike_sorted_pp.count()],
+#                     'backgroundColor': "#79AEC8",
+#                 },
+#                 {
+#                     'label': 'Pykilosort',
+#                     'data': [spike_sorted_pyks_bwm.count(), spike_sorted_pyks_pp.count()],
+#                     'backgroundColor': "#417690",
+#                 },
+#             ]
+#         },
+#     })
+
+
+class SpikeSortingTable(LoginRequiredMixin, ListView):
+    login_url = LOGIN_URL
+    template_name = 'ibl_reports/spikesorting.html'
+    paginate_by = 50
+
+    def get_context_data(self, **kwargs):
+        context = super(SpikeSortingTable, self).get_context_data(**kwargs)
+        context['spikesortingFilter'] = self.f
+        context['task'] = data_check.get_spikesorting_task(context['object_list'])
+
+        return context
+
+    def get_queryset(self):
+
+        qs = ProbeInsertion.objects.all().prefetch_related('session__data_dataset_session_related',
+                                                           'session', 'session__project',
+                                                           'session__subject__lab',)
+
+        qs = qs.annotate()
+        qs = qs.annotate(insertion_qc=F('json__qc'))
+        qs = qs.annotate(raw=Exists(Dataset.objects.filter(probe_insertion=OuterRef('pk'), name__endswith='ap.cbin')))
+        qs = qs.annotate(ks=Exists(Dataset.objects.filter(~Q(collection__icontains='pykilosort'), probe_insertion=OuterRef('pk'),
+                                                          name='spikes.times.npy')))
+        qs = qs.annotate(pyks=Exists(Dataset.objects.filter(collection__icontains=f'pykilosort', probe_insertion=OuterRef('pk'),
+                                                            name='_kilosort_raw.output.tar')))
+
+        self.f = SpikeSortingFilter(self.request.GET, queryset=qs)
+
+        return self.f.qs.order_by('-session__start_time')
+
+
+class SpikeSortingFilter(django_filters.FilterSet):
+    CHOICES = (
+        (0, 'No spikesorting'),
+        (1, 'Only kilosort'),
+        (2, 'Only pykilosort'),
+        (3, 'Both kilosort and pykilosort')
+    )
+
+    status = django_filters.ChoiceFilter(choices=CHOICES, method='filter_spikesorting', label='Spike Sorting status')
+    # resolved = django_filters.BooleanFilter(label='resolved', method='filter_published')
+
+    class Meta:
+        model = ProbeInsertion
+        fields = ['id', 'session__lab', 'session__project']
+        exclude = ['json']
+
+    def __init__(self, *args, **kwargs):
+
+        super(SpikeSortingFilter, self).__init__(*args, **kwargs)
+
+        self.filters['id'].label = "Probe ID"
+        self.filters['session__lab'].label = "Lab"
+        self.filters['session__project'].label = "Project"
+
+    # TODO filter that has three options, missing spikesorting, just ks2, pyks2
+    def filter_spikesorting(self, queryset, name, value):
+        if value == '0':
+            return queryset.filter(pyks=False, ks=False)
+        if value == '1':
+            return queryset.filter(pyks=False, ks=True)
+        if value == '2':
+            return queryset.filter(pyks=True, ks=False)
+        if value == '3':
+            return queryset.filter(pyks=True, ks=True)
+

@@ -237,3 +237,16 @@ def get_data_status_qs(probe_insertions):
 
     return data_status
 
+
+def get_spikesorting_task(probe_insertions):
+    data_status = []
+    for pr in probe_insertions:
+        t = pr.session.tasks.filter(name='SpikeSorting')
+        if t.count() > 0:
+            task = t.first()
+        else:
+            task = None
+
+        data_status.append(task)
+
+    return data_status
