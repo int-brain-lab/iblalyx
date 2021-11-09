@@ -26,7 +26,7 @@ def monitor_spikesorting():
     Save pqt table with spikesorting status every day
     :return:
     """
-    save_path = '/home/mayo/task_reports/spikesorting'
+    save_path = '/home/ubuntu/task_reports/spikesorting'
 
     df = pd.DataFrame(columns=['pid', 'eid', 'probe_name', 'lab', 'subject', 'date', 'number', 'project', 'raw_data', 'ks',
                                'pyks', 'version', 'serial_no', 'probe_type'])
