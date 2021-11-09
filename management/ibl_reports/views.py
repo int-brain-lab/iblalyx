@@ -1,6 +1,7 @@
 from django.http import HttpResponse, JsonResponse
 from django_filters.views import FilterView
 import django_filters
+from django_filters.widgets import BooleanWidget
 from django.template import loader
 from django.views.generic.list import ListView
 from data.models import Dataset
@@ -361,7 +362,7 @@ class SpikeSortingTable(LoginRequiredMixin, ListView):
         qs = qs.annotate(ks=Exists(Dataset.objects.filter(~Q(collection__icontains='pykilosort'), probe_insertion=OuterRef('pk'),
                                                           name='spikes.times.npy')))
         qs = qs.annotate(pyks=Exists(Dataset.objects.filter(collection__icontains=f'pykilosort', probe_insertion=OuterRef('pk'),
-                                                            name='_kilosort_raw.output.tar')))
+                                                            name='spikes.times.npy')))
 
         self.f = SpikeSortingFilter(self.request.GET, queryset=qs)
 
@@ -369,15 +370,20 @@ class SpikeSortingTable(LoginRequiredMixin, ListView):
 
 
 class SpikeSortingFilter(django_filters.FilterSet):
-    CHOICES = (
+    SPIKESORTINGCHOICES = (
         (0, 'No spikesorting'),
         (1, 'Only kilosort'),
         (2, 'Only pykilosort'),
         (3, 'Both kilosort and pykilosort')
     )
 
-    status = django_filters.ChoiceFilter(choices=CHOICES, method='filter_spikesorting', label='Spike Sorting status')
-    # resolved = django_filters.BooleanFilter(label='resolved', method='filter_published')
+    REPEATED_SITE = (
+        (0, 'All'),
+        (1, 'Repeated Site')
+    )
+
+    status = django_filters.ChoiceFilter(choices=SPIKESORTINGCHOICES, method='filter_spikesorting', label='Spike Sorting status')
+    repeated = django_filters.ChoiceFilter(choices=REPEATED_SITE, label='Location', method='filter_repeated')
 
     class Meta:
         model = ProbeInsertion
@@ -402,4 +408,13 @@ class SpikeSortingFilter(django_filters.FilterSet):
             return queryset.filter(pyks=True, ks=False)
         if value == '3':
             return queryset.filter(pyks=True, ks=True)
+
+    def filter_repeated(self, queryset, name, value):
+        if value == '0':
+            return queryset
+        if value == '1':
+            return queryset.filter(Q(trajectory_estimate__provenance=10) & Q(trajectory_estimate__x=-2243) &
+                                   Q(trajectory_estimate__y=-2000) &
+                                   Q(trajectory_estimate__theta=15) & Q(session__project__name='ibl_neuropixel_brainwide_01'))
+
 
