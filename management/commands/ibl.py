@@ -1,7 +1,7 @@
 from django.core.management import BaseCommand
 
 from ._ibl.transfers import ftp_delete_local, ftp_upload
-from ._ibl.monitor import monitor_dlc
+from ._ibl.monitor import monitor_dlc, monitor_spikesorting
 from ._ibl.spreadsheets import histology_assign_update
 from ._ibl.table import qc_table
 from ._ibl.tasks import held_status_reset, task_reset, started_stalled_reset
@@ -19,6 +19,9 @@ class Command(BaseCommand):
 
     python ./manage.py ibl monitor_dlc
         Appends a JSON string to a monitor DLC log to track progress on DLC compute
+
+    python ./manage.py ibl monitor_spikesorting
+        Makes a pqt table with spike sorting status
 
     python ./manage.py ibl qc_table
         Creates a QC pandas dataframe recap from sessions JSON
@@ -53,5 +56,7 @@ class Command(BaseCommand):
             started_stalled_reset()
         elif action == 'task_reset':
             task_reset(options.get('tid'))
+        elif action == 'monitor_spikesorting':
+            monitor_spikesorting()
         else:
             raise ValueError(f'No action for command {action}')
