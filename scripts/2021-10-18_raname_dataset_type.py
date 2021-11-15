@@ -11,6 +11,7 @@ import warnings
 
 import globus_sdk
 from iblutil.io import params
+from one.alf.spec import _dromedary
 import ibllib.io.globus as globus
 
 from data.models import FileRecord, DatasetType, Dataset
@@ -34,14 +35,12 @@ if 'laser_' in ds_type[1].name:
     ds_type[1].save()
 
 # 2. Change dataset name
-dsets = Dataset.objects.filter(dataset_type__name='_ibl_trials.laserProbability')
+dsets = Dataset.objects.filter(dataset_type__name__startswith='_ibl_trials.laser')
 for dset in dsets:
-    dset.name = '_ibl_trials.laserProbability.npy'
-    dset.save()
-dsets = Dataset.objects.filter(dataset_type__name='_ibl_trials.laserStimulation')
-for dset in dsets:
-    dset.name = '_ibl_trials.laserStimulation.npy'
-    dset.save()
+    attr = dset['name'].split('.')[1]
+    if 'laser_' in attr:
+        dset.name = dset['name'].replace(attr, _dromedary(attr))  # e.g. laser_stim -> laserStim
+        dset.save()
 
 # 3. Patch file records
 # Set up Globus
