@@ -14,9 +14,9 @@ def get_data_status(dsets, exp_dsets, title):
                 d = dsets.filter(dataset_type__name=dset[0], collection__icontains=dset[1],
                                  name__icontains=extra)
                 dset_data['type'] = dset[0] + ' - ' + extra.upper()
-                dset_data['collection'] = dset[1]
                 if d.count() > 0:
                     d = d.first()
+                    dset_data['collection'] = d.collection
                     dset_data['name'] = d.name
                     dset_data['status'] = True
                     n_dsets += 1
@@ -24,6 +24,7 @@ def get_data_status(dsets, exp_dsets, title):
                     if dset[2]:
                         missing = True
                     dset_data['name'] = '-'
+                    dset_data['collection'] = dset[1]
                     dset_data['status'] = False
                 n_exp_dsets += 1
                 datasets.append(dset_data)
@@ -32,16 +33,17 @@ def get_data_status(dsets, exp_dsets, title):
             dset_data = {}
             d = dsets.filter(dataset_type__name=dset[0], collection__icontains=dset[1])
             dset_data['type'] = dset[0]
-            dset_data['collection'] = dset[1]
             if d.count() > 0:
                 d = d.first()
                 dset_data['name'] = d.name
+                dset_data['collection'] = d.collection
                 dset_data['status'] = True
                 n_dsets += 1
             else:
                 if dset[2]:
                     missing = True
                 dset_data['name'] = '-'
+                dset_data['collection'] = dset[1]
                 dset_data['status'] = False
             n_exp_dsets += 1
             datasets.append(dset_data)
@@ -195,9 +197,11 @@ def video_data_status(datasets, probe):
 def spikesort_data_status(datasets, probe):
     expected_dsets = expected_data.SPIKE_SORTING
     # Need to find the collection
-
-    for dset in expected_dsets:
-        if len(dset[1].split('/')) == 2:
+    if datasets.filter(collection__icontains=f'alf/{probe.name}/pykilosort').count() > 0:
+        for dset in expected_dsets:
+            dset[1] = f'alf/{probe.name}/pykilosort'
+    else:
+        for dset in expected_dsets:
             dset[1] = f'alf/{probe.name}'
     data = get_data_status(datasets, expected_dsets, 'Spikesorted data')
 
@@ -225,7 +229,7 @@ def get_data_status_qs(probe_insertions):
 
         dsets = pr_dsets.filter(collection__icontains=f'alf/{pr.name}',
                                 dataset_type__name__in=critical_spikesort)
-        data_status['spikesort'].append(dsets.count() == len(critical_spikesort))
+        data_status['spikesort'].append(dsets.count() >= len(critical_spikesort))
 
         dsets = pr_dsets.filter(collection__in=['alf', 'raw_passive_data'],
                                 dataset_type__name__in=critical_passive)
