@@ -417,8 +417,8 @@ def histology_assign_update():
                             idx_str = str.find(names[i_name], '_')
                             user_str = names[i_name][idx_str + 1:]
                             print(f'user_str: {user_str}, pid: {insertion.id}')  # TODO REMOVE, FOR DEBUG
-                            ibluser = user_str is not 'intbrainlab'
-                            if user_str is not 'intbrainlab':  # TODO WART
+                            ibluser = user_str != 'intbrainlab'
+                            if user_str != 'intbrainlab':  # TODO WART
                                 print(f'HERE {ibluser}')
                                 user = LabMember.objects.get(username=user_str)
                                 user_lab = user.lab
