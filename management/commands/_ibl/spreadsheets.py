@@ -417,17 +417,18 @@ def histology_assign_update():
                             idx_str = str.find(names[i_name], '_')
                             user_str = names[i_name][idx_str + 1:]
                             print(f'user_str: {user_str}, pid: {insertion.id}')  # TODO REMOVE, FOR DEBUG
-                            user = LabMember.objects.get(username=user_str)
-                            user_lab = user.lab
-                            # add hoferlab to mrsicflogel (1 lab for both)
-                            if 'hoferlab' in user_lab:
-                                user_lab.append('mrsicflogellab')
+                            if user_str is not 'intbrainlab':  # TODO WART
+                                user = LabMember.objects.get(username=user_str)
+                                user_lab = user.lab
+                                # add hoferlab to mrsicflogel (1 lab for both)
+                                if 'hoferlab' in user_lab:
+                                    user_lab.append('mrsicflogellab')
 
-                            # Note: One user (e.g. chrisk) can have multiple labs, hence the "in"
-                            if origin_lab in user_lab:
-                                origin_lab_done = True
-                            elif assign_lab in user_lab:
-                                assign_lab_done = True
+                                # Note: One user (e.g. chrisk) can have multiple labs, hence the "in"
+                                if origin_lab in user_lab:
+                                    origin_lab_done = True
+                                elif assign_lab in user_lab:
+                                    assign_lab_done = True
 
             # Check if insertion is critical, criteria:
             # - session critical
