@@ -1,4 +1,5 @@
 import ibl_reports.data_info as expected_data
+from copy import deepcopy
 
 
 def get_data_status(dsets, exp_dsets, title):
@@ -11,7 +12,7 @@ def get_data_status(dsets, exp_dsets, title):
         if len(dset) == 4:
             for extra in dset[3]:
                 dset_data = {}
-                d = dsets.filter(dataset_type__name=dset[0], collection__icontains=dset[1],
+                d = dsets.filter(dataset_type__name=dset[0], collection=dset[1],
                                  name__icontains=extra)
                 dset_data['type'] = dset[0] + ' - ' + extra.upper()
                 if d.count() > 0:
@@ -31,7 +32,7 @@ def get_data_status(dsets, exp_dsets, title):
 
         else:
             dset_data = {}
-            d = dsets.filter(dataset_type__name=dset[0], collection__icontains=dset[1])
+            d = dsets.filter(dataset_type__name=dset[0], collection=dset[1])
             dset_data['type'] = dset[0]
             if d.count() > 0:
                 d = d.first()
@@ -58,10 +59,10 @@ def get_data_status(dsets, exp_dsets, title):
 
     return data
 
-def get_tasks(expected_tasks, probe):
+def get_tasks(expected_tasks, session):
     task_status = {}
     for task in expected_tasks:
-        t = probe.session.tasks.filter(name__icontains=task)
+        t = session.tasks.filter(name__icontains=task)
 
         if t.count() > 0:
             task_status[task] = t.first()
@@ -89,100 +90,111 @@ def get_probe_type(datasets, probe):
     return probe_type
 
 
-def raw_passive_data_status(datasets, probe):
+def raw_passive_data_status(datasets, session):
 
     data = get_data_status(datasets, expected_data.RAW_PASSIVE, 'Raw passive data')
-    data['tasks'] = get_tasks(expected_data.RAW_PASSIVE_TASKS, probe)
+    data['tasks'] = get_tasks(expected_data.RAW_PASSIVE_TASKS, session)
 
     return data
 
 
-def passive_data_status(datasets, probe):
+def passive_data_status(datasets, session):
 
     data = get_data_status(datasets, expected_data.PASSIVE, 'Passive data')
-    data['tasks'] = get_tasks(expected_data.PASSIVE_TASKS, probe)
+    data['tasks'] = get_tasks(expected_data.PASSIVE_TASKS, session)
 
     return data
 
 
-def raw_behaviour_data_status(datasets, probe):
+def raw_behaviour_data_status(datasets, session):
 
     data = get_data_status(datasets, expected_data.RAW_BEHAVIOUR, 'Raw behaviour data')
-    data['tasks'] = get_tasks(expected_data.RAW_BEHAVIOUR_TASKS, probe)
+    data['tasks'] = get_tasks(expected_data.RAW_BEHAVIOUR_TASKS, session)
 
     return data
 
 
-def trial_data_status(datasets, probe):
+def trial_data_status(datasets, session):
 
     data = get_data_status(datasets, expected_data.TRIALS, 'Trial data')
-    data['tasks'] = get_tasks(expected_data.TRIAL_TASKS, probe)
+    data['tasks'] = get_tasks(expected_data.TRIAL_TASKS, session)
 
     return data
 
 
-def wheel_data_status(datasets, probe):
+def wheel_data_status(datasets, session):
 
     data = get_data_status(datasets, expected_data.WHEEL, 'Wheel data')
-    data['tasks'] = get_tasks(expected_data.WHEEL_TASKS, probe)
+    data['tasks'] = get_tasks(expected_data.WHEEL_TASKS, session)
 
     return data
 
 
-def raw_ephys_data_status(datasets, probe):
+def raw_ephys_data_status(datasets, session, probes):
+    expected_both_dsets = []
+    for ip, probe in enumerate(probes):
+        probe_type = get_probe_type(datasets, probe)
 
-    probe_type = get_probe_type(datasets, probe)
+        if probe_type == 'Neuropixel 3B2':
+            expected_dsets = deepcopy(expected_data.RAW_EPHYS) + deepcopy(expected_data.RAW_EPHYS_EXTRA)
+            if ip == 0:
+                expected_dsets += deepcopy(expected_data.RAW_EPHYS_NIDAQ)
+        elif probe_type == 'Neuropixel 3A':
+            if '00' in probe.name:
+                expected_dsets = deepcopy(expected_data.RAW_EPHYS) + deepcopy(expected_data.RAW_EPHYS_EXTRA)
+            else:
+                expected_dsets = deepcopy(expected_data.RAW_EPHYS)
 
-    if probe_type == 'Neuropixel 3B2':
-        expected_dsets = expected_data.RAW_EPHYS + expected_data.RAW_EPHYS_EXTRA + \
-                         expected_data.RAW_EPHYS_NIDAQ
-    elif probe_type == 'Neuropixel 3A':
-        if '00' in probe.name:
-            expected_dsets = expected_data.RAW_EPHYS + expected_data.RAW_EPHYS_EXTRA
+        for dset in expected_dsets:
+            if len(dset[1].split('/')) == 2:
+                dset[1] = f'raw_ephys_data/{probe.name}'
+
+        expected_both_dsets += expected_dsets
+
+    data = get_data_status(datasets, expected_both_dsets, 'Raw ephys data')
+    data['tasks'] = get_tasks(expected_data.RAW_EPHYS_TASKS, session)
+
+    return data
+
+
+def ephys_data_status(datasets, session, probes):
+    expected_both_dsets = []
+    for ip, probe in enumerate(probes):
+        probe_type = get_probe_type(datasets, probe)
+
+        if probe_type == 'Neuropixel 3B2' and ip == 0:
+            expected_dsets = deepcopy(expected_data.EPHYS) + deepcopy(expected_data.EPHYS_NIDAQ)
         else:
-            expected_dsets = expected_data.RAW_EPHYS
+            expected_dsets = deepcopy(expected_data.EPHYS)
 
-    for dset in expected_dsets:
-        if len(dset[1].split('/')) == 2:
-            dset[1] = f'raw_ephys_data/{probe.name}'
+        for dset in expected_dsets:
+            if len(dset[1].split('/')) == 2:
+                dset[1] = f'raw_ephys_data/{probe.name}'
 
-    data = get_data_status(datasets, expected_dsets, 'Raw ephys data')
-    data['tasks'] = get_tasks(expected_data.RAW_EPHYS_TASKS, probe)
+        expected_both_dsets += expected_dsets
 
-    return data
-
-
-def ephys_data_status(datasets, probe):
-
-    probe_type = get_probe_type(datasets, probe)
-
-    if probe_type == 'Neuropixel 3B2':
-        expected_dsets = expected_data.EPHYS + expected_data.EPHYS_NIDAQ
-    else:
-        expected_dsets = expected_data.EPHYS
-
-    for dset in expected_dsets:
-        if len(dset[1].split('/')) == 2:
-            dset[1] = f'raw_ephys_data/{probe.name}'
-
-    data = get_data_status(datasets, expected_dsets, 'Ephys data')
-    data['tasks'] = get_tasks(expected_data.EPHYS_TASKS, probe)
+    data = get_data_status(datasets, expected_both_dsets, 'Ephys data')
+    data['tasks'] = get_tasks(expected_data.EPHYS_TASKS, session)
 
     return data
 
 
-def dlc_data_status(datasets, probe):
+def dlc_data_status(datasets, session):
 
     data = get_data_status(datasets, expected_data.DLC, 'DLC data')
-    data['tasks'] = get_tasks(expected_data.DLC_TASKS, probe)
-    # EPHYSDLC
+    data['tasks'] = get_tasks(expected_data.DLC_TASKS, session)
     return data
 
 
-def raw_video_data_status(datasets, probe):
+def raw_video_data_status(datasets, session):
 
-    data = get_data_status(datasets, expected_data.RAW_VIDEO, 'Raw video data')
-    data['tasks'] = get_tasks(expected_data.RAW_VIDEO_TASKS, probe)
+    if datasets.filter(name__icontains='Camera.frameData.bin').count() > 0:
+        expected_dsets = expected_data.RAW_VIDEO + expected_data.RAW_VIDEO_NEW
+    else:
+        expected_dsets = expected_data.RAW_VIDEO + expected_data.RAW_VIDEO_OLD
+
+    data = get_data_status(datasets, expected_dsets, 'Raw video data')
+    data['tasks'] = get_tasks(expected_data.RAW_VIDEO_TASKS, session)
 
     return data
 
@@ -194,18 +206,23 @@ def video_data_status(datasets, probe):
     return data
 
 
-def spikesort_data_status(datasets, probe):
-    expected_dsets = expected_data.SPIKE_SORTING
+def spikesort_data_status(datasets, session, probes):
+    expected_both_dsets = []
+    for probe in probes:
     # Need to find the collection
-    if datasets.filter(collection__icontains=f'alf/{probe.name}/pykilosort').count() > 0:
-        for dset in expected_dsets:
-            dset[1] = f'alf/{probe.name}/pykilosort'
-    else:
-        for dset in expected_dsets:
-            dset[1] = f'alf/{probe.name}'
-    data = get_data_status(datasets, expected_dsets, 'Spikesorted data')
+        expected_dsets = deepcopy(expected_data.SPIKE_SORTING)
+        if datasets.filter(collection__icontains=f'alf/{probe.name}/pykilosort').count() > 0:
+            for dset in expected_dsets:
+                dset[1] = f'alf/{probe.name}/pykilosort'
+        else:
+            for dset in expected_dsets:
+                dset[1] = f'alf/{probe.name}'
 
-    data['tasks'] = get_tasks(expected_data.SPIKE_SORTING_TASKS, probe)
+        expected_both_dsets += expected_dsets
+
+    data = get_data_status(datasets, expected_both_dsets, 'Spikesorted data')
+
+    data['tasks'] = get_tasks(expected_data.SPIKE_SORTING_TASKS, session)
     return data
 
 

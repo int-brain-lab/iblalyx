@@ -44,6 +44,9 @@ def process_video_qc(video_qc_data):
                  'colour': []}
 
     for key, value in video_qc_data.items():
+        if key == '_videoBody_wheel_alignment':
+            continue
+
         if isinstance(value, list):
             if isinstance(value[0], bool):
                 data_dict['label'].append(key)

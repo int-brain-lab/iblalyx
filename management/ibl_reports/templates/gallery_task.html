@@ -1,0 +1,50 @@
+{% extends "ibl_reports/my_pretty_page.html" %}
+{% load jobs_template_tags %}
+
+{% block extrahead %}
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+{% endblock %}
+
+{% block content %}
+    <div class="row">
+        {%  for key, value in data.items %}
+            <div class="card my-2">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col"><h4 class="card-title">{{ value.title }}</h4></div>
+                        <div class="col"><h4 class="card-title" style="{% get_colour value.critical value.n_dsets value.n_exp_dsets %}">{{ value.n_dsets }}/{{ value.n_exp_dsets }}</h4></div>
+                        <div class="col">
+                            {% for key, value in value.tasks.items %}
+                                {% if value %}
+                                    <h5 class="card-title">{{ key }} : <a style="{{ value.status|get_task_colour }}" href="{% url 'admin:jobs_task_change' value.id %}">{{ value.get_status_display }}</a></h5>
+                                {% else %}
+                                    <h5 class="card-title">{{ key }} : No task</h5>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <a data-toggle="collapse" href="#collapse{{ forloop.counter }}">
+                        <h6 class="card-subtitle mb-2 text-muted">Details</h6></a>
+                </div>
+            </div>
+            <div id="collapse{{ forloop.counter }}" class="panel-collapse collapse">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>Dataset type</th>
+                        <th>Collection</th>
+                        <th>Dataset name</th>
+                        <th>Status</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {%  for data in value.dsets %}
+                        <tr><td>{{ data.type }}</td><td>{{ data.collection }}</td><td>{{ data.name }}</td><td>{{ data.status|get_icon }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {%  endfor %}
+    </div>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "ibl_reports/my_pretty_page.html" %}
+
+{% block content %}
+    <div class="gallery">
+        <div class="row">
+            {% for note in object_list %}
+                <div class="col-md-4">
+                    <a href="{{ MEDIA_ROOT }}{{ note.image.url }}">
+                        <div class="card my-2">
+                            <img class="image" src="{{ MEDIA_ROOT }}{{ note.image.url }}" title="{{ note.content_object }} {{ note.text }}">
+                            <div class="card-body">
+                                <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        var gallery = new SimpleLightbox('.gallery a', {'captionPosition': 'outside'});
+    </script>
+
+{%  endblock content %}

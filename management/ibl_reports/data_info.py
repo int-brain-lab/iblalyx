@@ -38,14 +38,20 @@ RAW_EPHYS_EXTRA = [
 
 # Only for 3B
 RAW_EPHYS_NIDAQ = [
-    ('ephysData.raw.nidq', 'raw_ephys_data', True),
-    ('ephysData.raw.meta', 'raw_ephys_data', True, ['nidq']),
-    ('ephysData.raw.ch', 'raw_ephys_data', True, ['nidq']),
+    ['ephysData.raw.nidq', 'raw_ephys_data', True],
+    ['ephysData.raw.meta', 'raw_ephys_data', True, ['nidq']],
+    ['ephysData.raw.ch', 'raw_ephys_data', True, ['nidq']],
 ]
-
 
 RAW_VIDEO = [
     ('_iblrig_Camera.raw', 'raw_video_data', True, ['left', 'right', 'body']),
+]
+
+RAW_VIDEO_NEW = [
+    ('_iblrig_*Camera.frameData.bin', 'raw_video_data', True, ['left', 'right', 'body']),
+]
+
+RAW_VIDEO_OLD = [
     ('_iblrig_Camera.timestamps', 'raw_video_data', True, ['left', 'right', 'body']),
     ('_iblrig_Camera.GPIO', 'raw_video_data', False, ['left', 'right', 'body']),
     ('_iblrig_Camera.frame_counter', 'raw_video_data', False, ['left', 'right', 'body']),
@@ -90,6 +96,9 @@ DLC = [
     ('camera.times', 'alf', True, ['left', 'right', 'body']),
     ('camera.ROIMotionEnergy', 'alf', False, ['left', 'right', 'body']),
     ('ROIMotionEnergy.position', 'alf', False, ['left', 'right', 'body']),
+    ('_ibl_leftCamera.features.pqt', 'alf', True),
+    ('_ibl_rightCamera.features.pqt', 'alf', True),
+    ('licks.times.npy', 'alf', True)
 ]
 
 VIDEO = [
@@ -101,17 +110,17 @@ EPHYS = [
     ['_spikeglx_sync.channels', 'raw_ephys_data/XX', True],
     ['_spikeglx_sync.polarities', 'raw_ephys_data/XX', True],
     ['_spikeglx_sync.times', 'raw_ephys_data/XX', True],
-    ['_iblqc_ephysSpectralDensity.freqs', 'raw_ephys_data/XX', True, ['ap', 'lf']],
-    ['_iblqc_ephysSpectralDensity.power', 'raw_ephys_data/XX', True, ['ap', 'lf']],
+    ['_iblqc_ephysSpectralDensity.freqs', 'raw_ephys_data/XX', True, ['lf']],
+    ['_iblqc_ephysSpectralDensity.power', 'raw_ephys_data/XX', True, ['lf']],
     ['_iblqc_ephysTimeRms.rms', 'raw_ephys_data/XX', True, ['ap', 'lf']],
     ['_iblqc_ephysTimeRms.timestamps', 'raw_ephys_data/XX', True, ['ap', 'lf']],
 ]
 
 # Only for 3B
 EPHYS_NIDAQ = [
-    ('_spikeglx_sync.channels', 'raw_ephys_data', True),
-    ('_spikeglx_sync.polarities', 'raw_ephys_data', True),
-    ('_spikeglx_sync.times', 'raw_ephys_data', True),
+    ['_spikeglx_sync.channels', 'raw_ephys_data', True],
+    ['_spikeglx_sync.polarities', 'raw_ephys_data', True],
+    ['_spikeglx_sync.times', 'raw_ephys_data', True],
 ]
 
 SPIKE_SORTING = [
@@ -154,9 +163,9 @@ RAW_VIDEO_TASKS = ['TrainingRegisterRaw', 'EphysVideoCompress']
 # PROCESSED DATA TASKS
 PASSIVE_TASKS = ['EphysPassive']
 EPHYS_TASKS = ['EphysPulses', 'RawEphysQC']
-VIDEO_TASKS = ['EphysVideoCompress']
+VIDEO_TASKS = ['EphysSyncQc']
 TRIAL_TASKS = ['EphysTrials']
 WHEEL_TASKS = ['EphysTrials']
 SPIKE_SORTING_TASKS = ['SpikeSorting', 'EphysCellsQc']
-DLC_TASKS = ['EphysDLC']
+DLC_TASKS = ['EphysDLC', 'EphysPostDLC']
 
