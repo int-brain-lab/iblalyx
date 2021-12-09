@@ -7,8 +7,6 @@ from jobs.models import Task
 from experiments.models import ProbeInsertion
 from data.models import Dataset
 from django.db.models import Count, Q, OuterRef, Exists, Subquery
-from django.db.models.functions import Cast
-from django.db.models import TextField
 
 
 def monitor_dlc():
@@ -28,9 +26,6 @@ def monitor_spikesorting():
     """
     save_path = '/home/ubuntu/task_reports/spikesorting'
 
-    df = pd.DataFrame(columns=['pid', 'eid', 'probe_name', 'lab', 'subject', 'date', 'number', 'project', 'raw_data', 'ks',
-                               'pyks', 'version', 'serial_no', 'probe_type'])
-
     qs = ProbeInsertion.objects.all().prefetch_related('session')
     # Annotate with some useful info
     qs = qs.annotate(raw=Exists(Dataset.objects.filter(probe_insertion=OuterRef('pk'), name__endswith='ap.cbin')))
@@ -40,24 +35,15 @@ def monitor_spikesorting():
                                                         name='spikes.times.npy')))
     qs = qs.annotate(version=Subquery(Task.objects.filter(name='SpikeSorting', session=OuterRef('session')).values('version')))
 
-    # Write into column of pandas dataframe
-    from django.db.models import FloatField
-    df['pid'] = list(qs.values_list(Cast('id', output_field=TextField()), flat=True))
-    df['eid'] = list(qs.values_list(Cast('session', output_field=TextField()), flat=True))
-    df['probe_name'] = list(qs.values_list('name', flat=True))
-    df['lab'] = list(qs.values_list('session__lab__name', flat=True))
-    df['subject'] = list(qs.values_list('session__subject__nickname', flat=True))
-    df['date'] = list(qs.values_list('session__start_time', flat=True))
-    df['number'] = list(qs.values_list('session__number', flat=True))
-    df['project'] = list(qs.values_list('session__project__name', flat=True))
-    df['raw_data'] = list(qs.values_list('raw', flat=True))
-    df['ks'] = list(qs.values_list('ks', flat=True))
-    df['pyks'] = list(qs.values_list('pyks', flat=True))
-    df['version'] = list(qs.values_list('version', flat=True))
-    df['serial_no'] = list(qs.values_list('serial', flat=True))
-    df['probe_type'] = list(qs.values_list('model__name', flat=True))
+    df = pd.DataFrame.from_records(
+        qs.values_list('id', 'session', 'name', 'session__lab__name', 'session__subject__nickname', 'session__start_time',
+                       'session__number', 'session__project__name', 'raw', 'ks', 'pyks', 'version', 'serial', 'model__name'),
+                       columns=['pid', 'eid', 'probe_name', 'lab', 'subject', 'date', 'number', 'project', 'raw_data', 'ks',
+                       'pyks', 'version', 'serial_no', 'probe_type'])
+
+    df['pid'] = df['pid'].astype(str)
+    df['eid'] = df['eid'].astype(str)
 
     # Save to parquet table
-    str(datetime.now().date())
     df.to_parquet(Path(save_path).joinpath(str(datetime.now().date()) + '_spikesorting.pqt'))
 

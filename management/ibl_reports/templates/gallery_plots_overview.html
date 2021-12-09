@@ -1,0 +1,64 @@
+{% extends "ibl_reports/gallery_base.html" %}
+{% load jobs_template_tags %}
+
+{% block headertext %}
+    <h4>Plot Overview</h4>
+{% endblock %}
+
+{% block form %}
+    <div class="row">
+    	<div class="card no-border">
+    	    <form method="get">
+                {{ photoFilter.form }}
+                <button class="btn btn-secondary btn-sm" type="submit"> Search </button>
+    	    </form>
+    	</div>
+
+    </div>
+{% endblock %}
+
+{% block main %}
+    <div class="gallery">
+        {% for note in object_list %}
+            <div class="responsive">
+                <div class="imagecard">
+                    <a href="{{ MEDIA_ROOT }}{{ note.image.url }}">
+                    <img class="card-img-top" src="{{ MEDIA_ROOT }}{{ note.image.url }}" title="{{ note.content_object }} {{ note.text }}">
+                        <div class="card-body">
+                          <h6>{{ note.text }} </h6>
+                          <p><h6>{{ note.content_object }}</h6></p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            {% if forloop.counter|divisibleby:4 or forloop.last%}
+                <div class="clearfix"></div>
+            {% endif %}
+
+        {%  endfor %}
+
+    </div>
+    <script>
+        var gallery = new SimpleLightbox('.gallery .imagecard a', {'captionPosition': 'outside'});
+    </script>
+
+
+    <div class="pagination">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+                <a href="?{% param_replace page=1 %}">&laquo; first</a>
+                <a href="?{% param_replace page=page_obj.previous_page_number %}">previous</a>
+            {% endif %}
+
+            <span class="current">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?{% param_replace page=page_obj.next_page_number %}">next</a>
+                <a href="?{% param_replace page=paginator.num_pages %}">last &raquo;</a>
+            {% endif %}
+        </span>
+    </div>
+
+{% endblock %}

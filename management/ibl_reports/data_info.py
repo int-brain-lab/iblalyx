@@ -48,7 +48,7 @@ RAW_VIDEO = [
 ]
 
 RAW_VIDEO_NEW = [
-    ('_iblrig_*Camera.frameData.bin', 'raw_video_data', True, ['left', 'right', 'body']),
+    ('_iblrig_Camera.frameData', 'raw_video_data', True, ['left', 'right', 'body']),
 ]
 
 RAW_VIDEO_OLD = [
@@ -169,3 +169,27 @@ WHEEL_TASKS = ['EphysTrials']
 SPIKE_SORTING_TASKS = ['SpikeSorting', 'EphysCellsQc']
 DLC_TASKS = ['EphysDLC', 'EphysPostDLC']
 
+# PLOTS
+EPHYS_PLOTS = ['raw_ephys_bad_channels',
+               'raw_ephys_bad_channels_highpass',
+               'raw_ephys_bad_channels_destripe',
+               'raw_ephys_bad_channels_difference']
+
+HISTOLOGY_PLOTS = ['CCF']
+
+SPIKE_SORTING_PLOTS = ['raster']
+
+VIDEO_PLOTS = ['dlc_qc_plot']
+
+PLOT_MAP = {
+    'spikesorting': SPIKE_SORTING_PLOTS,
+    'histology': HISTOLOGY_PLOTS,
+    'rawephys': EPHYS_PLOTS,
+    'video': VIDEO_PLOTS
+}
+
+OVERVIEW_PROBE_PLOTS = ['raw_ephys_bad_channels_highpass',
+                        'raw_ephys_bad_channels_destripe',
+                        'raw_ephys_bad_channels_difference']
+
+OVERVIEW_SESSION_PLOTS = ['dlc_qc_plot']

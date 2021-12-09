@@ -1,4 +1,4 @@
-{% extends "ibl_reports/my_pretty_page.html" %}
+{% extends "ibl_reports/gallery_content.html" %}
 
 {%  block extrahead %}
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4"></script>
@@ -9,85 +9,89 @@
 {% endblock %}
 
 {% block content %}
-    <div class="row">
-        <div class="col-md-12 pad2">
-            <h4 id="taskqc_header">Task QC: </h4>
-            <canvas id="taskqc_chart" width="100" height="50"></canvas>
-            <h4 id="videoqc_header">Video QC: </h4>
-            <canvas id="videoqc_chart" width="100" height="50"></canvas>
+    <div class="row my-2">
+        <div class="col-md-8">
+            <div class="card my-2 no-border">
+                <h4 id="taskqc_header">Task QC: </h4>
+                <canvas id="taskqc_chart" width="100" height="50"></canvas>
+            </div>
+            <div class="card my-2 no-border">
+                <h4 id="videoqc_header">Video QC: </h4>
+                <canvas id="videoqc_chart" width="100" height="50"></canvas>
+            </div>
         </div>
     </div>
 
     <script>
-      var eid = "239cdbb1-68e2-4eb0-91d8-ae5ae4001c7a"
-      $(document).ready(function() {
-          $.ajax({
+        var eid = "{{ session.id }}"
+        $(document).ready(function() {
+            $.ajax({
 
-              success: function () {
-                  loadAllCharts(eid)
-              }
+                success: function () {
+                    loadAllCharts(eid)
+                }
+            });
           });
-        });
 
-        function loadChart(chart, status, endpoint) {
-          $.ajax({
-            url: endpoint,
-            type: "GET",
-            dataType: "json",
-            success: (jsonResponse) => {
-              // Extract data from the response
-              const title = jsonResponse.title;
-              const labels = jsonResponse.data.labels;
-              const datasets = jsonResponse.data.datasets;
+          function loadChart(chart, status, endpoint) {
+            $.ajax({
+              url: endpoint,
+              type: "GET",
+              dataType: "json",
+              success: (jsonResponse) => {
+                // Extract data from the response
+                const title = jsonResponse.title;
+                const labels = jsonResponse.data.labels;
+                const datasets = jsonResponse.data.datasets;
 
-              // Reset the current chart
-              chart.data.datasets = [];
-              chart.data.labels = [];
+                // Reset the current chart
+                chart.data.datasets = [];
+                chart.data.labels = [];
 
-              // Load new data into the chart
-              chart.data.labels = labels;
-              datasets.forEach(dataset => {
-                chart.data.datasets.push(dataset);
-              });
-              chart.update();
-              status.innerHTML = title
-            },
-            error: () => console.log("Failed to fetch chart data from " + endpoint + "!")
+                // Load new data into the chart
+                chart.data.labels = labels;
+                datasets.forEach(dataset => {
+                  chart.data.datasets.push(dataset);
+                });
+                chart.update();
+                status.innerHTML = title
+              },
+              error: () => console.log("Failed to fetch chart data from " + endpoint + "!")
+            });
+          }
+
+          function loadAllCharts(pid) {
+            loadChart(taskqc_chart, taskqc_header, `/ibl_reports/task_qc_eid/${eid}`);
+            loadChart(videoqc_chart, videoqc_header, `/ibl_reports/video_qc_eid/${eid}`);
+          }
+
+
+          let ctx_taskqc = document.getElementById("taskqc_chart").getContext("2d");
+          let taskqc_chart = new Chart(ctx_taskqc, {
+            type: "bar",
+
+            options: {
+                responsive: true,
+                legend: {
+                      display: false
+                },
+            }
           });
-        }
+          let taskqc_header = document.getElementById("taskqc_header")
 
-        function loadAllCharts(pid) {
-          loadChart(taskqc_chart, taskqc_header, `/ibl_reports/task_qc_eid/${eid}`);
-          loadChart(videoqc_chart, videoqc_header, `/ibl_reports/video_qc_eid/${eid}`);
-        }
+          let ctx_videoqc = document.getElementById("videoqc_chart").getContext("2d");
+          let videoqc_chart = new Chart(ctx_videoqc, {
+            type: "bar",
 
-
-        let ctx_taskqc = document.getElementById("taskqc_chart").getContext("2d");
-        let taskqc_chart = new Chart(ctx_taskqc, {
-          type: "bar",
-
-          options: {
-              responsive: true,
-              legend: {
-                    display: false
-              },
-          }
-        });
-        let taskqc_header = document.getElementById("taskqc_header")
-
-        let ctx_videoqc = document.getElementById("videoqc_chart").getContext("2d");
-        let videoqc_chart = new Chart(ctx_videoqc, {
-          type: "bar",
-
-          options: {
-              responsive: true,
-              legend: {
-                    display: false
-              },
-          }
-        });
-        let videoqc_header = document.getElementById("videoqc_header")
+            options: {
+                responsive: true,
+                legend: {
+                      display: false
+                },
+            }
+          });
+          let videoqc_header = document.getElementById("videoqc_header")
 
     </script>
 
-{%  endblock content %}
+{%  endblock %}

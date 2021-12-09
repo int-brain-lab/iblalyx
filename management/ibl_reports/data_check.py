@@ -59,6 +59,7 @@ def get_data_status(dsets, exp_dsets, title):
 
     return data
 
+
 def get_tasks(expected_tasks, session):
     task_status = {}
     for task in expected_tasks:
@@ -70,6 +71,7 @@ def get_tasks(expected_tasks, session):
             task_status[task] = None
 
     return task_status
+
 
 def get_probe_type(datasets, probe):
 
@@ -209,7 +211,6 @@ def video_data_status(datasets, probe):
 def spikesort_data_status(datasets, session, probes):
     expected_both_dsets = []
     for probe in probes:
-    # Need to find the collection
         expected_dsets = deepcopy(expected_data.SPIKE_SORTING)
         if datasets.filter(collection__icontains=f'alf/{probe.name}/pykilosort').count() > 0:
             for dset in expected_dsets:
@@ -271,3 +272,17 @@ def get_spikesorting_task(probe_insertions):
         data_status.append(task)
 
     return data_status
+
+
+def get_plots(notes, plot_type):
+    plots = expected_data.PLOT_MAP[plot_type]
+
+    ordered_plots = {}
+    for pl in plots:
+        note = notes.filter(text=pl)
+        if note.count() != 0:
+            ordered_plots[pl] = note.first()
+        else:
+            ordered_plots[pl] = None
+
+    return ordered_plots
