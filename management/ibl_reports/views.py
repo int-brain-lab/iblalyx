@@ -355,7 +355,7 @@ class GallerySessionView(LoginRequiredMixin, ListView):
         self.eid = self.kwargs.get('eid', None)
         pids = ProbeInsertion.objects.all().filter(session=self.eid).values_list('id', flat=True)
         qs = Note.objects.all().filter(Q(object_id=self.eid) | Q(object_id__in=pids))
-        # qs = qs.filter(json__tag='## reports ##')
+        qs = qs.filter(json__tag="## report ##")
 
         return qs
 
