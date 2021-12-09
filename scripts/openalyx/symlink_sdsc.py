@@ -5,7 +5,8 @@ from oneibl.webclient import sdsc_path_from_dataset, SDSC_ROOT_PATH
 
 SDSC_PUBLIC_PATH = Path('/mnt/ibl/public')
 
-one = ONE(base_url='https://openalyx.internationalbrainlab.org', username='intbrainlab', password='international')
+one = ONE(base_url='https://openalyx.internationalbrainlab.org',
+          username='intbrainlab', password='international')
 dsets = one.alyx.rest('datasets', 'list')
 
 

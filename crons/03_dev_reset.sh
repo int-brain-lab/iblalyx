@@ -7,8 +7,11 @@ mkdir -p "$backup_dir"
 # Delete the full dev database
 psql -q -U ibl_dev -h $HOST -d alyx_dev -c "drop schema public cascade"
 psql -q -U ibl_dev -h $HOST -d alyx_dev -c "create schema public"
+# unzip the sql
+gunzip -k $backup_dir/alyx_full.sql.gz
 # Loads the main database into the dev one
-psql -h $HOST -U ibl_dev -d alyx_dev -f alyx_full.sql
+psql -h $HOST -U ibl_dev -d alyx_dev -f $backup_dir/alyx_full.sql
+rm $backup_dir/alyx_full.sql
 # Mirror the migrations from alyx-main to alyx-dev: wipe them all out and then copy from alyx-main
 rm -r /var/www/alyx-dev/alyx/*/migrations/0*
 cp -r /var/www/alyx-main/alyx/misc/migrations/0* /var/www/alyx-dev/alyx/misc/migrations/
