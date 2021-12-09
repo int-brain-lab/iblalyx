@@ -173,13 +173,16 @@ DLC_TASKS = ['EphysDLC', 'EphysPostDLC']
 EPHYS_PLOTS = ['raw_ephys_bad_channels',
                'raw_ephys_bad_channels_highpass',
                'raw_ephys_bad_channels_destripe',
-               'raw_ephys_bad_channels_difference']
+               'raw_ephys_bad_channels_difference',
+               'lfp_spectrum',
+               'lfp_rms',
+               'ap_rms']
 
 HISTOLOGY_PLOTS = ['CCF']
 
 SPIKE_SORTING_PLOTS = ['raster']
 
-VIDEO_PLOTS = ['dlc_qc_plot']
+VIDEO_PLOTS = ['spike_sorting_raster']
 
 PLOT_MAP = {
     'spikesorting': SPIKE_SORTING_PLOTS,
@@ -188,8 +191,8 @@ PLOT_MAP = {
     'video': VIDEO_PLOTS
 }
 
-OVERVIEW_PROBE_PLOTS = ['raw_ephys_bad_channels_highpass',
-                        'raw_ephys_bad_channels_destripe',
-                        'raw_ephys_bad_channels_difference']
+OVERVIEW_PROBE_PLOTS = ['raw_ephys_bad_channels_destripe',
+                        'spike_sorting_raster',
+                        'lfp_spectrum']
 
 OVERVIEW_SESSION_PLOTS = ['dlc_qc_plot']
