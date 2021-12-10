@@ -380,6 +380,8 @@ def histology_assign_update():
         eid = data['eids'][i_sess]
         print(f'{i_sess + 1} / {n_sess}')
         insertions = ProbeInsertion.objects.filter(session=eid)
+        n_alignment_done = 0
+        names_alignment = []
         for i_ins, insertion in enumerate(insertions):
             subject = insertion.session.subject.nickname
             date = str(insertion.session.start_time)[:10]
@@ -413,15 +415,23 @@ def histology_assign_update():
                         names = traj[0].json.keys()
                         names = list(names)
 
+                        # N alignments done
+                        n_alignment_done = len(names)
+                        names_alignment = [item[str.find(item, '_')+1:] for item in names]
+
                         for i_name in range(0, len(names)):
                             idx_str = str.find(names[i_name], '_')
                             user_str = names[i_name][idx_str + 1:]
-                            print(f'user_str: {user_str}, pid: {insertion.id}')  # TODO REMOVE, FOR DEBUG
-                            ibluser = user_str != 'intbrainlab'
+
+
+
+                            # print(f'user_str: {user_str}, pid: {insertion.id}')  # TODO REMOVE, FOR DEBUG
                             if user_str != 'intbrainlab':  # TODO WART
-                                print(f'HERE {ibluser}')
+                                # TODO need to change code as users from other lab will align
+                                print('user_str != intbrainlab')
                                 user = LabMember.objects.get(username=user_str)
                                 user_lab = user.lab
+                                return
                                 # add hoferlab to mrsicflogel (1 lab for both)
                                 if 'hoferlab' in user_lab:
                                     user_lab.append('mrsicflogellab')
@@ -431,6 +441,8 @@ def histology_assign_update():
                                     origin_lab_done = True
                                 elif assign_lab in user_lab:
                                     assign_lab_done = True
+
+
 
             # Check if insertion is critical, criteria:
             # - session critical
@@ -460,6 +472,8 @@ def histology_assign_update():
                 "origin_lab_done": origin_lab_done,
                 "assign_lab": assign_lab,
                 "assign_lab_done": assign_lab_done,
+                "n_alignment_done": n_alignment_done,
+                "names_alignment": names_alignment,
                 "align_solved": aligned,
                 "is_critical": is_critical,
                 "tracing_done": tracing_done
@@ -480,7 +494,7 @@ def histology_assign_update():
     # get data from sheet once again (broken pipe error otherwise)
     sheets = build('sheets', 'v4', http=credentials.authorize(Http()))
     write_spreadsheetID = read_spreadsheetID
-    write_spreadsheetRange = 'NEW_2'
+    write_spreadsheetRange = 'NEW_3TEST'
     write_data = sheets.spreadsheets(). \
         values().update(spreadsheetId=write_spreadsheetID, valueInputOption='RAW',  # USER_ENTERED
                         range=write_spreadsheetRange,
