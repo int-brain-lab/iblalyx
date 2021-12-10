@@ -423,12 +423,9 @@ def histology_assign_update():
                             idx_str = str.find(names[i_name], '_')
                             user_str = names[i_name][idx_str + 1:]
 
-
-
                             # print(f'user_str: {user_str}, pid: {insertion.id}')  # TODO REMOVE, FOR DEBUG
                             if user_str != 'intbrainlab':  # TODO WART
-                                # TODO need to change code as users from other lab will align
-                                print('user_str != intbrainlab')
+                                # print('user_str != intbrainlab')
                                 user = LabMember.objects.get(username=user_str)
                                 user_lab = user.lab
                                 return
