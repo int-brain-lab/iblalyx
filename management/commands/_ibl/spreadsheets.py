@@ -382,7 +382,7 @@ def histology_assign_update():
         print(f'{i_sess + 1} / {n_sess}')
         insertions = ProbeInsertion.objects.filter(session=eid)
         n_alignment_done = 0
-        names_alignment = []
+        names_alignment = ''
         for i_ins, insertion in enumerate(insertions):
             subject = insertion.session.subject.nickname
             date = str(insertion.session.start_time)[:10]
@@ -419,6 +419,7 @@ def histology_assign_update():
                         # N alignments done
                         n_alignment_done = len(names)
                         names_alignment = [item[str.find(item, '_')+1:] for item in names]
+                        names_alignment = ', '.join(names_alignment)
 
                         for i_name in range(0, len(names)):
                             idx_str = str.find(names[i_name], '_')
