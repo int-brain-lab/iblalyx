@@ -293,7 +293,7 @@ def histology_assign_update():
     drive_service = build('drive', 'v3', http=credentials.authorize(Http()))
     sheets = build('sheets', 'v4', http=credentials.authorize(Http()))
     read_spreadsheetID = '1nidCu7MjLrjaA8NHWYnJavLzQBjILZhCkYt0OdCUTxg'
-    read_spreadsheetRange = 'NEW_2'
+    read_spreadsheetRange = 'NEW_3TEST'
     rows = sheets.spreadsheets().values().get(spreadsheetId=read_spreadsheetID,
                                               range=read_spreadsheetRange).execute()
 
