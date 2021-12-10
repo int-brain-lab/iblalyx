@@ -208,14 +208,13 @@ class SpikeSortingFilter(django_filters.FilterSet):
 
     class Meta:
         model = ProbeInsertion
-        fields = ['id', 'session__lab', 'session__project']
+        fields = ['session__lab', 'session__project']
         exclude = ['json']
 
     def __init__(self, *args, **kwargs):
 
         super(SpikeSortingFilter, self).__init__(*args, **kwargs)
 
-        self.filters['id'].label = "Probe ID"
         self.filters['session__lab'].label = "Lab"
         self.filters['session__project'].label = "Project"
 
@@ -418,6 +417,7 @@ class GalleryFilter(django_filters.FilterSet):
         text = [pl[1] for pl in PLOT_OPTIONS if pl[0] == int(value)][0]
         queryset = queryset.filter(text=text)
         return queryset
+
 
 class SessionImportantPlots(LoginRequiredMixin, ListView):
     template_name = 'ibl_reports/gallery_session_overview.html'
