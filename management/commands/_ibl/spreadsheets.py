@@ -429,7 +429,6 @@ def histology_assign_update():
                                 # print('user_str != intbrainlab')
                                 user = LabMember.objects.get(username=user_str)
                                 user_lab = user.lab
-                                return
                                 # add hoferlab to mrsicflogel (1 lab for both)
                                 if 'hoferlab' in user_lab:
                                     user_lab.append('mrsicflogellab')
