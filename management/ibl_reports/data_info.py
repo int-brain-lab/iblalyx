@@ -180,9 +180,11 @@ EPHYS_PLOTS = ['raw_ephys_bad_channels',
 
 HISTOLOGY_PLOTS = ['CCF']
 
-SPIKE_SORTING_PLOTS = ['raster']
+SPIKE_SORTING_PLOTS = ['spike_sorting_raster_pykilosort',
+                       'spike_sorting_raster_',
+                       'spike_sorting_raster_ks2_preproc_tests']
 
-VIDEO_PLOTS = ['spike_sorting_raster']
+VIDEO_PLOTS = ['dlc_qc_plot']
 
 PLOT_MAP = {
     'spikesorting': SPIKE_SORTING_PLOTS,
@@ -192,7 +194,7 @@ PLOT_MAP = {
 }
 
 OVERVIEW_PROBE_PLOTS = ['raw_ephys_bad_channels_destripe',
-                        'spike_sorting_raster',
+                        'spike_sorting_raster_pykilosort',
                         'lfp_spectrum']
 
 OVERVIEW_SESSION_PLOTS = ['dlc_qc_plot']

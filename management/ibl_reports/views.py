@@ -20,6 +20,13 @@ from ibl_reports import data_info
 LOGIN_URL = '/admin/login/'
 
 
+def landingpage(request):
+    template = loader.get_template('ibl_reports/landing.html')
+    context = dict()
+
+    return HttpResponse(template.render(context, request))
+
+
 # get task qc for plotting
 def plot_task_qc_eid(request, eid):
     extended_qc = Session.objects.get(id=eid).extended_qc
@@ -471,7 +478,6 @@ class SessionFilter(django_filters.FilterSet):
         (1, 'Repeated Site')
     )
 
-
     eid = django_filters.UUIDFilter(label='Experiment ID', method='filter_eid')
     pid = django_filters.UUIDFilter(label='Probe ID', method='filter_pid')
     lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')
@@ -485,7 +491,6 @@ class SessionFilter(django_filters.FilterSet):
 
     def __init__(self, *args, **kwargs):
         super(SessionFilter, self).__init__(*args, **kwargs)
-
 
     def filter_eid(self, queryset, name, value):
         queryset = queryset.filter(id=value)

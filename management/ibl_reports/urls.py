@@ -5,6 +5,7 @@ from django.conf.urls.static import static
 from . import views
 
 urlpatterns = [
+    path('', views.landingpage),
     path('overview', views.InsertionTable.as_view(), name='insertion table'),
     path('overview/<uuid:pid>', views.InsertionOverview.as_view(), name='insertion overview'),
     path('task_qc_eid/<uuid:eid>', views.plot_task_qc_eid, name='plot_task_qc_eid'),
