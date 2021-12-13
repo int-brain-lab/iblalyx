@@ -1,0 +1,42 @@
+{% extends "ibl_reports/gallery_content.html" %}
+
+{% block content %}
+    <div class="gallery">
+        <div class="row my-2">
+            {% for key, value in devices.items %}
+                <h4>{{ key }}</h4>
+                {% for title, note in value.items %}
+                    <div class="responsive">
+                    {% if note == None %}
+                        <div class="imagecard ">
+                            <div class="imageicon">
+                                <center><i class="fa fa-area-chart"></i></center>
+                            </div>
+                            <div class="card-body">
+                                <h6>{{ title }}</h6>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="imagecard">
+                            <a href="{{ MEDIA_ROOT }}{{ note.image.url }}">
+                                <img class="card-img-top" src="{{ MEDIA_ROOT }}{{ note.image.url }}" title="{{ note.text }}">
+                                  <div class="card-body">
+                                    <h6>{{ title }}</h6>
+                                </div>
+                            </a>
+                        </div>
+                    {% endif %}
+                    </div>
+                    {% if forloop.counter|divisibleby:4 or forloop.last%}
+                        <div class="clearfix"></div>
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        var gallery = new SimpleLightbox('.gallery .imagecard a', {'captionPosition': 'outside'});
+    </script>
+
+{%  endblock content %}

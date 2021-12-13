@@ -1,0 +1,53 @@
+{% extends "ibl_reports/gallery_base.html" %}
+{% load jobs_template_tags %}
+
+{% block headertext %}
+    <h4> {{ session.id }}  {{ session|get_session_path }}</h4>
+{% endblock %}
+
+{% block main %}
+
+        <div class="row">
+            <div class="col-lg-2" id="content-bar">
+                <div class="card my-2">
+                    <div class="list-group" id="list-tab">
+                        <a class="list-group-item list-group-item-action" id="overview" href={% url 'session' eid=session.id %}> Overview </a>
+                        <a class="list-group-item list-group-item-action" id="task" href={% url 'task' eid=session.id %}> Tasks </a>
+                        <a class="list-group-item list-group-item-action" id="qc" href={% url 'qc' eid=session.id %}> QC </a>
+                        <a class="list-group-item list-group-item-action" id="spikesorting" href={% url 'spikesorting' eid=session.id %}> Spike sorting </a>
+                        <a class="list-group-item list-group-item-action" id="rawephys" href={% url 'rawephys' eid=session.id %}> Raw Ephys </a>
+                        <a class="list-group-item list-group-item-action" id="histology" href={% url 'histology' eid=session.id %}> Histology </a>
+                        <a class="list-group-item list-group-item-action" id="video" href={% url 'video' eid=session.id %}> Video </a>
+                        <a class="list-group-item list-group-item-action" id="gallery" href={% url 'gallery' eid=session.id %}> Gallery </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-10">
+                {% block content %} {% endblock %}
+            </div>
+        </div>
+
+
+    <script>
+        function get_current_page() {
+            var eid = "{{ session.id }}"
+            var pathArray = window.location.pathname.split("/");
+            var current_page = pathArray[pathArray.length - 1];
+            current_page = current_page.split(".")[0];
+            var tablinks = document.getElementById("list-tab");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+                console.log(i)
+            }
+            var x = document.getElementById(current_page)
+            console.log(x)
+            if (current_page == eid) {
+                document.getElementById("overview").className += " active";
+            }
+            else {
+                document.getElementById(current_page).className += " active";
+            }
+        }
+    </script>
+
+{% endblock %}

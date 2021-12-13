@@ -30,12 +30,12 @@
         <p><h3>{{ probe.session|get_session_path }} {{ probe.name }}</h3></p>
     </div>
     <script>
-      var pid = "{{ probe.id }}"
+      var eid = "{{ session.id }}"
       $(document).ready(function() {
           $.ajax({
 
               success: function () {
-                  loadAllCharts(pid)
+                  loadAllCharts(eid)
               }
           });
         });
@@ -69,9 +69,9 @@
           });
         }
 
-        function loadAllCharts(pid) {
-          loadChart(taskqc_chart, taskqc_header, `/ibl_reports/task_qc/${pid}`);
-          loadChart(videoqc_chart, videoqc_header, `/ibl_reports/video_qc/${pid}`);
+        function loadAllCharts(eid) {
+          loadChart(taskqc_chart, taskqc_header, `/ibl_reports/task_qc_eid/${eid}`);
+          loadChart(videoqc_chart, videoqc_header, `/ibl_reports/video_qc_eid/${eid}`);
         }
     </script>
     <div class="row">

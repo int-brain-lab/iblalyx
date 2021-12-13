@@ -1,0 +1,112 @@
+{% extends "ibl_reports/gallery_base.html" %}
+{% load jobs_template_tags %}
+
+
+{% block extrahead %}
+
+    <style>
+
+        .responsive {
+          padding: 0 6px;
+          float: left;
+          width: 49.999%;
+          position: relative;
+        }
+    </style>
+
+{% endblock extrahead %}
+
+{% block headertext %}
+    <h4>Session Overview</h4>
+{% endblock %}
+
+{% block form %}
+    <div class="row">
+    	<div class="card no-border">
+    	    <form method="get">
+                {{sessionFilter.form}}
+                <button class="btn btn-secondary btn-sm" type="submit"> Search </button>
+    	    </form>
+    	</div>
+
+    </div>
+{% endblock %}
+
+{% block main %}
+    <div class="row">
+        {% for plot, session in info|zip:sessions %}
+            <div class="gallery">
+                <div class="card my-2">
+                    <div class="card-header">
+                        <div class="row">
+                            <div class="col-md-4"><h5>{{ session.id }} </h5></div>
+                            <div class="col-md-4"><h5>{{ session|get_session_path }}</h5></div>
+                            <div class="col-md-4"><h5><a href={% url 'session' eid=session.id %}> More plots </a></h5></div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for key, value in plot.items %}
+                                <div class="col-md-4">
+                                    <h5>{{ key }}</h5>
+                                    <div class="row">
+                                    {% for title, note in value.items %}
+                                        <div class="responsive">
+                                            {% if note == None %}
+                                                <div class="imagecard ">
+                                                    <div class="imageicon">
+                                                        <center><i class="fa fa-area-chart"></i></center>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <h6>{{ title }}</h6>
+                                                    </div>
+                                                </div>
+                                            {% else %}
+                                                <div class="imagecard">
+                                                    <a href="{{ MEDIA_ROOT }}{{ note.image.url }}">
+                                                        <img class="card-img-top" src="{{ MEDIA_ROOT }}{{ note.image.url }}" title="{{ note.content_object }} {{ note.text }}">
+                                                        <div class="card-body">
+                                                            <h6>{{ title }}</h6>
+                                                        </div>
+                                                    </a>
+                                                </div>
+
+                                            {% endif %}
+                                        </div>
+                                        {% if forloop.counter|divisibleby:2 or forloop.last%}
+                                            <div class="clearfix"></div>
+                                        {% endif %}
+                                    {% endfor %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {%  endfor %}
+    </div>
+
+    <script>
+        var gallery = new SimpleLightbox('.gallery .imagecard a', {'captionPosition': 'outside'});
+    </script>
+
+    <div class="pagination">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+                <a href="?{% param_replace page=1 %}">&laquo; first</a>
+                <a href="?{% param_replace page=page_obj.previous_page_number %}">previous</a>
+            {% endif %}
+
+            <span class="current">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?{% param_replace page=page_obj.next_page_number %}">next</a>
+                <a href="?{% param_replace page=paginator.num_pages %}">last &raquo;</a>
+            {% endif %}
+        </span>
+    </div>
+
+{% endblock main %}
