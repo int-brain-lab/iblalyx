@@ -15,7 +15,7 @@ urlpatterns = [
     path('gallery/plots', views.GalleryPlotsOverview.as_view(), name='plot_overview'),
     path('gallery/sessions', views.SessionImportantPlots.as_view(), name='session_overview'),
 
-    path('gallery/<uuid:eid>', views.GallerySessionView.as_view(), name='session'),
+    path('gallery/<uuid:eid>', views.GalleryOverviewView.as_view(), name='session'),
     path('gallery/<uuid:eid>/gallery', views.GallerySessionView.as_view(), name='gallery'),
     path('gallery/<uuid:eid>/qc', views.GallerySessionQcView.as_view(), name='qc'),
     path('gallery/<uuid:eid>/task', views.GalleryTaskView.as_view(), name='task'),

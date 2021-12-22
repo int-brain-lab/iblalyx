@@ -69,6 +69,104 @@ def process_video_qc(video_qc_data):
     return data_dict
 
 
+def behav_summary(behav):
+    if behav == 1:
+        return 'PASS'
+    elif behav == 0:
+        return 'FAIL'
+    else:
+        return 'NOT_SET'
+
+def qc_summary(qc_data):
+
+    data_dict = {}
+    data_dict['Task QC'] = [qc_data.get('task', 'NOT_SET'), 0, 0]
+    data_dict['Video Body QC'] = [qc_data.get('videoBody', 'NOT_SET'), 0, 0]
+    data_dict['Video Left QC'] = [qc_data.get('videoLeft', 'NOT_SET'), 0, 0]
+    data_dict['Video Right QC'] = [qc_data.get('videoRight', 'NOT_SET'), 0, 0]
+    data_dict['DLC Body QC'] = [qc_data.get('dlcBody', 'NOT_SET'), 0, 0]
+    data_dict['DLC Left QC'] = [qc_data.get('dlcLeft', 'NOT_SET'), 0, 0]
+    data_dict['DLC Right QC'] = [qc_data.get('dlcRight', 'NOT_SET'), 0, 0]
+
+    for key, value in qc_data.items():
+        if '_task_' in key:
+            if value >= 0.9:
+                data_dict['Task QC'][1] += 1
+            else:
+                data_dict['Task QC'][2] += 1
+        if '_video' in key:
+            if isinstance(value, list):
+                if isinstance(value[0], bool):
+                    if value[0]:
+                        if 'Left' in key:
+                            data_dict['Video Left QC'][1] += 1
+                        elif 'Right' in key:
+                            data_dict['Video Right QC'][1] += 1
+                        elif 'Body' in key:
+                            data_dict['Video Body QC'][1] += 1
+                    else:
+                        if 'Left' in key:
+                            data_dict['Video Left QC'][2] += 1
+                        elif 'Right' in key:
+                            data_dict['Video Right QC'][2] += 1
+                        elif 'Body' in key:
+                            data_dict['Video Body QC'][2] += 1
+            else:
+                if value:
+                    if 'Left' in key:
+                        data_dict['Video Left QC'][1] += 1
+                    elif 'Right' in key:
+                        data_dict['Video Right QC'][1] += 1
+                    elif 'Body' in key:
+                        data_dict['Video Body QC'][1] += 1
+                else:
+                    if 'Left' in key:
+                        data_dict['Video Left QC'][2] += 1
+                    elif 'Right' in key:
+                        data_dict['Video Right QC'][2] += 1
+                    elif 'Body' in key:
+                        data_dict['Video Body QC'][2] += 1
+        if '_dlc' in key:
+            if isinstance(value, list):
+                if isinstance(value[0], bool):
+                    if value[0]:
+                        if 'Left' in key:
+                            data_dict['DLC Left QC'][1] += 1
+                        elif 'Right' in key:
+                            data_dict['DLC Right QC'][1] += 1
+                        elif 'Body' in key:
+                            data_dict['DLC Body QC'][1] += 1
+                    else:
+                        if 'Left' in key:
+                            data_dict['DLC Left QC'][2] += 1
+                        elif 'Right' in key:
+                            data_dict['DLC Right QC'][2] += 1
+                        elif 'Body' in key:
+                            data_dict['DLC Body QC'][2] += 1
+            else:
+                if value:
+                    if 'Left' in key:
+                        data_dict['DLC Left QC'][1] += 1
+                    elif 'Right' in key:
+                        data_dict['DLC Right QC'][1] += 1
+                    elif 'Body' in key:
+                        data_dict['DLC Body QC'][1] += 1
+                else:
+                    if 'Left' in key:
+                        data_dict['DLC Left QC'][2] += 1
+                    elif 'Right' in key:
+                        data_dict['DLC Right QC'][2] += 1
+                    elif 'Body' in key:
+                        data_dict['DLC Body QC'][2] += 1
+
+    for key, value in data_dict.items():
+        if value[1] == value[2] == 0:
+            data_dict[key][1] = None
+            data_dict[key][2] = None
+
+    return data_dict
+
+
 
 
 
