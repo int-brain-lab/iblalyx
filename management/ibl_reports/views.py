@@ -372,7 +372,8 @@ class GalleryOverviewView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super(GalleryOverviewView, self).get_context_data(**kwargs)
         context['session'] = Session.objects.all().get(id=self.eid)
-        context['behaviour'] = qc_check.behav_summary(context['session'].extended_qc.get('behavior', 'NOT_SET'))
+
+        context['behaviour'] = qc_check.behav_summary(context['session'].extended_qc)
         context['qc'] = qc_check.qc_summary(context['session'].extended_qc)
 
         probes = ProbeInsertion.objects.all().filter(session=self.eid).prefetch_related('trajectory_estimate').order_by('name')

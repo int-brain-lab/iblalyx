@@ -19,10 +19,9 @@ urlpatterns = [
     path('gallery/<uuid:eid>/gallery', views.GallerySessionView.as_view(), name='gallery'),
     path('gallery/<uuid:eid>/qc', views.GallerySessionQcView.as_view(), name='qc'),
     path('gallery/<uuid:eid>/task', views.GalleryTaskView.as_view(), name='task'),
+    path('gallery/<uuid:eid>/behaviour', views.GallerySubPlotSessionView.as_view(plot_type='behaviour'), name='behaviour'),
     path('gallery/<uuid:eid>/spikesorting', views.GallerySubPlotProbeView.as_view(plot_type='spikesorting'), name='spikesorting'),
     path('gallery/<uuid:eid>/rawephys', views.GallerySubPlotProbeView.as_view(plot_type='rawephys'), name='rawephys'),
     path('gallery/<uuid:eid>/histology', views.GallerySubPlotProbeView.as_view(plot_type='histology'), name='histology'),
     path('gallery/<uuid:eid>/video', views.GallerySubPlotSessionView.as_view(plot_type='video'), name='video'),
 ]
-
-

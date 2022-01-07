@@ -69,7 +69,11 @@ def process_video_qc(video_qc_data):
     return data_dict
 
 
-def behav_summary(behav):
+def behav_summary(qc_data):
+    if qc_data is None:
+        return 'NOT_SET'
+
+    behav = qc_data.get('behavior', 'NOT_SET')
     if behav == 1:
         return 'PASS'
     elif behav == 0:
@@ -78,6 +82,19 @@ def behav_summary(behav):
         return 'NOT_SET'
 
 def qc_summary(qc_data):
+
+    if qc_data is None:
+        data_dict = {}
+        data_dict['Task QC'] = ['NOT_SET', 0, 0]
+        data_dict['Video Body QC'] = ['NOT_SET', 0, 0]
+        data_dict['Video Left QC'] = ['NOT_SET', 0, 0]
+        data_dict['Video Right QC'] = ['NOT_SET', 0, 0]
+        data_dict['DLC Body QC'] = ['NOT_SET', 0, 0]
+        data_dict['DLC Left QC'] = ['NOT_SET', 0, 0]
+        data_dict['DLC Right QC'] = ['NOT_SET', 0, 0]
+
+        return data_dict
+
 
     data_dict = {}
     data_dict['Task QC'] = [qc_data.get('task', 'NOT_SET'), 0, 0]
