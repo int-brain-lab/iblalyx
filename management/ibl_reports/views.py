@@ -34,38 +34,82 @@ def plot_task_qc_eid(request, eid):
     task = {key: val for key, val in extended_qc.items() if '_task_' in key}
     col, bord = qc_check.get_task_qc_colours(task)
 
-    return JsonResponse({
-        'title': f'Task QC: {extended_qc.get("task", "Not computed")}',
-        'data': {
-            'labels': list(task.keys()),
-            'datasets': [{
-                'backgroundColor': col,
-                'borderColor': bord,
-                'borderWidth': 3,
-                'data': list(task.values()),
-            }]
-        },
-    })
+    task_dict = {}
+    task_dict[''] = {'title': f'Task QC: {extended_qc.get("task", "Not computed")}',
+                     'data': {
+                         'labels': list(task.keys()),
+                         'datasets': [{
+                             'backgroundColor': col,
+                             'borderColor': bord,
+                             'borderWidth': 3,
+                             'data': list(task.values()),
+                         }]
+                     },
+                     }
+
+    return JsonResponse(task_dict)
 
 
 # get video qc json for plotting
 def plot_video_qc_eid(request, eid):
     extended_qc = Session.objects.get(id=eid).extended_qc
-    video = {key: val for key, val in extended_qc.items() if '_video' in key}
-    video_data = qc_check.process_video_qc(video)
+    video_dict = {}
+    for cam in ['Body', 'Left', 'Right']:
+        video = {key: val for key, val in extended_qc.items() if f'_video{cam}' in key}
+        # TODO if null set to 0
+        video_data = qc_check.process_video_qc(video)
 
-    return JsonResponse({
-        'title': f'Video Left QC: {extended_qc.get("videoLeft", "Not computed")} '
-                 f'Video Right QC: {extended_qc.get("videoRight", "Not computed")} '
-                 f'Video Body QC: {extended_qc.get("videoBody", "Not computed")}',
-        'data': {
-            'labels': video_data['label'],
-            'datasets': [{
-                'backgroundColor': video_data['colour'],
-                'data': video_data['data'],
-            }]
-        },
-    })
+        video_dict[cam] = {
+                        'title': f'Video {cam} QC: {extended_qc.get(f"video{cam}", "Not computed")}',
+                        'data': {
+                            'labels': video_data['label'],
+                            'datasets': [{
+                                'backgroundColor': video_data['colour'],
+                                'data': video_data['data'],
+                            }]
+                        },
+        }
+
+    return JsonResponse(video_dict)
+
+# get dlc qc json for plotting
+def plot_dlc_qc_eid(request, eid):
+    extended_qc = Session.objects.get(id=eid).extended_qc
+    dlc_dict = {}
+    for cam in ['Body', 'Left', 'Right']:
+        dlc = {key: val for key, val in extended_qc.items() if f'_dlc{cam}' in key}
+        # TODO if null set to 0
+        dlc_data = qc_check.process_video_qc(dlc)
+
+        dlc_dict[cam] = {
+                        'title': f'DLC {cam} QC: {extended_qc.get(f"dlc{cam}", "Not computed")}',
+                        'data': {
+                            'labels': dlc_data['label'],
+                            'datasets': [{
+                                'backgroundColor': dlc_data['colour'],
+                                'data': dlc_data['data'],
+                            }]
+                        },
+        }
+
+    return JsonResponse(dlc_dict)
+
+
+
+    # Have one for left and right, body
+
+    #return JsonResponse({
+    #    'title': f'DLC Left QC: {extended_qc.get("dlcLeft", "Not computed")} '
+    #             f'DLC Right QC: {extended_qc.get("dlcRight", "Not computed")} '
+    #             f'DLC Body QC: {extended_qc.get("dlcBody", "Not computed")}',
+    #    'data': {
+    #        'labels': dlc_data['label'],
+    #        'datasets': [{
+    #            'backgroundColor': dlc_data['colour'],
+    #            'data': dlc_data['data'],
+    #        }]
+    #    },
+    #})
 
 
 # Insertion overview page
@@ -316,7 +360,7 @@ class GallerySubPlotProbeView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         self.eid = self.kwargs.get('eid', None)
-        self.pids = ProbeInsertion.objects.all().filter(session=self.eid)
+        self.pids = ProbeInsertion.objects.all().filter(session=self.eid).order_by('name')
         qs = Note.objects.all().filter(Q(object_id__in=self.pids.values_list('id', flat=True)))
 
         return qs
