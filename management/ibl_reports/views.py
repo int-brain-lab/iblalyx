@@ -2,7 +2,7 @@ import django_filters
 from django.http import HttpResponse, JsonResponse
 from django.template import loader
 from django.views.generic.list import ListView
-from django.db.models import Count, Q, F, Max, OuterRef, Exists
+from django.db.models import Count, Q, F, Max, OuterRef, Exists, UUIDField
 from django.db.models.functions import Coalesce
 from django.contrib.auth.mixins import LoginRequiredMixin
 
@@ -446,6 +446,8 @@ class GalleryPlotsOverview(LoginRequiredMixin, ListView):
                                       Session.objects.filter(id=OuterRef('object_id')).values('lab__name')))
         qs = qs.annotate(project=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__project__name'),
                                           Session.objects.filter(id=OuterRef('object_id')).values('project__name')))
+        qs = qs.annotate(session=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session'),
+                                          Session.objects.filter(id=OuterRef('object_id')).values('pk'), output_field=UUIDField()))
 
         self.f = GalleryFilter(self.request.GET, queryset=qs)
 
@@ -492,7 +494,7 @@ class GalleryFilter(django_filters.FilterSet):
         return queryset
 
     def filter_id(self, queryset, name, value):
-        queryset = queryset.filter(object_id__startswith=value)
+        queryset = queryset.filter(Q(object_id__startswith=value) | Q(session__startswith=value))
         return queryset
 
     def filter_repeated(self, queryset, name, value):
