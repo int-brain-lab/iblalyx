@@ -40,38 +40,42 @@
           });
         });
 
-        function loadChart(chart, status, endpoint) {
-          $.ajax({
-            url: endpoint,
-            type: "GET",
-            dataType: "json",
-            success: (jsonResponse) => {
-              // Extract data from the response
-              const title = jsonResponse.title;
-              const labels = jsonResponse.data.labels;
-              const datasets = jsonResponse.data.datasets;
+          function loadChart(chart, status, endpoint, key='') {
+            $.ajax({
+              url: endpoint,
+              type: "GET",
+              dataType: "json",
+              success: (jsonResponse) => {
+                // Extract data from the response
+                var bla = key
+                response = jsonResponse[bla]
+                console.log(bla)
+                  console.log(response)
+                const title = response.title;
+                const labels = response.data.labels;
+                const datasets = response.data.datasets;
 
-              // Reset the current chart
-              chart.data.datasets = [];
-              chart.data.labels = [];
+                // Reset the current chart
+                chart.data.datasets = [];
+                chart.data.labels = [];
 
-              // Load new data into the chart
-              // chart.options.title.text = title;
-              // chart.options.title.display = true;
-              chart.data.labels = labels;
-              datasets.forEach(dataset => {
-                chart.data.datasets.push(dataset);
-              });
-              chart.update();
-              status.innerHTML = title
-            },
-            error: () => console.log("Failed to fetch chart data from " + endpoint + "!")
-          });
-        }
+                // Load new data into the chart
+                chart.data.labels = labels;
+                datasets.forEach(dataset => {
+                  chart.data.datasets.push(dataset);
+                });
+                chart.update();
+                status.innerHTML = title
+              },
+              error: () => console.log("Failed to fetch chart data from " + endpoint + "!")
+            });
+          }
 
         function loadAllCharts(eid) {
           loadChart(taskqc_chart, taskqc_header, `/ibl_reports/task_qc_eid/${eid}`);
-          loadChart(videoqc_chart, videoqc_header, `/ibl_reports/video_qc_eid/${eid}`);
+          loadChart(videoBodyqc_chart, videoBodyqc_header, `/ibl_reports/video_qc_eid/${eid}`, key='Body');
+          loadChart(videoLeftqc_chart, videoLeftqc_header, `/ibl_reports/video_qc_eid/${eid}`, key='Left');
+          loadChart(videoRightqc_chart, videoRightqc_header, `/ibl_reports/video_qc_eid/${eid}`, key='Right');
         }
     </script>
     <div class="row">
@@ -126,8 +130,12 @@
     <div class="col-lg-6 pad2">
         <h2 id="taskqc_header">Task QC: </h2>
         <canvas id="taskqc_chart" width="100" height="50"></canvas>
-        <h2 id="videoqc_header">Video QC: </h2>
-        <canvas id="videoqc_chart" width="100" height="50"></canvas>
+        <h2 id="videoBodyqc_header">Video QC: </h2>
+        <canvas id="videoBodyqc_chart" width="100" height="50"></canvas>
+        <h2 id="videoLeftqc_header">Video QC: </h2>
+        <canvas id="videoLeftqc_chart" width="100" height="50"></canvas>
+        <h2 id="videoRightqc_header">Video QC: </h2>
+        <canvas id="videoRightqc_chart" width="100" height="50"></canvas>
     </div>
 
     </div>
@@ -146,19 +154,80 @@
 
         let taskqc_header = document.getElementById("taskqc_header")
 
-        let ctx_videoqc = document.getElementById("videoqc_chart").getContext("2d");
-        let videoqc_chart = new Chart(ctx_videoqc, {
-          type: "bar",
+          let ctx_videoBodyqc = document.getElementById("videoBodyqc_chart").getContext("2d");
+          let videoBodyqc_chart = new Chart(ctx_videoBodyqc, {
+            type: "bar",
 
-          options: {
-              responsive: true,
-              legend: {
-                    display: false
-              },
-          }
-        });
+            options: {
+                responsive: true,
+                legend: {
+                      display: false
+                },
+                scales: {
+                    xAxes: [{
+                        display: true,
+                    }],
+                    yAxes: [{
+                        display: true,
+                        ticks: {
+                            max: 1,
+                            min: -1,
+                        }
+                    }]
+                }
+            }
+          });
+          let videoBodyqc_header = document.getElementById("videoBodyqc_header")
 
-        let videoqc_header = document.getElementById("videoqc_header")
+          let ctx_videoLeftqc = document.getElementById("videoLeftqc_chart").getContext("2d");
+          let videoLeftqc_chart = new Chart(ctx_videoLeftqc, {
+            type: "bar",
+
+            options: {
+                responsive: true,
+                legend: {
+                      display: false
+                },
+                scales: {
+                    xAxes: [{
+                        display: true,
+                    }],
+                    yAxes: [{
+                        display: true,
+                        ticks: {
+                            max: 1,
+                            min: -1,
+                        }
+                    }]
+                }
+            }
+          });
+          let videoLeftqc_header = document.getElementById("videoLeftqc_header")
+
+          let ctx_videoRightqc = document.getElementById("videoRightqc_chart").getContext("2d");
+          let videoRightqc_chart = new Chart(ctx_videoRightqc, {
+            type: "bar",
+
+            options: {
+                responsive: true,
+                legend: {
+                      display: false
+                },
+                scales: {
+                    xAxes: [{
+                        display: true,
+                    }],
+                    yAxes: [{
+                        display: true,
+                        ticks: {
+                            max: 1,
+                            min: -1,
+                        }
+                    }]
+                }
+            }
+          });
+          let videoRightqc_header = document.getElementById("videoRightqc_header")
 
     </script>
 

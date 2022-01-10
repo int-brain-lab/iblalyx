@@ -72,6 +72,7 @@ def plot_video_qc_eid(request, eid):
 
     return JsonResponse(video_dict)
 
+
 # get dlc qc json for plotting
 def plot_dlc_qc_eid(request, eid):
     extended_qc = Session.objects.get(id=eid).extended_qc
@@ -93,23 +94,6 @@ def plot_dlc_qc_eid(request, eid):
         }
 
     return JsonResponse(dlc_dict)
-
-
-
-    # Have one for left and right, body
-
-    #return JsonResponse({
-    #    'title': f'DLC Left QC: {extended_qc.get("dlcLeft", "Not computed")} '
-    #             f'DLC Right QC: {extended_qc.get("dlcRight", "Not computed")} '
-    #             f'DLC Body QC: {extended_qc.get("dlcBody", "Not computed")}',
-    #    'data': {
-    #        'labels': dlc_data['label'],
-    #        'datasets': [{
-    #            'backgroundColor': dlc_data['colour'],
-    #            'data': dlc_data['data'],
-    #        }]
-    #    },
-    #})
 
 
 # Insertion overview page
@@ -476,10 +460,16 @@ for ip, pl in enumerate(plot_types):
 
 class GalleryFilter(django_filters.FilterSet):
 
+    REPEATEDSITE = (
+        (0, 'All'),
+        (1, 'Repeated Site')
+    )
+
     id = django_filters.CharFilter(label='Experiment ID/ Probe ID', method='filter_id', lookup_expr='startswith')
     plot = django_filters.ChoiceFilter(choices=PLOT_OPTIONS, label='Plot Type', method='filter_plot')
     lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')  # here
     project = django_filters.ModelChoiceFilter(queryset=Project.objects.all(), label='Project', method='filter_project')
+    repeated = django_filters.ChoiceFilter(choices=REPEATEDSITE, label='Location', method='filter_repeated')
 
     class Meta:
         model = Note
@@ -504,6 +494,16 @@ class GalleryFilter(django_filters.FilterSet):
     def filter_id(self, queryset, name, value):
         queryset = queryset.filter(object_id__startswith=value)
         return queryset
+
+    def filter_repeated(self, queryset, name, value):
+        pids = ProbeInsertion.objects.filter(trajectory_estimate__provenance=10,
+                                             trajectory_estimate__x=-2243,
+                                             trajectory_estimate__y=-2000,
+                                             trajectory_estimate__theta=15)
+        if value == '0':
+            return queryset
+        if value == '1':
+            return queryset.filter(Q(object_id__in=pids.values_list('id')) | Q(object_id__in=pids.values_list('session')))
 
 
 class SessionImportantPlots(LoginRequiredMixin, ListView):
