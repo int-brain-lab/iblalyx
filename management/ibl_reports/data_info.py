@@ -178,7 +178,7 @@ EPHYS_PLOTS = ['raw_ephys_bad_channels',
                'lfp_rms',
                'ap_rms']
 
-HISTOLOGY_PLOTS = ['CCF']
+HISTOLOGY_PLOTS = ['histology_slices']
 
 SPIKE_SORTING_PLOTS = ['spike_sorting_raster_pykilosort',
                        'spike_sorting_raster_',
@@ -186,15 +186,24 @@ SPIKE_SORTING_PLOTS = ['spike_sorting_raster_pykilosort',
 
 VIDEO_PLOTS = ['dlc_qc_plot']
 
+BEHAVIOUR_PLOTS = ['psychometric_curve',
+                   'chronometric_curve',
+                   'reaction_time_with_trials']
+
+
 PLOT_MAP = {
     'spikesorting': SPIKE_SORTING_PLOTS,
     'histology': HISTOLOGY_PLOTS,
     'rawephys': EPHYS_PLOTS,
-    'video': VIDEO_PLOTS
+    'video': VIDEO_PLOTS,
+    'behaviour': BEHAVIOUR_PLOTS
 }
+
 
 OVERVIEW_PROBE_PLOTS = ['raw_ephys_bad_channels_destripe',
                         'spike_sorting_raster_pykilosort',
                         'lfp_spectrum']
 
-OVERVIEW_SESSION_PLOTS = ['dlc_qc_plot']
+OVERVIEW_SESSION_PLOTS = ['dlc_qc_plot',
+                          'psychometric_curve',
+                          'reaction_time_with_trials']

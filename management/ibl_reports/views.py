@@ -2,7 +2,7 @@ import django_filters
 from django.http import HttpResponse, JsonResponse
 from django.template import loader
 from django.views.generic.list import ListView
-from django.db.models import Count, Q, F, Max, OuterRef, Exists
+from django.db.models import Count, Q, F, Max, OuterRef, Exists, UUIDField
 from django.db.models.functions import Coalesce
 from django.contrib.auth.mixins import LoginRequiredMixin
 
@@ -34,38 +34,66 @@ def plot_task_qc_eid(request, eid):
     task = {key: val for key, val in extended_qc.items() if '_task_' in key}
     col, bord = qc_check.get_task_qc_colours(task)
 
-    return JsonResponse({
-        'title': f'Task QC: {extended_qc.get("task", "Not computed")}',
-        'data': {
-            'labels': list(task.keys()),
-            'datasets': [{
-                'backgroundColor': col,
-                'borderColor': bord,
-                'borderWidth': 3,
-                'data': list(task.values()),
-            }]
-        },
-    })
+    task_dict = {}
+    task_dict[''] = {'title': f'Task QC: {extended_qc.get("task", "Not computed")}',
+                     'data': {
+                         'labels': list(task.keys()),
+                         'datasets': [{
+                             'backgroundColor': col,
+                             'borderColor': bord,
+                             'borderWidth': 3,
+                             'data': list(task.values()),
+                         }]
+                     },
+                     }
+
+    return JsonResponse(task_dict)
 
 
 # get video qc json for plotting
 def plot_video_qc_eid(request, eid):
     extended_qc = Session.objects.get(id=eid).extended_qc
-    video = {key: val for key, val in extended_qc.items() if '_video' in key}
-    video_data = qc_check.process_video_qc(video)
+    video_dict = {}
+    for cam in ['Body', 'Left', 'Right']:
+        video = {key: val for key, val in extended_qc.items() if f'_video{cam}' in key}
+        # TODO if null set to 0
+        video_data = qc_check.process_video_qc(video)
 
-    return JsonResponse({
-        'title': f'Video Left QC: {extended_qc.get("videoLeft", "Not computed")} '
-                 f'Video Right QC: {extended_qc.get("videoRight", "Not computed")} '
-                 f'Video Body QC: {extended_qc.get("videoBody", "Not computed")}',
-        'data': {
-            'labels': video_data['label'],
-            'datasets': [{
-                'backgroundColor': video_data['colour'],
-                'data': video_data['data'],
-            }]
-        },
-    })
+        video_dict[cam] = {
+                        'title': f'Video {cam} QC: {extended_qc.get(f"video{cam}", "Not computed")}',
+                        'data': {
+                            'labels': video_data['label'],
+                            'datasets': [{
+                                'backgroundColor': video_data['colour'],
+                                'data': video_data['data'],
+                            }]
+                        },
+        }
+
+    return JsonResponse(video_dict)
+
+
+# get dlc qc json for plotting
+def plot_dlc_qc_eid(request, eid):
+    extended_qc = Session.objects.get(id=eid).extended_qc
+    dlc_dict = {}
+    for cam in ['Body', 'Left', 'Right']:
+        dlc = {key: val for key, val in extended_qc.items() if f'_dlc{cam}' in key}
+        # TODO if null set to 0
+        dlc_data = qc_check.process_video_qc(dlc)
+
+        dlc_dict[cam] = {
+                        'title': f'DLC {cam} QC: {extended_qc.get(f"dlc{cam}", "Not computed")}',
+                        'data': {
+                            'labels': dlc_data['label'],
+                            'datasets': [{
+                                'backgroundColor': dlc_data['colour'],
+                                'data': dlc_data['data'],
+                            }]
+                        },
+        }
+
+    return JsonResponse(dlc_dict)
 
 
 # Insertion overview page
@@ -146,23 +174,22 @@ class InsertionTable(LoginRequiredMixin, ListView):
 
 class InsertionFilter(django_filters.FilterSet):
 
-    eid = django_filters.UUIDFilter(label='Experiment ID', method='filter_eid')
+    id = django_filters.CharFilter(label='Experiment ID/ Probe ID', method='filter_id', lookup_expr='startswith')
 
     class Meta:
         model = ProbeInsertion
-        fields = ['id', 'session__lab', 'session__project']
+        fields = ['session__lab', 'session__project']
         exclude = ['json']
 
     def __init__(self, *args, **kwargs):
 
         super(InsertionFilter, self).__init__(*args, **kwargs)
 
-        self.filters['id'].label = "Probe ID"
         self.filters['session__lab'].label = "Lab"
         self.filters['session__project'].label = "Project"
 
-    def filter_eid(self, queryset, name, value):
-        queryset = queryset.filter(session__id=value)
+    def filter_id(self, queryset, name, value):
+        queryset = queryset.filter(Q(session__id__startswith=value) | Q(id__startswith=value))
         return queryset
 
 
@@ -209,7 +236,7 @@ class SpikeSortingFilter(django_filters.FilterSet):
         (1, 'Repeated Site')
     )
 
-    eid = django_filters.UUIDFilter(label='Experiment ID', method='filter_eid')
+    id = django_filters.CharFilter(label='Experiment ID/ Probe ID', method='filter_id', lookup_expr='startswith')
     status = django_filters.ChoiceFilter(choices=SPIKESORTINGCHOICES, method='filter_spikesorting', label='Spike Sorting status')
     repeated = django_filters.ChoiceFilter(choices=REPEATEDSITE, label='Location', method='filter_repeated')
 
@@ -241,8 +268,8 @@ class SpikeSortingFilter(django_filters.FilterSet):
                                    Q(trajectory_estimate__y=-2000) &
                                    Q(trajectory_estimate__theta=15) & Q(session__project__name='ibl_neuropixel_brainwide_01'))
 
-    def filter_eid(self, queryset, name, value):
-        queryset = queryset.filter(session__id=value)
+    def filter_id(self, queryset, name, value):
+        queryset = queryset.filter(Q(session__id__startswith=value) | Q(id__startswith=value))
         return queryset
 
 
@@ -253,13 +280,13 @@ class GalleryTaskView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super(GalleryTaskView, self).get_context_data(**kwargs)
         session = context['object_list'][0]
-        probes = ProbeInsertion.objects.filter(session=session.id)
-        dsets = session.data_dataset_session_related
+        probes = ProbeInsertion.objects.filter(session=session.id).prefetch_related('datasets')
+        dsets = session.data_dataset_session_related.select_related('dataset_type')
 
         context['session'] = session
         context['data'] = {}
         context['data']['raw_behaviour'] = data_check.raw_behaviour_data_status(dsets, session)
-        context['data']['raw_passive'] = data_check.raw_passive_data_status(dsets,session)
+        context['data']['raw_passive'] = data_check.raw_passive_data_status(dsets, session)
         context['data']['raw_ephys'] = data_check.raw_ephys_data_status(dsets, session, probes)
         context['data']['raw_video'] = data_check.raw_video_data_status(dsets, session)
         context['data']['trials'] = data_check.trial_data_status(dsets, session)
@@ -274,7 +301,7 @@ class GalleryTaskView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         eid = self.kwargs.get('eid', None)
-        qs = Session.objects.all().filter(id=eid).prefetch_related('data_dataset_session_related')
+        qs = Session.objects.filter(id=eid).prefetch_related('data_dataset_session_related', 'tasks')
 
         return qs
 
@@ -317,7 +344,7 @@ class GallerySubPlotProbeView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         self.eid = self.kwargs.get('eid', None)
-        self.pids = ProbeInsertion.objects.all().filter(session=self.eid)
+        self.pids = ProbeInsertion.objects.all().filter(session=self.eid).order_by('name')
         qs = Note.objects.all().filter(Q(object_id__in=self.pids.values_list('id', flat=True)))
 
         return qs
@@ -366,6 +393,41 @@ class GallerySessionView(LoginRequiredMixin, ListView):
         return qs
 
 
+class GalleryOverviewView(LoginRequiredMixin, ListView):
+    login_url = LOGIN_URL
+    template_name = 'ibl_reports/gallery_overview.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(GalleryOverviewView, self).get_context_data(**kwargs)
+        context['session'] = Session.objects.all().get(id=self.eid)
+
+        context['behaviour'] = qc_check.behav_summary(context['session'].extended_qc)
+        context['qc'] = qc_check.qc_summary(context['session'].extended_qc)
+
+        probes = ProbeInsertion.objects.all().filter(session=self.eid).prefetch_related('trajectory_estimate').order_by('name')
+        probes = probes.annotate(planned=Exists(
+            TrajectoryEstimate.objects.filter(probe_insertion=OuterRef('pk'), provenance=10)))
+        probes = probes.annotate(micro=Exists(
+            TrajectoryEstimate.objects.filter(probe_insertion=OuterRef('pk'), provenance=30)))
+        probes = probes.annotate(histology=Exists(
+            TrajectoryEstimate.objects.filter(probe_insertion=OuterRef('pk'), provenance=50,
+                                              x__isnull=False)))
+        probes = probes.annotate(aligned=Exists(
+            TrajectoryEstimate.objects.filter(probe_insertion=OuterRef('pk'), provenance=70)))
+        probes = probes.annotate(resolved=F('json__extended_qc__alignment_resolved'))
+        probes = probes.annotate(qc=F('json__qc'))
+        probes = probes.annotate(n_units=F('json__n_units'))
+        probes = probes.annotate(n_good_units=F('json__n_units_qc_pass'))
+        context['probes'] = probes
+
+        return context
+
+    def get_queryset(self):
+        self.eid = self.kwargs.get('eid', None)
+        qs = Session.objects.filter(id=self.eid)
+        return qs
+
+
 class GalleryPlotsOverview(LoginRequiredMixin, ListView):
     login_url = LOGIN_URL
     template_name = 'ibl_reports/gallery_plots_overview.html'
@@ -384,6 +446,8 @@ class GalleryPlotsOverview(LoginRequiredMixin, ListView):
                                       Session.objects.filter(id=OuterRef('object_id')).values('lab__name')))
         qs = qs.annotate(project=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__project__name'),
                                           Session.objects.filter(id=OuterRef('object_id')).values('project__name')))
+        qs = qs.annotate(session=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session'),
+                                          Session.objects.filter(id=OuterRef('object_id')).values('pk'), output_field=UUIDField()))
 
         self.f = GalleryFilter(self.request.GET, queryset=qs)
 
@@ -398,12 +462,16 @@ for ip, pl in enumerate(plot_types):
 
 class GalleryFilter(django_filters.FilterSet):
 
-    # TODO filter for pid and eid
-    eid = django_filters.UUIDFilter(label='Experiment ID', method='filter_eid')
-    pid = django_filters.UUIDFilter(label='Probe ID', method='filter_pid')
+    REPEATEDSITE = (
+        (0, 'All'),
+        (1, 'Repeated Site')
+    )
+
+    id = django_filters.CharFilter(label='Experiment ID/ Probe ID', method='filter_id', lookup_expr='startswith')
     plot = django_filters.ChoiceFilter(choices=PLOT_OPTIONS, label='Plot Type', method='filter_plot')
     lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')  # here
     project = django_filters.ModelChoiceFilter(queryset=Project.objects.all(), label='Project', method='filter_project')
+    repeated = django_filters.ChoiceFilter(choices=REPEATEDSITE, label='Location', method='filter_repeated')
 
     class Meta:
         model = Note
@@ -424,6 +492,20 @@ class GalleryFilter(django_filters.FilterSet):
         text = [pl[1] for pl in PLOT_OPTIONS if pl[0] == int(value)][0]
         queryset = queryset.filter(text=text)
         return queryset
+
+    def filter_id(self, queryset, name, value):
+        queryset = queryset.filter(Q(object_id__startswith=value) | Q(session__startswith=value))
+        return queryset
+
+    def filter_repeated(self, queryset, name, value):
+        pids = ProbeInsertion.objects.filter(trajectory_estimate__provenance=10,
+                                             trajectory_estimate__x=-2243,
+                                             trajectory_estimate__y=-2000,
+                                             trajectory_estimate__theta=15)
+        if value == '0':
+            return queryset
+        if value == '1':
+            return queryset.filter(Q(object_id__in=pids.values_list('id')) | Q(object_id__in=pids.values_list('session')))
 
 
 class SessionImportantPlots(LoginRequiredMixin, ListView):
@@ -453,7 +535,7 @@ class SessionImportantPlots(LoginRequiredMixin, ListView):
             for plot in data_info.OVERVIEW_SESSION_PLOTS:
                 plot_dict[plot] = notes.filter(object_id=sess.id, text=plot).first()
             info['session'] = plot_dict
-            probes = sess.probe_insertion.values()
+            probes = sess.probe_insertion.values().order_by('name')
             if probes.count() > 0:
                 for probe in probes:
                     plot_dict = {}
@@ -478,8 +560,7 @@ class SessionFilter(django_filters.FilterSet):
         (1, 'Repeated Site')
     )
 
-    eid = django_filters.UUIDFilter(label='Experiment ID', method='filter_eid')
-    pid = django_filters.UUIDFilter(label='Probe ID', method='filter_pid')
+    id = django_filters.CharFilter(label='Experiment ID/ Probe ID', method='filter_id', lookup_expr='startswith')
     lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')
     project = django_filters.ModelChoiceFilter(queryset=Project.objects.all(), label='Project')
     repeated = django_filters.ChoiceFilter(choices=REPEATEDSITE, label='Location', method='filter_repeated')
@@ -492,12 +573,8 @@ class SessionFilter(django_filters.FilterSet):
     def __init__(self, *args, **kwargs):
         super(SessionFilter, self).__init__(*args, **kwargs)
 
-    def filter_eid(self, queryset, name, value):
-        queryset = queryset.filter(id=value)
-        return queryset
-
-    def filter_pid(self, queryset, name, value):
-        queryset = queryset.filter(probe_insertion=value)
+    def filter_id(self, queryset, name, value):
+        queryset = queryset.filter(Q(id__startswith=value) | Q(probe_insertion__id__startswith=value)).distinct()
         return queryset
 
     def filter_repeated(self, queryset, name, value):

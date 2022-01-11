@@ -1,0 +1,101 @@
+{% extends "ibl_reports/gallery_content.html" %}
+{% load jobs_template_tags %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-lg-4 col-md-12 col-sm-12">
+            <div class="card card-stats my-2">
+                <div class="card-body">
+                    <h5 class="card-title text-uppercase text-muted">EID: </h5>
+                    <h5 class="card-title" style="margin-bottom: 1.5rem">{{ session.id }}</h5>
+                    <h5 class="card-title text-uppercase text-muted">Subject: </h5>
+                    <h5 class="card-title" style="margin-bottom: 1.5rem">{{ session.subject.nickname }}</h5>
+                    <h5 class="card-title text-uppercase text-muted">Date: </h5>
+                    <h5 class="card-title" style="margin-bottom: 1.5rem">{{ session.start_time }}</h5>
+                    <h5 class="card-title text-uppercase text-muted">Session no: </h5>
+                    <h5 class="card-title" style="margin-bottom: 1.5rem">{{ session.number }}</h5>
+                    <h5 class="card-title text-uppercase text-muted">Lab: </h5>
+                    <h5 class="card-title" style="margin-bottom: 1.5rem">{{ session.lab.name }}</h5>
+                    <h5 class="card-title text-uppercase text-muted">Project: </h5>
+                    <h5 class="card-title" style="margin-bottom: 1.5rem">{{ session.project.name }}</h5>
+                    <h5 class="card-title text-uppercase text-muted">Protocol: </h5>
+                    <h5 class="card-title">{{ session.task_protocol }}</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="row">
+                <div class="col-lg-4 col-md-6">
+                    <div class="card card-stats my-2">
+                        <div class="card-body">
+                            <h5 class="card-title text-uppercase text-muted">Session QC </h5>
+                            <h5 class="card-title text-uppercase">{{ session.get_qc_display }}</h5>
+                            <p class="mt-4 mb-0 text-muted text-sm">
+                                <p class="text mr-2 mb-0" style="color: white"> ''</p>
+                                <p class="text text-nowrap" style="color: white">''</p>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="card card-stats my-2">
+                        <div class="card-body">
+                            <h5 class="card-title text-uppercase text-muted">Behavior QC </h5>
+                            <h5 class="card-title text-uppercase">{{ behaviour }}</h5>
+                            <p class="mt-4 mb-0 text-muted text-sm">
+                                <p class="text-success mr-2 mb-0"> N Correct Trials: {{ session.n_correct_trials }}</p>
+                                <p class="text-nowrap">N Trials: {{ session.n_trials }}</p>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {% for key, value in qc.items %}
+                    <div class="col-lg-4 col-md-6">
+                        <div class="card card-stats my-2">
+                            <div class="card-body">
+                                <h5 class="card-title text-uppercase text-muted">{{ key }}</h5>
+                                <h5 class="card-title text-uppercase">{{ value|index:0 }}</h5>
+                                <p class="mt-4 mb-0 text-muted text-sm">
+                                    <p class="text-success mr-2 mb-0"> N Pass: {{ value|index:1 }}</p>
+                                    <p class="text-danger text-nowrap mb-0">N Fail: {{ value|index:2 }}</p>
+                                    <p class="text text-nowrap"> N Total: {{ value|index:3 }}</p>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+
+                {% for probe in probes %}
+                    <div class="col-lg-6 col-md-6">
+                        <div class="card card-stats my-2">
+                            <div class="card-body">
+                                <div class="row">
+                                <div class="col">
+                                <h5 class="card-title text-uppercase text-muted">Ephys QC - {{ probe.name }} </h5>
+                                <h5 class="card-title text-uppercase">{{ probe.qc }}</h5>
+                                <p class="mt-4 mb-0 text-sm">
+                                    <p class="text-success mr-2 mb-0"> N Good Units: {{ probe.n_good_units }}</p>
+                                    <p class="text text-nowrap">N Units: {{ probe.n_units }}</p>
+                                </p>
+                                </div>
+                                    <div class="col-auto">
+                                        <p class="text mb-1">Planned: {{ probe.planned|get_icon }}</p>
+                                        <p class="text mb-1">Micro: {{ probe.micro|get_icon }}</p>
+                                        <p class="text mb-1">Histology: {{ probe.histology|get_icon }}</p>
+                                        <p class="text mb-1">Aligned: {{ probe.aligned|get_icon }}</p>
+                                        <p class="text mb-1">Resolved: {{ probe.resolved|get_icon }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+
+
+            </div>
+
+        </div>
+    </div>
+
+{%  endblock content %}

@@ -10,15 +10,52 @@
 
 {% block content %}
     <div class="row my-2">
-        <div class="col-md-8">
+        <div class="col-lg-10 col-md-12">
             <div class="card my-2 no-border">
                 <h4 id="taskqc_header">Task QC: </h4>
-                <canvas id="taskqc_chart" width="100" height="50"></canvas>
+                <canvas id="taskqc_chart"></canvas>
             </div>
-            <div class="card my-2 no-border">
-                <h4 id="videoqc_header">Video QC: </h4>
-                <canvas id="videoqc_chart" width="100" height="50"></canvas>
+            <div class="row">
+                <div class="col-lg-4">
+                    <div class="card my-2 no-border">
+                        <h4 id="videoBodyqc_header">Video Body QC: </h4>
+                        <canvas id="videoBodyqc_chart" height="500rem"></canvas>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card my-2 no-border">
+                        <h4 id="videoLeftqc_header">Video Left QC: </h4>
+                        <canvas id="videoLeftqc_chart" height="500rem"></canvas>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card my-2 no-border">
+                        <h4 id="videoRightqc_header">Video Right QC: </h4>
+                        <canvas id="videoRightqc_chart" height="500rem"></canvas>
+                    </div>
+                </div>
             </div>
+            <div class="row">
+                <div class="col-lg-4">
+                    <div class="card my-2 no-border">
+                        <h4 id="dlcBodyqc_header">DLC Body QC: </h4>
+                        <canvas id="dlcBodyqc_chart" height="500rem"></canvas>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card my-2 no-border">
+                        <h4 id="dlcLeftqc_header">DLC Left QC: </h4>
+                        <canvas id="dlcLeftqc_chart" height="500rem"></canvas>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card my-2 no-border">
+                        <h4 id="dlcRightqc_header">DLC Right QC: </h4>
+                        <canvas id="dlcRightqc_chart" height="500rem"></canvas>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -33,16 +70,20 @@
             });
           });
 
-          function loadChart(chart, status, endpoint) {
+          function loadChart(chart, status, endpoint, key='') {
             $.ajax({
               url: endpoint,
               type: "GET",
               dataType: "json",
               success: (jsonResponse) => {
                 // Extract data from the response
-                const title = jsonResponse.title;
-                const labels = jsonResponse.data.labels;
-                const datasets = jsonResponse.data.datasets;
+                var bla = key
+                response = jsonResponse[bla]
+                console.log(bla)
+                  console.log(response)
+                const title = response.title;
+                const labels = response.data.labels;
+                const datasets = response.data.datasets;
 
                 // Reset the current chart
                 chart.data.datasets = [];
@@ -60,9 +101,14 @@
             });
           }
 
-          function loadAllCharts(pid) {
+          function loadAllCharts(eid) {
             loadChart(taskqc_chart, taskqc_header, `/ibl_reports/task_qc_eid/${eid}`);
-            loadChart(videoqc_chart, videoqc_header, `/ibl_reports/video_qc_eid/${eid}`);
+            loadChart(videoBodyqc_chart, videoBodyqc_header, `/ibl_reports/video_qc_eid/${eid}`, key='Body');
+            loadChart(videoLeftqc_chart, videoLeftqc_header, `/ibl_reports/video_qc_eid/${eid}`, key='Left');
+            loadChart(videoRightqc_chart, videoRightqc_header, `/ibl_reports/video_qc_eid/${eid}`, key='Right');
+            loadChart(dlcBodyqc_chart, dlcBodyqc_header, `/ibl_reports/dlc_qc_eid/${eid}`, key='Body');
+            loadChart(dlcLeftqc_chart, dlcLeftqc_header, `/ibl_reports/dlc_qc_eid/${eid}`, key='Left');
+            loadChart(dlcRightqc_chart, dlcRightqc_header, `/ibl_reports/dlc_qc_eid/${eid}`, key='Right');
           }
 
 
@@ -73,14 +119,26 @@
             options: {
                 responsive: true,
                 legend: {
-                      display: false
+                    display: false
                 },
+                scales: {
+                    xAxes: [{
+                        display: true,
+                    }],
+                    yAxes: [{
+                        display: true,
+                        ticks: {
+                            max: 1,
+                            min: 0,
+                        }
+                    }]
+                }
             }
           });
           let taskqc_header = document.getElementById("taskqc_header")
 
-          let ctx_videoqc = document.getElementById("videoqc_chart").getContext("2d");
-          let videoqc_chart = new Chart(ctx_videoqc, {
+          let ctx_videoBodyqc = document.getElementById("videoBodyqc_chart").getContext("2d");
+          let videoBodyqc_chart = new Chart(ctx_videoBodyqc, {
             type: "bar",
 
             options: {
@@ -88,9 +146,148 @@
                 legend: {
                       display: false
                 },
+                scales: {
+                    xAxes: [{
+                        display: true,
+                    }],
+                    yAxes: [{
+                        display: true,
+                        ticks: {
+                            max: 1,
+                            min: -1,
+                        }
+                    }]
+                }
             }
           });
-          let videoqc_header = document.getElementById("videoqc_header")
+          let videoBodyqc_header = document.getElementById("videoBodyqc_header")
+
+          let ctx_videoLeftqc = document.getElementById("videoLeftqc_chart").getContext("2d");
+          let videoLeftqc_chart = new Chart(ctx_videoLeftqc, {
+            type: "bar",
+
+            options: {
+                responsive: true,
+                legend: {
+                      display: false
+                },
+                scales: {
+                    xAxes: [{
+                        display: true,
+                    }],
+                    yAxes: [{
+                        display: true,
+                        ticks: {
+                            max: 1,
+                            min: -1,
+                        }
+                    }]
+                }
+            }
+          });
+          let videoLeftqc_header = document.getElementById("videoLeftqc_header")
+
+          let ctx_videoRightqc = document.getElementById("videoRightqc_chart").getContext("2d");
+          let videoRightqc_chart = new Chart(ctx_videoRightqc, {
+            type: "bar",
+
+            options: {
+                responsive: true,
+                legend: {
+                      display: false
+                },
+                scales: {
+                    xAxes: [{
+                        display: true,
+                    }],
+                    yAxes: [{
+                        display: true,
+                        ticks: {
+                            max: 1,
+                            min: -1,
+                        }
+                    }]
+                }
+            }
+          });
+          let videoRightqc_header = document.getElementById("videoRightqc_header")
+
+          let ctx_dlcBodyqc = document.getElementById("dlcBodyqc_chart").getContext("2d");
+          let dlcBodyqc_chart = new Chart(ctx_dlcBodyqc, {
+            type: "bar",
+
+            options: {
+                responsive: true,
+                legend: {
+                      display: false
+                },
+                scales: {
+                    xAxes: [{
+                        display: true,
+                    }],
+                    yAxes: [{
+                        display: true,
+                        ticks: {
+                            max: 1,
+                            min: -1,
+                        }
+                    }]
+                }
+            }
+          });
+          let dlcBodyqc_header = document.getElementById("dlcBodyqc_header")
+
+          let ctx_dlcLeftqc = document.getElementById("dlcLeftqc_chart").getContext("2d");
+          let dlcLeftqc_chart = new Chart(ctx_dlcLeftqc, {
+            type: "bar",
+
+            options: {
+                responsive: true,
+                legend: {
+                      display: false
+                },
+                scales: {
+                    xAxes: [{
+                        display: true,
+                    }],
+                    yAxes: [{
+                        display: true,
+                        ticks: {
+                            max: 1,
+                            min: -1,
+                        }
+                    }]
+                }
+            }
+          });
+          let dlcLeftqc_header = document.getElementById("dlcLeftqc_header")
+
+          let ctx_dlcRightqc = document.getElementById("dlcRightqc_chart").getContext("2d");
+          let dlcRightqc_chart = new Chart(ctx_dlcRightqc, {
+            type: "bar",
+
+            options: {
+                responsive: true,
+                legend: {
+                      display: false
+                },
+                scales: {
+                    xAxes: [{
+                        display: true,
+                    }],
+                    yAxes: [{
+                        display: true,
+                        ticks: {
+                            max: 1,
+                            min: -1,
+                        }
+                    }]
+                }
+            }
+          });
+          let dlcRightqc_header = document.getElementById("dlcRightqc_header")
+
+
 
     </script>
 

@@ -9,7 +9,7 @@
         .responsive {
           padding: 0 6px;
           float: left;
-          width: 49.999%;
+          width: 29.999%;
           position: relative;
         }
     </style>
@@ -35,25 +35,24 @@
 {% block main %}
     <div class="row">
         {% for plot, session in info|zip:sessions %}
-            <div class="gallery">
+            <div class="gallery_{{ forloop.counter0 }}">
                 <div class="card my-2">
-                    <div class="card-header">
+                    <div class="card-header bg">
                         <div class="row">
                             <div class="col-md-4"><h5>{{ session.id }} </h5></div>
                             <div class="col-md-4"><h5>{{ session|get_session_path }}</h5></div>
-                            <div class="col-md-4"><h5><a href={% url 'session' eid=session.id %}> More plots </a></h5></div>
+                            <div class="col-md-4"><h5><a href={% url 'session' eid=session.id %}> See more plots <i class="fa fa-arrow-circle-right"></i></a></h5></div>
                         </div>
                     </div>
                     <div class="card-body">
-                        <div class="row">
+                        <div class="gallery">
                             {% for key, value in plot.items %}
-                                <div class="col-md-4">
+                                <div class="row">
                                     <h5>{{ key }}</h5>
-                                    <div class="row">
                                     {% for title, note in value.items %}
                                         <div class="responsive">
                                             {% if note == None %}
-                                                <div class="imagecard ">
+                                                <div class="imagecard">
                                                     <div class="imageicon">
                                                         <center><i class="fa fa-area-chart"></i></center>
                                                     </div>
@@ -63,21 +62,19 @@
                                                 </div>
                                             {% else %}
                                                 <div class="imagecard">
-                                                    <a href="{{ MEDIA_ROOT }}{{ note.image.url }}">
+                                                    <a href="{{ MEDIA_ROOT }}{{ note.image.url }}" data-lightbox="session">
                                                         <img class="card-img-top" src="{{ MEDIA_ROOT }}{{ note.image.url }}" title="{{ note.content_object }} {{ note.text }}">
                                                         <div class="card-body">
                                                             <h6>{{ title }}</h6>
                                                         </div>
                                                     </a>
                                                 </div>
-
                                             {% endif %}
                                         </div>
-                                        {% if forloop.counter|divisibleby:2 or forloop.last%}
+                                        {% if forloop.counter|divisibleby:3 or forloop.last %}
                                             <div class="clearfix"></div>
                                         {% endif %}
                                     {% endfor %}
-                                    </div>
                                 </div>
                             {% endfor %}
                         </div>
@@ -88,7 +85,10 @@
     </div>
 
     <script>
-        var gallery = new SimpleLightbox('.gallery .imagecard a', {'captionPosition': 'outside'});
+        var galleries = []
+        for (var i = 0; i < {{ sessions|length }}; i++) {
+            galleries.push(new SimpleLightbox('.gallery_' + i + ' .imagecard a', {'captionPosition': 'outside'}));
+        }
     </script>
 
     <div class="pagination">
