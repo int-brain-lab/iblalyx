@@ -5,6 +5,7 @@ from django.db.models import Count, F, Q
 
 from jobs.models import Task
 
+
 logger = logging.getLogger('data.transfers')
 logger.setLevel(20)
 
@@ -34,3 +35,15 @@ def task_reset(task_id):
 def _reset_queryset(tqs):
     logger.info(f'reset {tqs.count()} tasks')
     tqs.update(log=None, status=20, version=None, time_elapsed_secs=None)
+
+# cortexlab version old Django
+# while held_remaining:
+#     held_remaining = False
+#     for t in Task.objects.filter(status=25):
+#         pok = t.parents.values_list('status', flat=True)
+#         if set(pok).issubset(set([20, 60])):
+#             t.status = 20
+#             t.save()
+#         elif set(pok).issubset(set([20, 60, 25])):
+#             held_remaining = True
+

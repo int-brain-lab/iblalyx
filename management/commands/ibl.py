@@ -40,6 +40,12 @@ class Command(BaseCommand):
         parser.add_argument('--id', action='store', type=str, required=False)
 
     def handle(self, *args, **options):
+        """
+        asdf
+        :param args:
+        :param options:
+        :return:
+        """
         action = options.get('action')
 
         if action == 'ftp_delete_local':
