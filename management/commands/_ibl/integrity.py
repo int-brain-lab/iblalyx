@@ -1,7 +1,17 @@
 import datetime
 import logging
+from pathlib import Path
 
-from data.models import Dataset
+
+
+from django.db.models import Count, Q
+import globus_sdk
+
+import one.alf.files as af
+from actions.models import Session
+from data.models import Dataset, FileRecord, DataRepository
+
+from data.transfers import _filename_from_file_record, globus_transfer_client
 
 _logger = logging.getLogger()
 
@@ -17,3 +27,59 @@ def remove_old_datasets_local_and_server_missing():
     for dset in dsets:
         _logger.warning(f"deleting {dset.session},  {dset.collection}, {dset.name}")
     dsets.delete()
+
+
+from data.transfers import globus_transfer_client, _filename_from_file_record
+
+def remove_sessions_local_servers(archive_date, labname, gc=None, nsessions=100):
+
+    labname = 'angelakilab'
+    archive_date = '2021-06-01'
+    gc = None
+
+    server_repository = DataRepository.objects.get(lab__name=labname, globus_is_personal=True)
+    gc = gc or globus_transfer_client()
+    dc = globus_sdk.DeleteData(gc, server_repository.globus_endpoint_id,
+                               label=f'alyx archive {labname}', recursive=True)
+
+    frs = FileRecord.objects.filter(data_repository=server_repository,
+                                    dataset__session__start_time__lt=archive_date,
+                                    dataset__session__procedures__name='Behavior training/tasks')
+    sessions = frs.values_list('dataset__session', flat=True).distinct()
+
+    eids = []
+
+    i = 0
+    for ses in sessions:
+        if (i % 100) == 0:
+            print(i)
+        if i > (nsessions - 1):
+            break
+        nsdsc = Count('file_records', Q(file_records__data_repository__globus_is_personal='False',
+                                        file_records__exists=True))
+        dsets = Dataset.objects.filter(session=ses).annotate(nsdsc=nsdsc)
+        if len(dsets.filter(nsdsc=0)) == 0:
+            i += 1
+            frs_session = frs.filter(dataset__in=dsets)
+            session_path = af.get_session_path(Path(_filename_from_file_record(frs_session.first())))
+            eids.append(ses)
+            try:
+                gc.operation_ls(server_repository.globus_endpoint_id, path=session_path)
+            except globus_sdk.TransferAPIError as e:
+                if not "404, 'ClientError.NotFound'" in str(e):
+                    raise e
+                else:  # the directory doesn't exist on the target
+                    continue
+            dc.add_item(session_path)
+        else:
+            _logger.warning(f"session {ses} doesn't seem to have everything in sdsc")
+
+    task = gc.submit_delete(dc)
+    status = gc.task_wait(task['task_id'])
+    frs2delete = frs.exclude(data_repository__globus_is_personal=False).filter(dataset__session__in=eids)
+    _logger.info(f"removing {i} sessions representing {frs2delete.count()} file records on {labname}")
+    frs2delete.delete()
+
+
+
+# FileRecord.objects.filter(data_repository__name__icontains='aws')
