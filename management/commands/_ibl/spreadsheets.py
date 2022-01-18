@@ -251,59 +251,44 @@ def _populate_sheet(insertions, spreadsheetID, spreadsheetRange):
         names_alignment = ''
         subject = insertion.session.subject.nickname
         date = str(insertion.session.start_time)[:10]
-        # Insertion missing Json - flag bug
-        if insertion.json is None:
-            print(f'WARNING: Data inconsistency: insertion id {insertion.id} does not have json field (NoneType);'
-                  f'setting aligned = False')
-            aligned = False
-        else:
-            ext_qc = insertion.json.get('extended_qc', None)
-            aligned = False if ext_qc is None else ext_qc.get('alignment_resolved', False)
 
         # Init var
         origin_lab = insertion.session.lab.name
         assign_lab = insertion.json['todo_alignment']
-        tracing_done = False
         origin_lab_done = False
         assign_lab_done = False
 
-        # Check if tracing is done
-        # provenance - 70: Ephys aligned histology track / 50: Histology track / 30: Micro-manipulator / 10: Planned
-        traj = TrajectoryEstimate.objects.filter(provenance=50, probe_insertion=insertion.id)
-        if len(traj) > 0:
-            tracing_done = True
+        # Check if user assigned did align
+        traj = TrajectoryEstimate.objects.filter(provenance=70, probe_insertion=insertion.id)
 
-            # Check if user assigned did align
-            traj = TrajectoryEstimate.objects.filter(provenance=70, probe_insertion=insertion.id)
+        if traj.count() > 0:
+            if traj[0].json is not None:
+                names = traj[0].json.keys()
+                names = list(names)
 
-            if traj.count() > 0:
-                if traj[0].json is not None:
-                    names = traj[0].json.keys()
-                    names = list(names)
+                # N alignments done
+                n_alignment_done = len(names)
+                names_alignment = [item[str.find(item, '_')+1:] for item in names]
+                names_alignment = ', '.join(names_alignment)
 
-                    # N alignments done
-                    n_alignment_done = len(names)
-                    names_alignment = [item[str.find(item, '_')+1:] for item in names]
-                    names_alignment = ', '.join(names_alignment)
+                for i_name in range(0, len(names)):
+                    idx_str = str.find(names[i_name], '_')
+                    user_str = names[i_name][idx_str + 1:]
 
-                    for i_name in range(0, len(names)):
-                        idx_str = str.find(names[i_name], '_')
-                        user_str = names[i_name][idx_str + 1:]
+                    # print(f'user_str: {user_str}, pid: {insertion.id}')  # TODO REMOVE, FOR DEBUG
+                    if user_str != 'intbrainlab':  # TODO WART
+                        # print('user_str != intbrainlab')
+                        user = LabMember.objects.get(username=user_str)
+                        user_lab = user.lab
+                        # add hoferlab to mrsicflogel (1 lab for both)
+                        if 'hoferlab' in user_lab:
+                            user_lab.append('mrsicflogellab')
 
-                        # print(f'user_str: {user_str}, pid: {insertion.id}')  # TODO REMOVE, FOR DEBUG
-                        if user_str != 'intbrainlab':  # TODO WART
-                            # print('user_str != intbrainlab')
-                            user = LabMember.objects.get(username=user_str)
-                            user_lab = user.lab
-                            # add hoferlab to mrsicflogel (1 lab for both)
-                            if 'hoferlab' in user_lab:
-                                user_lab.append('mrsicflogellab')
-
-                            # Note: One user (e.g. chrisk) can have multiple labs, hence the "in"
-                            if origin_lab in user_lab:
-                                origin_lab_done = True
-                            elif assign_lab in user_lab:
-                                assign_lab_done = True
+                        # Note: One user (e.g. chrisk) can have multiple labs, hence the "in"
+                        if origin_lab in user_lab:
+                            origin_lab_done = True
+                        elif assign_lab in user_lab:
+                            assign_lab_done = True
 
         # Form dict
         dict_ins = {
@@ -317,9 +302,7 @@ def _populate_sheet(insertions, spreadsheetID, spreadsheetRange):
             "assign_lab": assign_lab,
             "assign_lab_done": assign_lab_done,
             "n_alignment_done": n_alignment_done,
-            "names_alignment": names_alignment,
-            "align_solved": aligned,
-            "tracing_done": tracing_done
+            "names_alignment": names_alignment
         }
 
         # Check all datasets exist and append
