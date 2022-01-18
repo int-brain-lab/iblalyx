@@ -275,9 +275,7 @@ def _populate_sheet(insertions, spreadsheetID, spreadsheetRange):
                     idx_str = str.find(names[i_name], '_')
                     user_str = names[i_name][idx_str + 1:]
 
-                    # print(f'user_str: {user_str}, pid: {insertion.id}')  # TODO REMOVE, FOR DEBUG
-                    if user_str != 'intbrainlab':  # TODO WART
-                        # print('user_str != intbrainlab')
+                    if len(LabMember.objects.filter(username=user_str)) > 0:  # Make sure username exits
                         user = LabMember.objects.get(username=user_str)
                         user_lab = user.lab
                         # add hoferlab to mrsicflogel (1 lab for both)
