@@ -278,9 +278,13 @@ def _populate_sheet(insertions, spreadsheetID, spreadsheetRange):
                     if len(LabMember.objects.filter(username=user_str)) > 0:  # Make sure username exits
                         user = LabMember.objects.get(username=user_str)
                         user_lab = user.lab
-                        # add hoferlab to mrsicflogel (1 lab for both)
+                        # append cases where persons are in multiple labs
                         if 'hoferlab' in user_lab:
                             user_lab.append('mrsicflogellab')
+                        if 'churchlandlab' in user_lab:
+                            user_lab.append('churchlandlab_ucla')
+                        if user.username == 'chrisk':  # do count only alignment done for Zador lab
+                            user_lab = ['zadorlab']
 
                         # Note: One user (e.g. chrisk) can have multiple labs, hence the "in"
                         if origin_lab in user_lab:
