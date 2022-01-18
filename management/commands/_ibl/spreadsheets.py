@@ -471,8 +471,10 @@ def histology_assign_update():
     )
     # Get list of all insertions that have <2 alignments
     insertions_toalign = all_insertions.filter(
-        json__extended_qc__alignment_resolved=False,
         json__extended_qc__alignment_count__lt=2,
+        json__extended_qc__tracing_exists=True
+    ) | all_insertions.filter(  # account for fact that field does not exist if no alignment ever done
+        json__extended_qc__alignment_count__isnull=True,
         json__extended_qc__tracing_exists=True
     )
     # # Get list of all insertions that miss tracing
