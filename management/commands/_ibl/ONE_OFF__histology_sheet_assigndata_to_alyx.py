@@ -34,7 +34,7 @@ data_sheet = data_sheet.rename(columns=data_sheet.iloc[0]).drop(data_sheet.index
 data_sheet = data_sheet[data_sheet['sess_id'] != ""]
 
 for pid, lab_assigned in zip(data_sheet.ins_id, data_sheet.assign_lab):
-    pi = ProbeInsertion.objects.filter(id=pid)
+    pi = ProbeInsertion.objects.filter(id=pid)[0]
     # Get json and change it
     d = pi.json
     d['todo_alignment'] = lab_assigned
