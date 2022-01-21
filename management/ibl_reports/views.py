@@ -533,21 +533,30 @@ class SessionImportantPlots(LoginRequiredMixin, ListView):
             s.append(sess)
             plot_dict = {}
             for plot in data_info.OVERVIEW_SESSION_PLOTS:
-                plot_dict[plot] = notes.filter(object_id=sess.id, text=plot).first()
+                note = notes.filter(object_id=sess.id, text=plot[0]).first()
+                if not note and not plot[1]:
+                    continue
+                else:
+                    plot_dict[plot[0]] = note
             info['session'] = plot_dict
             probes = sess.probe_insertion.values().order_by('name')
             if probes.count() > 0:
                 for probe in probes:
                     plot_dict = {}
                     for plot in data_info.OVERVIEW_PROBE_PLOTS:
-                        plot_dict[plot] = notes.filter(object_id=probe['id'], text=plot).first()
-                    info[probe['name']] = plot_dict
+                        note = notes.filter(object_id=probe['id'], text=plot[0]).first()
+                        if not note and not plot[1]:
+                            continue
+                        else:
+                            plot_dict[plot[0]] = note
+                    info[f'{probe["name"]}  {probe["id"]}'] = plot_dict
             data.append(info)
 
         return s, data
 
     def get_queryset(self):
-        qs = Session.objects.filter(task_protocol__icontains='ephysChoiceWorld').prefetch_related('probe_insertion')
+        qs = Session.objects.filter(task_protocol__icontains='ephysChoiceWorld',
+                                    json__IS_MOCK=False).prefetch_related('probe_insertion')
         self.f = SessionFilter(self.request.GET, queryset=qs)
 
         return self.f.qs.order_by('-start_time')

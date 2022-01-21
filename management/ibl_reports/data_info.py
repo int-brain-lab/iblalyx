@@ -180,9 +180,7 @@ EPHYS_PLOTS = ['raw_ephys_bad_channels',
 
 HISTOLOGY_PLOTS = ['histology_slices']
 
-SPIKE_SORTING_PLOTS = ['spike_sorting_raster_pykilosort',
-                       'spike_sorting_raster_',
-                       'spike_sorting_raster_ks2_preproc_tests']
+SPIKE_SORTING_PLOTS = ['spike_sorting_raster']
 
 VIDEO_PLOTS = ['dlc_qc_plot']
 
@@ -199,11 +197,12 @@ PLOT_MAP = {
     'behaviour': BEHAVIOUR_PLOTS
 }
 
+# Tuple, plot name and whether or not to display placeholder of plot not available
+OVERVIEW_PROBE_PLOTS = [('raw_ephys_bad_channels_destripe', True),
+                        ('spike_sorting_raster_pykilosort', True),
+                        ('lfp_spectrum', True),
+                        ('histology_slices', False)]
 
-OVERVIEW_PROBE_PLOTS = ['raw_ephys_bad_channels_destripe',
-                        'spike_sorting_raster_pykilosort',
-                        'lfp_spectrum']
-
-OVERVIEW_SESSION_PLOTS = ['dlc_qc_plot',
-                          'psychometric_curve',
-                          'reaction_time_with_trials']
+OVERVIEW_SESSION_PLOTS = [('psychometric_curve', True),
+                          ('reaction_time_with_trials', True),
+                          ('dlc_qc_plot', False)]
