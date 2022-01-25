@@ -1,61 +1,71 @@
+import re
 import json
 import pandas as pd
 
 
 # TODO:
-#   - Assume JSON file will be modified to have header called 'log'
-#       (potentially we can just script the addition of the header and trailing commas on each
-#       line)
-#   - store as dataframe
 #   - output as csv file
-#   - deduplicate requests
+
+FLAGS = re.VERBOSE | re.MULTILINE | re.DOTALL
+WHITESPACE = re.compile(r'[ \t\n\r]*', FLAGS)
+
+
+def next_json(s):
+    """Takes the largest bite of JSON from the string.
+       Returns (object_parsed, remaining_string)
+    """
+    decoder = json.JSONDecoder()
+    obj, end = decoder.raw_decode(s)
+    end = WHITESPACE.match(s, end).end()
+    return obj, s[end:]
+
 
 def load_json_log_file(json_file_location):
-    # Add in url column once it becomes available in json
-    df = pd.DataFrame(columns=[
-        'ip',
-        'datetime',
-        'verb_type',
-        'endpoint'])
 
     # Open json file for evaluation
     with open(json_file_location) as json_file:
-        data = json.load(json_file)
+        json_string = json_file.read()
 
-        # Read every
-        for i in data['log']:
-            # Check if this is a 'duplicate' entry
-            if i['event'] == 'request_started':
-                # Set IP Address and timestamp
-                parsed_list = [i['ip'], i['timestamp']]
+    # Read every json chunk
+    data = []
+    while len(json_string) > 0:
+        # Read the next json chunk
+        obj, remaining = next_json(json_string)
+        # Check if this is a 'duplicate' entry
+        if obj['event'] == 'request_started':
+            # Parse out request type verb (get, patch, post), endpoint and full request url
+            parts = obj['request'][1:-1].split()
+            verb = parts[1]
+            url = parts[2][1:-1]
+            endpoint = url.split('/')[1].split('?')[0]
+            # append all info
+            data.append([obj['level'], obj['ip'], obj['timestamp'], verb, endpoint, url, obj['request']])
 
-                # Parse out request type verb (get, patch, post) and endpoint
-                for part in i['request'].split():
-                    if part == 'GET':
-                        parsed_list.append('GET')
-                    elif part == 'PATCH':
-                        parsed_list.append('PATCH')
-                    elif part == 'POST':
-                        parsed_list.append('POST')
-                    elif part.startswith('\'/'):
-                        parsed_list.append(part[1:len(part)-2])
+        # Check if this is a 'duplicate' entry
+        elif obj['event'] == 'request_finished':
+            pass
+        else:
+            print("unknown event", obj)
+        # Move on to next part of the string
+        json_string = remaining
 
-                # Placeholder for extracting URL information
+    # Add in url column once it becomes available in json
+    df = pd.DataFrame(data, columns=[
+        'level',
+        'ip',
+        'datetime',
+        'verb_type',
+        'endpoint',
+        'url',
+        'request'])
 
-                # Create pandas series
-                row = pd.Series(parsed_list, index=df.columns)
-                df = df.append(row, ignore_index=True)
-
-            # Check if this is a 'duplicate' entry
-            elif i['event'] == 'request_finished':
-                pass
-            else:
-                print("unknown event", i)
+    return df
 
 
 if __name__ == '__main__':
     # Loading alyx_json file
-    file_location = "/home/user/Documents/IBL/alyx_json_partial.log"
+    # file_location = "/home/user/Documents/IBL/alyx_json_partial.log"
+    file_location = "/var/log/alyx_json.log"
     load_json_log_file(file_location)
 
     # Code below left in case we are going to be looking to parse out access_alyx-main.log
