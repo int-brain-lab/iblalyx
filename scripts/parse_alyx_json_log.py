@@ -52,12 +52,15 @@ def load_json_log_file(json_file_loc):
         # Check if this is a 'duplicate' entry
         elif obj['event'] == 'request_finished':
             pass
+
+        # Encountered something unplanned, output to terminal
         else:
             print("unknown event", obj)
+
         # Move on to next part of the string
         json_string = remaining
 
-    # Add in url column once it becomes available in json
+    # Create dataframe with appropriate column names
     df = pd.DataFrame(data, columns=[
         'level',
         'ip',
@@ -73,11 +76,11 @@ def load_json_log_file(json_file_loc):
 if __name__ == '__main__':
     # Set the working directory and file locations
     working_directory = "/var/log/"
-    json_file_location = working_directory+"alyx_json.log"
-    csv_out_file_location = working_directory + "alyx_json_out.csv"
+    json_file_location = working_directory + "alyx_json.log"
+    parquet_out_file_location = working_directory + "alyx_json_log.parquet"
 
     # Parse out relevant data from alyx_json file, store to dataframe
     dataframe = load_json_log_file(json_file_location)
 
-    # Output dataframe to CSV file
-    dataframe.to_csv(csv_out_file_location)
+    # Output dataframe to parquet file
+    dataframe.to_parquet(parquet_out_file_location)
