@@ -5,6 +5,8 @@ import pandas as pd
 import re
 import time
 
+from os.path import exists
+
 FLAGS = re.VERBOSE | re.MULTILINE | re.DOTALL
 WHITESPACE = re.compile(r'[ \t\n\r]*', FLAGS)
 
@@ -32,9 +34,22 @@ def load_json_log_file(json_file_loc):
     pd.DataFrame
         Datasets frame
     """
-    # Open json file for evaluation
-    with open(json_file_loc) as json_file:
-        json_string = json_file.read()
+    # Set variables for multiple log file check
+    json_string = ""
+    next_log_file_num = 1
+    next_log_file_name = json_file_loc
+    # Check if multiple log file exists or just pull from a single file
+    while True:
+        if exists(next_log_file_name):
+            # Open json file for evaluation
+            with open(next_log_file_name) as json_file:
+                # Append json data to string
+                json_string += json_file.read()
+            # Modify multiple log file check
+            next_log_file_name = json_file_loc + "." + str(next_log_file_num)
+            next_log_file_num += 1
+        else:
+            break
 
     # Read every json chunk
     data = []
@@ -63,8 +78,6 @@ def load_json_log_file(json_file_loc):
             # Encountered something unplanned, output to terminal
             else:
                 print("unknown event", obj)
-        else:
-            print("current json chunk is not for today")
 
         # Move on to next part of the string
         json_string = remaining
