@@ -1,14 +1,15 @@
-import datetime
 import fastparquet  # required for to_parquet function
 import json
 import pandas as pd
 import re
 import time
 
+from datetime import datetime
 from os.path import exists
 
 FLAGS = re.VERBOSE | re.MULTILINE | re.DOTALL
 WHITESPACE = re.compile(r'[ \t\n\r]*', FLAGS)
+START = time.time()
 
 
 def next_json(s):
@@ -37,7 +38,7 @@ def load_json_log_file(json_file_loc):
     # Set variables
     next_log_file_num = 1
     next_log_file_name = json_file_loc
-    date_today = datetime.datetime.today().isoformat()[:10]
+    date_today = datetime.today().isoformat()[:10]
     data = []
     # Check if multiple log file exists or just pull from a single file
     while True:
@@ -52,8 +53,8 @@ def load_json_log_file(json_file_loc):
                     # Look at only logs for today
                     if obj['timestamp'][:10] == date_today:
                         # Check if this is the start to a request or a failed request
-                        if (obj['event'] == 'request_started') or (
-                                obj['event'] == 'request_failed'):
+                        if (obj['event'] == 'request_started') or \
+                                (obj['event'] == 'request_failed'):
                             # Parse out request type verb (get, patch, post),
                             # endpoint and full request url
                             parts = obj['request'][1:-1].split()
@@ -72,7 +73,7 @@ def load_json_log_file(json_file_loc):
                         # Encountered something unplanned, output to terminal
                         else:
                             print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                  ": Could not parse - ", obj)
+                                  "> Could not parse -", obj)
 
                     # Move on to next part of the string
                     json_string = remaining
@@ -108,3 +109,6 @@ if __name__ == '__main__':
 
     # Output dataframe to parquet file
     dataframe.to_parquet(parquet_out_file_location)
+
+    # Output performance metric of script
+    print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "> Execution time -", (time.time()-START))
