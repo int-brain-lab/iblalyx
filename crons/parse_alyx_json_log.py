@@ -22,7 +22,7 @@ def next_json(s):
 
 
 def load_json_log_file(json_file_loc):
-    """Loads the JSON file from the specified file location
+    """Loads the JSON file or files from the specified file location
 
     Parameters
     ----------
@@ -34,53 +34,54 @@ def load_json_log_file(json_file_loc):
     pd.DataFrame
         Datasets frame
     """
-    # Set variables for multiple log file check
-    json_string = ""
+    # Set variables
     next_log_file_num = 1
     next_log_file_name = json_file_loc
+    date_today = datetime.datetime.today().isoformat()[:10]
+    data = []
     # Check if multiple log file exists or just pull from a single file
     while True:
         if exists(next_log_file_name):
             # Open json file for evaluation
             with open(next_log_file_name) as json_file:
-                # Append json data to string
-                json_string += json_file.read()
-            # Modify multiple log file check
+                # Set json data to string
+                json_string = json_file.read()
+                while len(json_string) > 0:
+                    # Read every json chunk
+                    obj, remaining = next_json(json_string)
+                    # Look at only logs for today
+                    if obj['timestamp'][:10] == date_today:
+                        # Check if this is the start to a request or a failed request
+                        if (obj['event'] == 'request_started') or (
+                                obj['event'] == 'request_failed'):
+                            # Parse out request type verb (get, patch, post),
+                            # endpoint and full request url
+                            parts = obj['request'][1:-1].split()
+                            verb = parts[1]
+                            url = parts[2][1:-1]
+                            endpoint = url.split('/')[1].split('?')[0]
+                            # append all info
+                            data.append(
+                                [obj['level'], obj['ip'], obj['timestamp'], verb, endpoint, url,
+                                 obj['request']])
+
+                        # Check if this is a 'duplicate' entry
+                        elif obj['event'] == 'request_finished':
+                            pass
+
+                        # Encountered something unplanned, output to terminal
+                        else:
+                            print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                  ": Could not parse - ", obj)
+
+                    # Move on to next part of the string
+                    json_string = remaining
+
+            # Modify variables for multiple log file check
             next_log_file_name = json_file_loc + "." + str(next_log_file_num)
             next_log_file_num += 1
-        else:
+        else:  # ran out of files to evaluate, break out of loop
             break
-
-    # Read every json chunk
-    data = []
-    while len(json_string) > 0:
-        # Read the next json chunk
-        obj, remaining = next_json(json_string)
-
-        # Look at only logs for today
-        if obj['timestamp'][:10] == datetime.datetime.today().isoformat()[:10]:
-            # Check if this is a 'duplicate' entry
-            if obj['event'] == 'request_started':
-                # Parse out request type verb (get, patch, post), endpoint and full request url
-                parts = obj['request'][1:-1].split()
-                verb = parts[1]
-                url = parts[2][1:-1]
-                endpoint = url.split('/')[1].split('?')[0]
-                # append all info
-                data.append(
-                    [obj['level'], obj['ip'], obj['timestamp'], verb, endpoint, url,
-                     obj['request']])
-
-            # Check if this is a 'duplicate' entry
-            elif obj['event'] == 'request_finished':
-                pass
-
-            # Encountered something unplanned, output to terminal
-            else:
-                print("unknown event", obj)
-
-        # Move on to next part of the string
-        json_string = remaining
 
     # Create dataframe with appropriate column names
     df = pd.DataFrame(data, columns=[
