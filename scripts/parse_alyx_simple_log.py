@@ -1,11 +1,10 @@
-import fastparquet  # required for to_parquet function
 import json
-import pandas as pd
 import re
 import time
-
 from datetime import datetime
 from os.path import exists
+
+import pandas as pd
 
 FLAGS = re.VERBOSE | re.MULTILINE | re.DOTALL
 WHITESPACE = re.compile(r'[ \t\n\r]*', FLAGS)
@@ -25,109 +24,112 @@ def load_simple_log_file(file_location):
     pd.DataFrame
         Datasets frame
     """
-    # Set variables
+    # Variables for multi log file evaluation
     next_log_file_num = 1
     next_log_file_name = file_location
-    date_today = datetime.today().isoformat()[:10]
+    # TODO: Incorporate date check for daily runs
+    # date_today = datetime.today().isoformat()[:10]
     data = []
     # Check if multiple log file exists or just pull from a single file
     while True:
         if exists(next_log_file_name):
             # Open json file for evaluation
             with open(next_log_file_name) as file:
+                line_number = 0
                 for line in file:
-                    my_dict = {
-                        'level': '',
-                        'ip': ''
-                    }
-                    for part in line.split():
-                        if part == '[INFO]':
-                            my_dict['level'] = part
-                            print()
-                    data.append(my_dict)
+                    # DEBUG ASSIST
+                    line_number += 1
+                    print(line_number)
 
-            # [37m29/01 12:40:01 [INFO]
-            # {request.py:55}
-            # {'request_id': '5b28a112-e476-435d-9bee-202276e8ca4f',
-            # 'user_id': None,
-            # 'ip': '128.112.219.86', 'request': <WSGIRequest: GET '/sessions?django=&date_range=2021-11-09%2C2021-11-09&number=001&subject=fip_22'>, 'user_agent': 'python-requests/2.26.0', 'event': 'request_started', 'timestamp': '2022-01-29T12:40:01.448810Z', 'level': 'info'}
+                    # Skip line if it is a 'request_finished'
+                    if 'request_finished' in line:
+                        continue
+
+                    # Variables to set
+                    my_datetime = ''
+                    ip = ''
+                    verb_type = ''
+                    endpoint = ''
+                    url = ''
+                    request = ''
+
+                    level = re.search(r'\[INFO]|\[WARNING]', line).group(0)
+                    if level == '[WARNING]':
+                        my_datetime = re.search(r'\d{2}/\d{2} \d{2}:\d{2}:\d{2}', line).group(0)
+                        my_datetime = '2022-' + my_datetime[3:5] + '-' + my_datetime[0:2] + 'T' + \
+                                      my_datetime[6:] + 'Z'
+                        ip = 'N/A'
+                        verb_type = 'N/A'
+                        endpoint = 'N/A'
+                        url = 'N/A'
+                        request = line[line.find('{'):-5]
+
+                    elif level == '[INFO]':
+                        # check if this is not a typical request
+                        if 'request' not in line:
+                            my_datetime = re.search(r'\d{2}/\d{2} \d{2}:\d{2}:\d{2}',
+                                                    line).group(0)
+                            my_datetime = '2022-' + my_datetime[3:5] + '-' + my_datetime[0:2] + \
+                                          'T' + my_datetime[6:] + 'Z'
+                            ip = 'N/A'
+                            verb_type = 'N/A'
+                            endpoint = 'N/A'
+                            url = 'N/A'
+                            # request_index = line.find('{')
+                            request = line[line.find('{'):-5]
+
+                        else:
+                            # Regular expression to find variables
+                            my_datetime = re.search(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{6}Z',
+                                                    line).group(0)
+                            ip = re.search(r'[0-9]+(?:\.[0-9]+){3}', line).group(0)
+                            verb_type = re.search(r'GET|POST|PATCH', line).group(0)
+
+                            # Break line into individual components to parse challenging data
+                            partials = line.split()
+                            endpoint = ''
+                            url = ''
+                            request_index = 0
+                            for part in partials:
+                                # Find endpoint and url
+                                if '?' in part:
+                                    endpoint = part.split('/')[1].split('?')[0]
+                                    url = part.split('\'')[1]
+                                elif ('/' in part) and ('>' in part):
+                                    if '\'>,' in part:
+                                        endpoint = part.split('/')[1].replace('\'>,', '')
+                                        url = part.replace('\'', '').replace('>,', '')
+                                    else:
+                                        endpoint = part.split('/')[1]
+
+                                # Extract the request_index
+                                elif '<WSGI' in part:
+                                    request_index = partials.index(part)
+
+                            # Build request from the last end of the string
+                            request = (partials[request_index] + partials[request_index+1] +
+                                       partials[request_index+2])[:-1]
+
+                    # Unanticipated log entry
+                    else:
+                        print("Unanticipated log entry:", line)
+
+                    # Store parsed data to data list
+                    data.append({
+                        'level': level,
+                        'ip': ip,
+                        'datetime': my_datetime,
+                        'verb_type': verb_type,
+                        'endpoint': endpoint,
+                        'url': url,
+                        'request': request
+                    })
 
             # Modify variables for multiple log file check
             next_log_file_name = file_location + "." + str(next_log_file_num)
             next_log_file_num += 1
         else:  # ran out of files to evaluate, break out of loop
             break
-    # Code below left in case we are going to be looking to parse out access_alyx-main.log
-    # Loading of access_alyx-main log
-    # file_location = "/home/user/Documents/IBL/access_alyx-main.log"
-    # df = pd.DataFrame(columns=[
-    #     'ip',
-    #     'datetime',
-    #     'verb_type',
-    #     'endpoint',
-    #     'url'])
-    # with open(file_location) as file:
-    #     for line in file.readlines():
-    #         parsed_ip_address = ""
-    #         parsed_datetime = ""
-    #         parsed_verb_type = ""
-    #         parsed_endpoint = ""
-    #         parsed_url = ""
-    #         parsed_list = []
-    #         for part in line.split():
-    #             try:
-    #                 # Get IP Address
-    #                 if not parsed_ip_address:
-    #                     parsed_ip_address = ipaddress.ip_address(part).compressed
-    #                     parsed_list.append(parsed_ip_address)
-    #                 # Get datetime
-    #                 elif not parsed_datetime:
-    #                     parsed_datetime = datetime.strptime(
-    #                         part, "[%d/%b/%Y:%X").strftime("%Y-%m-%d:%X")
-    #                     parsed_list.append(parsed_datetime)
-    #                 # Get verb type
-    #                 elif not parsed_verb_type:
-    #                     if '"GET' in part:
-    #                         parsed_verb_type = 'GET'
-    #                     elif '"PATCH' in part:
-    #                         parsed_verb_type = 'PATCH'
-    #                     elif '"POST' in part:
-    #                         parsed_verb_type = 'POST'
-    #                     if parsed_verb_type:
-    #                         parsed_list.append(parsed_verb_type)
-    #                 # Get parsed_endpoint
-    #                 elif not parsed_endpoint:
-    #                     if part.startswith('/'):
-    #                         parsed_endpoint = part
-    #                         parsed_list.append(parsed_endpoint)
-    #                 # Get parsed_url
-    #                 elif not parsed_url:
-    #                     if part.startswith('"https://'):
-    #                         parsed_url = part
-    #                         parsed_list.append(parsed_url)
-    #             except ValueError:
-    #                 pass
-    #         # end of part for loop
-    #         if not parsed_url:
-    #             # URL was never set b/c log likely does not include it
-    #             parsed_url = "N/A"
-    #             parsed_list.append(parsed_url)
-    #
-    #         row = pd.Series(parsed_list, index=df.columns)
-    #         print(row)
-    #         df = df.append(row, ignore_index=True)
-    #
-    #         # df.loc[len(df)] = parsed_list
-    #         # newDF.append(pd.Series(new_row, index=newDF.columns[:len(new_row)]), ignore_index=True)
-    #         # df.append(
-    #         #     pd.Series(parsed_list, index=df.columns[:len(parsed_list)]), ignore_index=True)
-    #
-    # # Save to the data frame/series?
-    # # for key, value in parser_dict.items():
-    # #     print(key, ':', value)
-    # # print(df)
-    # #
-    # print(df)
 
     # Create dataframe with appropriate column names
     df = pd.DataFrame(data, columns=[
@@ -231,8 +233,8 @@ def load_json_log_file(file_location):
 if __name__ == '__main__':
     # Set the working directory and file locations
     working_directory = "/var/log/"
-    simple_file_location = working_directory + "partial_alyx_simple.log"
-    json_file_location = working_directory + "partial_alyx_json.log"
+    simple_file_location = working_directory + "alyx_simple.log"
+    json_file_location = working_directory + "alyx_json.log"
     parquet_out_file_location = working_directory + \
         "alyx_daily_parquets/" + time.strftime("%Y-%m-%d")
     simple_parquet_out_file = parquet_out_file_location + "_alyx_simple_log.parquet"
@@ -242,15 +244,14 @@ if __name__ == '__main__':
     simple_dataframe = load_simple_log_file(simple_file_location)
 
     # Output simple dataframe to parquet file
-    # simple_dataframe.to_parquet(simple_parquet_out_file)
+    simple_dataframe.to_parquet(simple_parquet_out_file)
 
     # Parse out relevant data from alyx_json file, store to dataframe
-    # json_dataframe = load_json_log_file(json_file_location)
+    json_dataframe = load_json_log_file(json_file_location)
 
     # Output json dataframe to parquet file
-    # json_dataframe.to_parquet(json_parquet_out_file)
+    json_dataframe.to_parquet(json_parquet_out_file)
 
     # Print performance metric of script
     print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "> Execution time -",
           str(time.time()-START)[:4] + " seconds")
-
