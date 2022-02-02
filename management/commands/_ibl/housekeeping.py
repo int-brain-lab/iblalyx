@@ -1,14 +1,10 @@
 import datetime
 import logging
 from pathlib import Path
-
-
-
 from django.db.models import Count, Q
 import globus_sdk
 
 import one.alf.files as af
-from actions.models import Session
 from data.models import Dataset, FileRecord, DataRepository
 
 from data.transfers import _filename_from_file_record, globus_transfer_client
@@ -29,13 +25,15 @@ def remove_old_datasets_local_and_server_missing():
     dsets.delete()
 
 
-from data.transfers import globus_transfer_client, _filename_from_file_record
-
-def remove_sessions_local_servers(archive_date, labname, gc=None, nsessions=100):
-
-    labname = 'angelakilab'
-    archive_date = '2021-06-01'
-    gc = None
+def remove_sessions_local_servers(labname, archive_date=None, gc=None, nsessions=100):
+    """
+    remove_sessions_local_servers('angelakilab', archive_date='2020-06-01', nsessions=100)
+    :param labname: example: 'angelakilab'
+    :param archive_date: example: '2020-06-01'
+    :param gc: globus transfer client
+    :param nsessions: number of sessions to handle max (100)
+    :return:
+    """
 
     server_repository = DataRepository.objects.get(lab__name=labname, globus_is_personal=True)
     gc = gc or globus_transfer_client()
@@ -79,7 +77,3 @@ def remove_sessions_local_servers(archive_date, labname, gc=None, nsessions=100)
     frs2delete = frs.exclude(data_repository__globus_is_personal=False).filter(dataset__session__in=eids)
     _logger.info(f"removing {i} sessions representing {frs2delete.count()} file records on {labname}")
     frs2delete.delete()
-
-
-
-# FileRecord.objects.filter(data_repository__name__icontains='aws')

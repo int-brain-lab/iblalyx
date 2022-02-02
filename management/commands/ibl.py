@@ -1,10 +1,11 @@
 from django.core.management import BaseCommand
 
-from ._ibl.transfers import ftp_delete_local, ftp_upload
+from ._ibl.transfers import ftp_delete_local
 from ._ibl.monitor import monitor_dlc, monitor_spikesorting
 from ._ibl.spreadsheets import histology_assign_update
 from ._ibl.table import qc_table
 from ._ibl.tasks import held_status_reset, task_reset, started_stalled_reset
+from ._ibl.housekeeping import remove_sessions_local_servers
 
 
 class Command(BaseCommand):
@@ -34,14 +35,22 @@ class Command(BaseCommand):
 
     python ./manage.py ibl task_started_stalled_reset
         Resets to waiting tasks that have been Started for more than 6 days
+
+    python ./manage.py ibl task_started_stalled_reset
+        Resets to waiting tasks that have been Started for more than 6 days
+
+    python ./manage.py ibl cleanup_old_sessions --lab angelakilab --date 2020-06-01  --n 500
+        Resets to waiting tasks that have been Started for more than 6 days
     """
     def add_arguments(self, parser):
         parser.add_argument('action', help='Action')
         parser.add_argument('--id', action='store', type=str, required=False)
+        parser.add_argument('--date', action='store', type=str, required=False)
+        parser.add_argument('--lab', action='store', type=str, required=False)
+        parser.add_argument('--n', action='store', type=int, required=False, default=None)
 
     def handle(self, *args, **options):
         """
-        asdf
         :param args:
         :param options:
         :return:
@@ -61,8 +70,13 @@ class Command(BaseCommand):
         elif action == 'task_started_stalled_reset':
             started_stalled_reset()
         elif action == 'task_reset':
-            task_reset(options.get('tid'))
+            task_reset(options.get('id'))
         elif action == 'monitor_spikesorting':
             monitor_spikesorting()
+        elif action == 'cleanup_old_sessions':
+            lab = options.get('lab')
+            date = options.get('date')
+            n = options.get('n') or 250
+            remove_sessions_local_servers('angelakilab', archive_date='2020-06-01', nsessions=n)
         else:
             raise ValueError(f'No action for command {action}')
