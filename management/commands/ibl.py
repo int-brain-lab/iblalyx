@@ -77,6 +77,6 @@ class Command(BaseCommand):
             lab = options.get('lab')
             date = options.get('date')
             n = options.get('n') or 250
-            remove_sessions_local_servers('angelakilab', archive_date='2020-06-01', nsessions=n)
+            remove_sessions_local_servers(lab, archive_date=date, nsessions=n)
         else:
             raise ValueError(f'No action for command {action}')
