@@ -39,7 +39,7 @@ class Command(BaseCommand):
     python ./manage.py ibl task_started_stalled_reset
         Resets to waiting tasks that have been Started for more than 6 days
 
-    python ./manage.py ibl cleanup_old_sessions --lab angelakilab --date 2020-06-01  --n 500
+    python ./manage.py ibl cleanup_old_sessions --lab angelakilab --date 2020-06-01  --n 500 [--dry]
         Resets to waiting tasks that have been Started for more than 6 days
     """
     def add_arguments(self, parser):
@@ -48,7 +48,7 @@ class Command(BaseCommand):
         parser.add_argument('--date', action='store', type=str, required=False)
         parser.add_argument('--lab', action='store', type=str, required=False)
         parser.add_argument('--n', action='store', type=int, required=False, default=None)
-        parser.add_argument('--dry', action='store', type=bool, required=False, default=False)
+        parser.add_argument('--dry', action='store_true', required=False, default=False)
 
     def handle(self, *args, **options):
         """

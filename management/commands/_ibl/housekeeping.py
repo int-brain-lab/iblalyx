@@ -37,9 +37,6 @@ def remove_sessions_local_servers(labname, archive_date=None, gc=None, dry_run=F
     """
 
     server_repository = DataRepository.objects.get(lab__name=labname, globus_is_personal=True)
-    dc = globus_sdk.DeleteData(gc, server_repository.globus_endpoint_id,
-                               label=f'alyx archive {labname}', recursive=True)
-
     frs = FileRecord.objects.filter(data_repository=server_repository,
                                     dataset__session__start_time__lt=archive_date,
                                     dataset__session__procedures__name='Behavior training/tasks')
@@ -54,8 +51,9 @@ def remove_sessions_local_servers(labname, archive_date=None, gc=None, dry_run=F
         return
 
     gc = gc or globus_transfer_client()
+    dc = globus_sdk.DeleteData(gc, server_repository.globus_endpoint_id,
+                               label=f'alyx archive {labname}', recursive=True)
     eids = []
-
     i = 0
     for ses in sessions:
         if (i % 100) == 0:
