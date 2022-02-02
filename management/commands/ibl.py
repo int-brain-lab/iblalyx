@@ -48,6 +48,7 @@ class Command(BaseCommand):
         parser.add_argument('--date', action='store', type=str, required=False)
         parser.add_argument('--lab', action='store', type=str, required=False)
         parser.add_argument('--n', action='store', type=int, required=False, default=None)
+        parser.add_argument('--dry', action='store', type=bool, required=False, default=False)
 
     def handle(self, *args, **options):
         """
@@ -77,6 +78,7 @@ class Command(BaseCommand):
             lab = options.get('lab')
             date = options.get('date')
             n = options.get('n') or 250
-            remove_sessions_local_servers(lab, archive_date=date, nsessions=n)
+            dry = options.get('dry')
+            remove_sessions_local_servers(lab, archive_date=date, nsessions=n, dry_run=dry)
         else:
             raise ValueError(f'No action for command {action}')
