@@ -1,4 +1,7 @@
 #!/bin/bash
+# /bin/bash ~/iblalyx/crons/sdsc/sync_aws.sh > ~/sdsc_aws_sync.log 2>&1
+# WARNING this currently fails as it's syncing the entire contents of /mnt/ibl, not only the lab
+
 # Sync a given lab to the private S3 bucket
 LAB="steinmetzlab"
 
@@ -11,6 +14,6 @@ format_time() {
  }
 
 echo "starting sync of $LAB"
-aws s3 sync "/mnt/ibl/$LAB" s3://ibl-brain-wide-map-private/data --exclude ".*" --profile miles --delete
+ssh -i /home/ubuntu/.ssh/sdsc_alyx.pem -p 62022 datauser@ibl.flatironinstitute.org 'aws s3 sync "/mnt/ibl/$LAB" s3://ibl-brain-wide-map-private/data --exclude ".*" --profile miles --delete'
 
 echo "Sync completed in $(format_time $SECONDS)"
