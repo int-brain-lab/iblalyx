@@ -96,9 +96,8 @@ DLC = [
     ('camera.times', 'alf', True, ['left', 'right', 'body']),
     ('camera.ROIMotionEnergy', 'alf', False, ['left', 'right', 'body']),
     ('ROIMotionEnergy.position', 'alf', False, ['left', 'right', 'body']),
-    ('_ibl_leftCamera.features.pqt', 'alf', True),
-    ('_ibl_rightCamera.features.pqt', 'alf', True),
-    ('licks.times.npy', 'alf', True)
+    ('camera.features', 'alf', True, ['left', 'right']),
+    ('licks.times', 'alf', True)
 ]
 
 VIDEO = [
@@ -163,7 +162,7 @@ RAW_VIDEO_TASKS = ['TrainingRegisterRaw', 'EphysVideoCompress']
 # PROCESSED DATA TASKS
 PASSIVE_TASKS = ['EphysPassive']
 EPHYS_TASKS = ['EphysPulses', 'RawEphysQC']
-VIDEO_TASKS = ['EphysSyncQc']
+VIDEO_TASKS = ['EphysVideoSyncQc']
 TRIAL_TASKS = ['EphysTrials']
 WHEEL_TASKS = ['EphysTrials']
 SPIKE_SORTING_TASKS = ['SpikeSorting', 'EphysCellsQc']
