@@ -1,10 +1,12 @@
 import json
 import argparse
-from datetime import datetime
 import pandas as pd
+from datetime import datetime
+from pathlib import Path
 
 from django.db.models import Q
 from django.contrib.auth.models import Group
+from data.transfers import _add_uuid_to_filename
 
 from misc.models import LabMember, Lab, LabMembership, LabLocation, Note, CageType, \
     Enrichment, Food, Housing, HousingSubject
@@ -24,8 +26,14 @@ if __name__ == "__main__":
     """
     # Adapt this for new releases
     dtypes_exclude = ['_iblrig_taskSettings.raw']
-    public_ds_files = ['2021_Q2_ErdemPaper_datasets.csv', '2021_Q2_MattPaper_datasets.csv', '2021_Q2_PreReleaseAnnualMeeting_datasets.csv']
-    public_ds_tags = ["Behaviour Paper", "Erdem's paper", "Matt's paper", "May 2021 pre-release"]
+    public_ds_files = ['2021_Q1_BehaviourPaper_datasets.csv',
+                       '2021_Q2_ErdemPaper_datasets.csv',
+                       '2021_Q2_MattPaper_datasets.csv',
+                       '2021_Q2_PreReleaseAnnualMeeting_datasets.csv']
+    public_ds_tags = ["Behaviour Paper",
+                      "Erdem's paper",
+                      "Matt's paper",
+                      "May 2021 pre-release"]
 
     # Get public aws information from local file to avoid storing this on github
     parser = argparse.ArgumentParser()
@@ -189,3 +197,27 @@ if __name__ == "__main__":
 
     # jobs
     Task.objects.using('public').all().delete()
+
+    '''
+    Create symlinks in public flatiron
+    '''
+    for dset in datasets:
+        fr = dset.file_records.filter(data_repository__name__startswith='flatiron')[0]
+        rel_path = Path(fr.data_repository.globus_path).joinpath(fr.relative_path).relative_to('/public')
+        rel_path = _add_uuid_to_filename(str(rel_path), dset.pk)
+        source = Path('/mnt/ibl').joinpath(rel_path)
+        dest = Path('/mnt/ibl/public').joinpath(rel_path)
+
+        if source.exists():
+            if dest.exists():
+                print(f'Destination exists: {dest}')
+            else:
+                dest.parent.mkdir(exist_ok=True, parents=True)
+                dest.symlink_to(source)
+                print(f'Creating symlink: {source} -> {dest}')
+        else:
+            print(f'Source does not exist: {source}')
+
+
+
+
