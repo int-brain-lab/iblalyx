@@ -1,11 +1,10 @@
-## Behaviour paper
+import pandas as pd
 from data.models import Tag, Dataset, DatasetType
 
-file_behaviour_sessions = '/home/olivier/Documents/PYTHON/00_IBL/ibldevtools/Alyx/2021_04_14_behaviour_paper_sessions.csv'
-file_behaviour_sessions = '/home/ubuntu/2021_04_14_behaviour_paper_sessions.csv'
-with open(file_behaviour_sessions) as fid:
-    lines = fid.readlines()
+# Releases as part of paper The International Brain Laboratory et al, 2021, DOI: 10.7554/eLife.63711
 
+# Original query based on list of session ids
+eids = list(pd.read_csv('2021_Q1_BehaviourPaper_sessions.csv', index_col=0)['session_id'])
 dtypes = [
             'trials.feedback_times',
             'trials.feedbackType',
@@ -19,11 +18,16 @@ dtypes = [
             'trials.repNum',
             'trials.goCue_times',
             ]
-
-eids = [line.split(',')[1].strip() for line in lines if len(line) > 36]
 dataset_types = DatasetType.objects.filter(name__in=dtypes)
 dsets = Dataset.objects.filter(session__in=eids, dataset_type__in=dataset_types)
 
+# Tagging in production database
 tag, _ = Tag.objects.get_or_create(name="Behaviour Paper", protected=True, public=True)
-tag.datasets.set(dsets)
-Tag.objects.filter(name='Behaviour Paper').values_list('datasets__session').distinct().count()
+for dset in dsets:
+    dset.tags.add(tag)
+
+# Saving dataset IDs for release in the public database
+dset_ids = [str(eid) for eid in dsets.values_list('pk', flat=True)]
+df = pd.DataFrame(dset_ids, columns=['dataset_id'])
+df.to_csv('./2021_Q1_BehaviourPaper_datasets.csv')
+
