@@ -24,7 +24,7 @@ if __name__ == "__main__":
     """
     # Adapt this for new releases
     dtypes_exclude = ['_iblrig_taskSettings.raw']
-    public_ds_files = ['2021_Q2_ErdemPaper.csv', '2021_Q2_MattPaper.csv', '2021_Q2_PreReleaseAnnualMeeting.csv']
+    public_ds_files = ['2021_Q2_ErdemPaper_datasets.csv', '2021_Q2_MattPaper_datasets.csv', '2021_Q2_PreReleaseAnnualMeeting_datasets.csv']
     public_ds_tags = ["Behaviour Paper", "Erdem's paper", "Matt's paper", "May 2021 pre-release"]
 
     # Get public aws information from local file to avoid storing this on github
