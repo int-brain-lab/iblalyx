@@ -65,6 +65,7 @@ if __name__ == "__main__":
         if 'flatiron' in dr.hostname:
             dr.data_url = dr.data_url.replace('.org/', '.org/public/')
             dr.globus_path = '/public' + dr.globus_path
+            dr.json = {}
             dr.save()
         elif 'aws' in dr.hostname:
             dr.json = aws_info
@@ -216,7 +217,7 @@ if __name__ == "__main__":
                 dest.symlink_to(source)
                 print(f'Creating symlink: {source} -> {dest}')
         else:
-            print(f'Source does not exist: {source}')
+            print(f'Source does not exist, skipping: {source}')
 
 
 
