@@ -8,6 +8,8 @@
 
 WORKING_DIR=/home/datauser/openalyx_wd
 ALYX_DIR=/home/datauser/Documents/github/alyx
+AWS_INFO_FILE=/home/datauser/Documents/aws_public_info.json
+
 TODAYS_SQL=/mnt/ibl/json/$(date +%Y-%m-%d)_alyxfull.sql.gz
 YESTERDAYS_SQL=/mnt/ibl/json/$(date --date='yesterday' '+%Y-%m-%d')_alyxfull.sql.gz
 
@@ -30,7 +32,7 @@ python $ALYX_DIR/alyx/manage.py reset_db -D public  # possibly use --no-input op
 # Load the production alyx sql dump to openalyx
 psql -h ec2-35-177-177-13.eu-west-2.compute.amazonaws.com -U ibl_dev -d public -f $WORKING_DIR/alyxfull.sql
 # Prune and anonymize
-python openalyx_pruning.py
+python openalyx_pruning.py $AWS_INFO_FILE
 ########################################
 # Create symlinks for public data
 ##########################################
