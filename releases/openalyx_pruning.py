@@ -39,9 +39,10 @@ aws_info_file = '/home/datauser/Documents/aws_public_info.json'
 with open(aws_info_file) as f:
     aws_info = json.load(f)
 
+print(f"\nStarting to prune public database")
 print(f"Dataset IDs from files: {public_ds_files}")
 print(f"Dataset types to exclude: {dtypes_exclude}")
-print(f"Tags to keep: {public_ds_tags}")
+print(f"Tags to keep: {public_ds_tags}\n")
 
 # Load all datasets ids into one list
 public_ds_ids = []
@@ -51,6 +52,7 @@ for f in public_ds_files:
 """
 Pruning and anonymizing database
 """
+print("...pruning datasets")
 # Delete all datasets that are not in that list, along with their file records, also datasets with to be excluded types
 Dataset.objects.using('public').exclude(pk__in=public_ds_ids).delete()
 Dataset.objects.using('public').filter(dataset_type__name__in=dtypes_exclude).delete()
@@ -77,6 +79,7 @@ DatasetType.objects.using('public').exclude(pk__in=datasets.values_list('dataset
 DataFormat.objects.using('public').exclude(pk__in=datasets.values_list('data_format', flat=True)).delete()
 Revision.objects.using('public').exclude(pk__in=datasets.values_list('revision', flat=True)).delete()
 
+print("...pruning sessions")
 # Delete sessions that don't have a dataset in public db, along with probe insertions, trajectories, channels and tasks
 Session.objects.using('public').exclude(id__in=datasets.values_list('session_id', flat=True)).delete()
 sessions = Session.objects.using('public').all()
@@ -87,10 +90,12 @@ for sess in sessions:
     sess.narrative = ''
     sess.save()
 
+print("...pruning subjects")
 # Delete all subjects that don't have a session along with many actions
 Subject.objects.using('public').exclude(actions_sessions__in=sessions).delete()
 subjects = Subject.objects.using('public').all()
 
+print("...pruning projects")
 # Delete projects that aren't attached to public session or subject
 projects = Project.objects.using('public').filter(
     Q(pk__in=sessions.values_list('project', flat=True).distinct()) |
@@ -98,6 +103,7 @@ projects = Project.objects.using('public').filter(
 )
 Project.objects.using('public').exclude(pk__in=projects.values('pk')).delete()
 
+print("...pruning labs and labmembers, anonymizing lab members")
 # Delete Labs and LabMembers that aren't used
 labs = Lab.objects.using('public').filter(pk__in=sessions.values_list('lab', flat=True))
 Lab.objects.using('public').exclude(pk__in=labs).delete()
@@ -134,6 +140,7 @@ public_user.set_password('international')
 public_user.groups.add(Group.objects.using('public').filter(name='Lab members')[0])
 public_user.save()
 
+print("...pruning probe insertions")
 # Delete all remaining probe insertions that don't have datasets in the public database
 probeinsertions = ProbeInsertion.objects.using('public').filter(
     datasets__pk__in=datasets.values_list('pk', flat=True)).distinct()
@@ -155,6 +162,7 @@ BrainRegion.objects.using('public').exclude(
 """
 Deleting some tables altogether
 """
+print("...deleting some tables")
 # misc
 LabMembership.objects.using('public').all().delete()
 LabLocation.objects.using('public').all().delete()
@@ -204,24 +212,27 @@ print("Finished pruning database\n")
 '''
 Create symlinks in public flatiron
 '''
+print("Starting to create symlinks\n")
 for dset in datasets:
-    fr = dset.file_records.filter(data_repository__name__startswith='flatiron')[0]
-    rel_path = Path(fr.data_repository.globus_path).joinpath(fr.relative_path).relative_to('/public')
-    rel_path = _add_uuid_to_filename(str(rel_path), dset.pk)
-    # source = Path('/mnt/ibl').joinpath(rel_path)
-    # dest = Path('/mnt/ibl/public').joinpath(rel_path)
-    source = Path('/home/julia/data/ONE/alyx.internationalbrainlab.org').joinpath(rel_path)
-    dest = Path('/home/julia/data/ONE/alyx.internationalbrainlab.org/public').joinpath(rel_path)
-
-    if source.exists():
-        if dest.exists():
-            print(f'Destination exists: {dest}')
-        else:
-            dest.parent.mkdir(exist_ok=True, parents=True)
-            dest.symlink_to(source)
-            print(f'Creating symlink: {source} -> {dest}')
+    fr = dset.file_records.filter(data_repository__name__startswith='flatiron').first()
+    if fr is None:
+        print(f"...no file record for dataset with ID: {str(dset.pk)}")
     else:
-        print(f'Source does not exist, skipping: {source}')
+        rel_path = Path(fr.data_repository.globus_path).joinpath(fr.relative_path).relative_to('/public')
+        rel_path = _add_uuid_to_filename(str(rel_path), dset.pk)
+        source = Path('/mnt/ibl').joinpath(rel_path)
+        dest = Path('/mnt/ibl/public').joinpath(rel_path)
+        # source = Path('/home/julia/data/ONE/alyx.internationalbrainlab.org').joinpath(rel_path)
+        # dest = Path('/home/julia/data/ONE/alyx.internationalbrainlab.org/public').joinpath(rel_path)
+
+        if source.exists():
+            if dest.exists():
+                print(f'...destination exists: {dest}')
+            else:
+                dest.parent.mkdir(exist_ok=True, parents=True)
+                dest.symlink_to(source)
+        else:
+            # print(f'...source does not exist: {source}')
 
 print("Finished creating symlinks\n")
 
