@@ -28,7 +28,7 @@ fi
 # Source alyx env
 source $ALYX_DIR/alyxvenv/bin/activate
 # Reset the public database (THIS WILL DESTROY OPENALYX!)
-python $ALYX_DIR/alyx/manage.py reset_db -D public  # possibly use --no-input option, but requiring confirmation for now
+python $ALYX_DIR/alyx/manage.py reset_db -D public --noinput ## never change this part: -D public !!!!
 # Load the production alyx sql dump to openalyx
 psql -h ec2-35-177-177-13.eu-west-2.compute.amazonaws.com -U ibl_dev -d public -f $WORKING_DIR/alyxfull.sql
 # Prune and anonymize
