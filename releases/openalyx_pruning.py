@@ -34,12 +34,10 @@ public_ds_tags = ["Behaviour Paper",
                   "May 2021 pre-release"]
 
 # Get public aws information from local file to avoid storing this on github
-# aws_info_file = '/home/julia/aws_public_info.json'
 aws_info_file = '/home/datauser/Documents/aws_public_info.json'
 with open(aws_info_file) as f:
     aws_info = json.load(f)
 
-print(f"\nStarting to prune public database")
 print(f"Dataset IDs from files: {public_ds_files}")
 print(f"Dataset types to exclude: {dtypes_exclude}")
 print(f"Tags to keep: {public_ds_tags}\n")
@@ -52,6 +50,7 @@ for f in public_ds_files:
 """
 Pruning and anonymizing database
 """
+print(f"\nStarting to prune public database")
 print("...pruning datasets")
 # Delete all datasets that are not in that list, along with their file records, also datasets with to be excluded types
 Dataset.objects.using('public').exclude(pk__in=public_ds_ids).delete()
@@ -212,7 +211,7 @@ print("Finished pruning database\n")
 '''
 Create symlinks in public flatiron
 '''
-print("Starting to create symlinks\n")
+print("Starting to create symlinks")
 for dset in datasets:
     fr = dset.file_records.filter(data_repository__name__startswith='flatiron').first()
     if fr is None:
@@ -222,9 +221,6 @@ for dset in datasets:
         rel_path = _add_uuid_to_filename(str(rel_path), dset.pk)
         source = Path('/mnt/ibl').joinpath(rel_path)
         dest = Path('/mnt/ibl/public').joinpath(rel_path)
-        # source = Path('/home/julia/data/ONE/alyx.internationalbrainlab.org').joinpath(rel_path)
-        # dest = Path('/home/julia/data/ONE/alyx.internationalbrainlab.org/public').joinpath(rel_path)
-
         if source.exists():
             if dest.exists():
                 print(f'...destination exists: {dest}')
@@ -232,7 +228,7 @@ for dset in datasets:
                 dest.parent.mkdir(exist_ok=True, parents=True)
                 dest.symlink_to(source)
         else:
-            # print(f'...source does not exist: {source}')
+            print(f'...source does not exist: {source}')
 
 print("Finished creating symlinks\n")
 
