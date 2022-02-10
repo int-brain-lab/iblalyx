@@ -26,7 +26,7 @@ else
 fi
 
 # Source alyx env
-source $ALYX_DIR/alyx/alyxvenv/bin/activate
+source $ALYX_DIR/alyxvenv/bin/activate
 # Reset the public database (THIS WILL DESTROY OPENALYX!)
 python $ALYX_DIR/alyx/manage.py reset_db -D public  # possibly use --no-input option, but requiring confirmation for now
 # Load the production alyx sql dump to openalyx
