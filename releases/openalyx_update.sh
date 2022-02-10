@@ -13,6 +13,7 @@ AWS_INFO_FILE=/home/datauser/Documents/aws_public_info.json
 TODAYS_SQL=/mnt/ibl/json/$(date +%Y-%m-%d)_alyxfull.sql.gz
 YESTERDAYS_SQL=/mnt/ibl/json/$(date --date='yesterday' '+%Y-%m-%d')_alyxfull.sql.gz
 
+echo "Recreating public database $(date '+%Y-%m-%d')"
 # Create a working directory
 mkdir -p $WORKING_DIR
 # Unzip the most recent alyx backup into it
@@ -32,10 +33,10 @@ python $ALYX_DIR/alyx/manage.py reset_db -D public --noinput ## never change thi
 # Load the production alyx sql dump to openalyx
 psql -h ec2-35-177-177-13.eu-west-2.compute.amazonaws.com -U ibl_dev -d public -f $WORKING_DIR/alyxfull.sql
 # Prune and anonymize
-python openalyx_pruning.py $AWS_INFO_FILE
-########################################
-# Create symlinks for public data
-##########################################
+# Prune, anonymize and create symlinks
+python alyx/manage.py shell < openalyx_pruning.py $AWS_INFO_FILE
+# Sync to AWS public bucket
+aws s3 sync "/mnt/ibl/public" s3://ibl-brain-wide-map-public/data --exclude "*.zip" --exclude ".*" --profile miles --follow-symlinks --delete
 # Sync to AWS
 ##########################################
 
