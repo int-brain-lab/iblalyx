@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -e
 ######################################## BEFORE ########################################
 # Make sure that alyx repo on SDSC is on the same commit as repos serving the databases
 # Make sure all migrations are applied
