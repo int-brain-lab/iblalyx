@@ -27,7 +27,7 @@ root = '/mnt/ibl'  # This should be in the globus_path but isn't
 paginator = Paginator(qs, batch_size)
 
 # fields to keep from Dataset table
-dataset_fields = ('id', 'session')
+dataset_fields = ('id', 'session', 'auto_datetime')
 filerecord_fields = ('dataset_id', 'relative_path', 'data_repository__globus_path')
 
 all_df = []
@@ -46,7 +46,7 @@ del all_df
 
 for eid, rec in df.groupby('session'):
     logger.info(f'Updating session {eid}')
-    dids = rec['index'].values
+    dids = rec.index.values
     session_path = next(map(get_session_path, rec['file_path'].values))
     src_dir = root + session_path.as_posix()
     dst_dir = bucket_name.strip('/') + '/' + get_alf_path(src_dir)
@@ -59,13 +59,13 @@ for eid, rec in df.groupby('session'):
 
     lab, *_, collection, revision = folder_parts(session_path)
     repo = f'aws_{lab}'
-    for did, (_, file_path) in rec.iterrows():
+    for did, rec in rec.iterrows():
         record = {
             'dataset': Dataset.objects.get(id=did),
             'data_repository': DataRepository.objects.get(name=repo),
-            'relative_path': file_path.replace(f'{lab}/Subjects', '').strip('/')
+            'relative_path': rec['file_path'].replace(f'{lab}/Subjects', '').strip('/')
         }
         fr, is_new = FileRecord.objects.get_or_create(**record)
-        fr.exists = Path(root + file_path).exists()
+        fr.exists = Path(root + rec['file_path']).exists()
         fr.full_clean()
         fr.save()
