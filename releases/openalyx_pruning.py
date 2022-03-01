@@ -23,7 +23,8 @@ from jobs.models import Task
 Settings and Inputs
 """
 # Adapt this for new releases
-dtypes_exclude = ['_iblrig_taskSettings.raw']
+dtypes_exclude = DatasetType.objects.filter(name__icontains='raw').exclude(name='_iblrig_Camera.raw')
+
 public_ds_files = ['2021_Q1_BehaviourPaper_datasets.pqt',
                    '2021_Q2_ErdemPaper_datasets.pqt',
                    '2021_Q2_MattPaper_datasets.pqt',
@@ -41,7 +42,7 @@ with open(aws_info_file) as f:
     aws_info = json.load(f)
 
 print(f"Dataset IDs from files: {public_ds_files}")
-print(f"Dataset types to exclude: {dtypes_exclude}")
+print(f"Dataset types to exclude: {list(dtypes_exclude.values_list('name', flat=True))}")
 print(f"Tags to keep: {public_ds_tags}\n")
 
 # Load all datasets ids into one list
@@ -58,11 +59,11 @@ print(f"\nStarting to prune public database")
 print("...pruning datasets")
 # Delete all datasets that are not in that list, along with their file records, also datasets with to be excluded types
 Dataset.objects.using('public').exclude(pk__in=public_ds_ids).delete()
-Dataset.objects.using('public').filter(dataset_type__name__in=dtypes_exclude).delete()
+Dataset.objects.using('public').filter(dataset_type__in=dtypes_exclude).delete()
 datasets = Dataset.objects.using('public').all()
 
 # Delete tags that aren't in the list above (released datasets might have additional, not-yet-released tags)
-Tag.objects.using('public').exclude(name__in=public_ds_tags).delete()
+Tag.objects.using('public').exclude(pk__in=public_ds_tags).delete()
 
 # Delete personal data repositories and associated file records
 DataRepository.objects.using('public').exclude(globus_is_personal=False).delete()
