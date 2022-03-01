@@ -24,14 +24,16 @@ Settings and Inputs
 """
 # Adapt this for new releases
 dtypes_exclude = ['_iblrig_taskSettings.raw']
-public_ds_files = ['2021_Q1_BehaviourPaper_datasets.csv',
-                   '2021_Q2_ErdemPaper_datasets.csv',
-                   '2021_Q2_MattPaper_datasets.csv',
-                   '2021_Q2_PreReleaseAnnualMeeting_datasets.csv']
-public_ds_tags = ["Behaviour Paper",
-                  "Erdem's paper",
-                  "Matt's paper",
-                  "May 2021 pre-release"]
+public_ds_files = ['2021_Q1_BehaviourPaper_datasets.pqt',
+                   '2021_Q2_ErdemPaper_datasets.pqt',
+                   '2021_Q2_MattPaper_datasets.pqt',
+                   '2021_Q2_PreReleaseAnnualMeeting_datasets.pqt']
+public_ds_tags = [
+    "cfc4906a-316e-4150-8222-fe7e7f13bdac",  # "Behaviour Paper",
+    "9dec1de8-389d-40f6-b00b-763e4fda6552",  # "Erdem's paper",
+    "c8f0892a-a95b-4181-b8e6-d5d31cb97449",  # "Matt's paper",
+    "dcd8b2e5-3a32-41b4-ac15-085a208a4466"   # "May 2021 pre-release"
+    ]
 
 # Get public aws information from local file to avoid storing this on github
 aws_info_file = '/home/datauser/Documents/aws_public_info.json'
@@ -43,9 +45,11 @@ print(f"Dataset types to exclude: {dtypes_exclude}")
 print(f"Tags to keep: {public_ds_tags}\n")
 
 # Load all datasets ids into one list
+# This is probably not great for the future when we start to have many more datasets public
 public_ds_ids = []
 for f in public_ds_files:
-    public_ds_ids.extend(list(pd.read_csv(f, index_col=0)['dataset_id']))
+    public_ds_ids.extend(list(pd.read_parquet(f)['dataset_id']))
+public_ds_ids = list(set(public_ds_ids))
 
 """
 Pruning and anonymizing database
