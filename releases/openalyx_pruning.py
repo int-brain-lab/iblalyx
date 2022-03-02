@@ -23,7 +23,8 @@ from jobs.models import Task
 Settings and Inputs
 """
 # Adapt this for new releases
-dtypes_exclude = DatasetType.objects.filter(name__icontains='raw').exclude(name='_iblrig_Camera.raw')
+dtypes_exclude = DatasetType.objects.filter(name__icontains='raw').exclude(name__in=['_iblrig_Camera.raw',
+                                                                                     '_iblrig_RFMapStim.raw'])
 
 public_ds_files = ['2021_Q1_BehaviourPaper_datasets.pqt',
                    '2021_Q2_ErdemPaper_datasets.pqt',
@@ -87,10 +88,9 @@ print("...pruning sessions")
 # Delete sessions that don't have a dataset in public db, along with probe insertions, trajectories, channels and tasks
 Session.objects.using('public').exclude(id__in=datasets.values_list('session_id', flat=True)).delete()
 sessions = Session.objects.using('public').all()
-# Remove identifying information from session json
+# Remove the session json and narrative which contain identifying information
 for sess in sessions:
-    sess.json['PYBPOD_CREATOR'] = []
-    sess.json['PYBPOD_SUBJECT_EXTRA'] = {}
+    sess.json = {}
     sess.narrative = ''
     sess.save()
 
