@@ -14,13 +14,16 @@ from data.models import DataRepository, Dataset, FileRecord
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 batch_size = 50000
-nuo = datetime.datetime.now() - datetime.timedelta(hours=24)  # ~3000 datasets
+# 36 hours should be enough time to ensure we capture new datasets after the bulk sync, assuming
+# this script is run daily
+nuo = datetime.datetime.now() - datetime.timedelta(hours=36)  # ~3000 datasets
 r = DataRepository.objects.filter(name__startswith='aws').first()
 assert r
 bucket_name = r.json['bucket_name']
 if not bucket_name.startswith('s3:'):
     bucket_name = 's3://' + bucket_name
 qs = Dataset.objects.filter(auto_datetime__gt=nuo).order_by('created_datetime')
+
 # Ugly hack because globus_path doesn't actually contain the correct absolute path
 root = '/mnt/ibl'  # This should be in the globus_path but isn't
 
@@ -50,7 +53,7 @@ for eid, rec in df.groupby('session'):
     session_path = next(map(get_session_path, rec['file_path'].values))
     src_dir = root + session_path.as_posix()
     dst_dir = bucket_name.strip('/') + '/' + get_alf_path(src_dir)
-    cmd = ['aws', 's3', 'sync', src_dir, dst_dir, '--delete', '--profile', 'miles']
+    cmd = ['aws', 's3', 'sync', src_dir, dst_dir, '--delete', '--profile', 'ibladmin']
     logger.debug(' '.join(cmd))
     t0 = time.time()
     result = subprocess.run(cmd)
