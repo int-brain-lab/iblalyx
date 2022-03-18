@@ -22,7 +22,8 @@ from jobs.models import Task
 """
 Settings and Inputs
 """
-# Adapt this for new releases
+# This is an artefact of the PreReleaseAnnualMeeting, which did not specify which dataset types to release
+# We remove the raw ones (most) for now, in the future any release should specify exactly which datasets to release
 dtypes_exclude = DatasetType.objects.filter(name__icontains='raw').exclude(name__in=['_iblrig_Camera.raw',
                                                                                      '_iblrig_RFMapStim.raw'])
 
@@ -47,7 +48,7 @@ print(f"Dataset types to exclude: {list(dtypes_exclude.values_list('name', flat=
 print(f"Tags to keep: {public_ds_tags}\n")
 
 # Load all datasets ids into one list
-# This is probably not great for the future when we start to have many more datasets public
+# TECHNICAL DEBT: This is probably not great for the future when we start to have many more datasets public
 public_ds_ids = []
 for f in public_ds_files:
     public_ds_ids.extend(list(pd.read_parquet(f)['dataset_id']))
@@ -59,8 +60,8 @@ Pruning and anonymizing database
 print(f"\nStarting to prune public database")
 print("...pruning datasets")
 # Delete all datasets that are not in that list, along with their file records, also datasets with to be excluded types
-Dataset.objects.using('public').exclude(pk__in=public_ds_ids).delete()
 Dataset.objects.using('public').filter(dataset_type__in=dtypes_exclude).delete()
+Dataset.objects.using('public').exclude(pk__in=public_ds_ids).delete()
 datasets = Dataset.objects.using('public').all()
 
 # Delete tags that aren't in the list above (released datasets might have additional, not-yet-released tags)
@@ -80,24 +81,23 @@ for dr in DataRepository.objects.using('public').all():
         dr.save()
 
 # Remove unused dataset types, formats and revisions
-DatasetType.objects.using('public').exclude(pk__in=datasets.values_list('dataset_type', flat=True)).delete()
-DataFormat.objects.using('public').exclude(pk__in=datasets.values_list('data_format', flat=True)).delete()
-Revision.objects.using('public').exclude(pk__in=datasets.values_list('revision', flat=True)).delete()
+DatasetType.objects.using('public').exclude(pk__in=datasets.values_list('dataset_type', flat=True).distinct()).delete()
+DataFormat.objects.using('public').exclude(pk__in=datasets.values_list('data_format', flat=True).distinct()).delete()
+Revision.objects.using('public').exclude(pk__in=datasets.values_list('revision', flat=True).distinct()).delete()
 
 print("...pruning sessions")
 # Delete sessions that don't have a dataset in public db, along with probe insertions, trajectories, channels and tasks
 Session.objects.using('public').exclude(id__in=datasets.values_list('session_id', flat=True)).delete()
 sessions = Session.objects.using('public').all()
 # Remove the session json and narrative which contain identifying information
-for sess in sessions:
-    sess.json = {}
-    sess.narrative = ''
-    sess.save()
+sessions.update(json=None, narrative='')
 
 print("...pruning subjects")
 # Delete all subjects that don't have a session along with many actions
 Subject.objects.using('public').exclude(actions_sessions__in=sessions).delete()
 subjects = Subject.objects.using('public').all()
+# Remove subject json
+subjects.update(json=None, description='', death_date=None)
 
 print("...pruning projects")
 # Delete projects that aren't attached to public session or subject
@@ -160,8 +160,6 @@ ProbeModel.objects.using('public').exclude(pk__in=probeinsertions.values_list('m
 CoordinateSystem.objects.using('public').exclude(
     pk__in=trajectories.values_list('coordinate_system', flat=True)).delete()
 Channel.objects.using('public').exclude(trajectory_estimate__in=trajectories).delete()
-BrainRegion.objects.using('public').exclude(
-    pk__in=Channel.objects.using('public').values_list('brain_region', flat=True)).delete()
 
 """
 Deleting some tables altogether
