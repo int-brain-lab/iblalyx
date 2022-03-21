@@ -1,3 +1,19 @@
+"""
+This script is designed to run using a Django installation that has access to both the current production
+and public alyx database. It can be run on the SDSC server or locally, as long as the 'public' database is
+connected to the openalyx EC2 instance. Make sure to set the openalyx website to maintenance (see dev playbook)!
+
+This script is part of a shell script sequence in which the public database is first recreated as a copy of the production
+database. Subsequently, this script will
+- read a list of dataset IDs to be public, based on all previous data releases
+- remove any information in the database that is NOT associated with these datasets
+- remove confidential information and experimental information that is not necessary for using the data
+
+After this script, symlinks from the internal IBL disk to the publicly exposed folder need to be created on SDSC for
+all datasets in the new public database. This public folder will then be synchronized with the AWS S3 public bucket.
+"""
+
+
 import json
 import pandas as pd
 from datetime import datetime
@@ -5,7 +21,6 @@ from pathlib import Path
 
 from django.db.models import Q
 from django.contrib.auth.models import Group
-from data.transfers import _add_uuid_to_filename
 
 from misc.models import LabMember, Lab, LabMembership, LabLocation, Note, CageType, \
     Enrichment, Food, Housing, HousingSubject
@@ -30,16 +45,18 @@ dtypes_exclude = DatasetType.objects.filter(name__icontains='raw').exclude(name_
 public_ds_files = ['2021_Q1_BehaviourPaper_datasets.pqt',
                    '2021_Q2_ErdemPaper_datasets.pqt',
                    '2021_Q2_MattPaper_datasets.pqt',
-                   '2021_Q2_PreReleaseAnnualMeeting_datasets.pqt']
+                   '2021_Q2_PreReleaseAnnualMeeting_datasets.pqt'
+                   ]
 public_ds_tags = [
     "cfc4906a-316e-4150-8222-fe7e7f13bdac",  # "Behaviour Paper",
     "9dec1de8-389d-40f6-b00b-763e4fda6552",  # "Erdem's paper",
     "c8f0892a-a95b-4181-b8e6-d5d31cb97449",  # "Matt's paper",
-    "dcd8b2e5-3a32-41b4-ac15-085a208a4466"   # "May 2021 pre-release"
+    "dcd8b2e5-3a32-41b4-ac15-085a208a4466",  # "May 2021 pre-release"
     ]
 
-# Get public aws information from local file to avoid storing this on github
-aws_info_file = '/home/datauser/Documents/aws_public_info.json'
+# Get public aws information from local file to avoid storing this on github,
+# This should be stored in the home directory of the user
+aws_info_file = Path.home().joinpath('aws_public_info.json')
 with open(aws_info_file) as f:
     aws_info = json.load(f)
 
@@ -210,29 +227,5 @@ GenotypeTest.objects.using('public').all().delete()
 # jobs
 Task.objects.using('public').all().delete()
 print("Finished pruning database\n")
-
-'''
-Create symlinks in public flatiron
-'''
-print("Starting to create symlinks")
-for dset in datasets:
-    fr = dset.file_records.filter(data_repository__name__startswith='flatiron').first()
-    if fr is None:
-        print(f"...no file record for dataset with ID: {str(dset.pk)}")
-    else:
-        rel_path = Path(fr.data_repository.globus_path).joinpath(fr.relative_path).relative_to('/public')
-        rel_path = _add_uuid_to_filename(str(rel_path), dset.pk)
-        source = Path('/mnt/ibl').joinpath(rel_path)
-        dest = Path('/mnt/ibl/public').joinpath(rel_path)
-        if source.exists():
-            if dest.exists():
-                print(f'...destination exists: {dest}')
-            else:
-                dest.parent.mkdir(exist_ok=True, parents=True)
-                dest.symlink_to(source)
-        else:
-            print(f'...source does not exist: {source}')
-
-print("Finished creating symlinks\n")
 
 

@@ -34,8 +34,10 @@ source $ALYX_DIR/alyxvenv/bin/activate
 python $ALYX_DIR/alyx/manage.py reset_db -D public --noinput ## never change this part: -D public !!!!
 # Load the production alyx sql dump to openalyx
 psql -h "$OPENALYX_INSTANCE" -U ibl_dev -d public -f "$TMP_DIR"/alyxfull.sql
-# Prune anonymize and create symlinks
+# Prune and anonymize
 python $ALYX_DIR/alyx/manage.py shell < openalyx_pruning.py
+# Create symlinks
+python $ALYX_DIR/alyx/manage.py shell < openalyx_symlinks.py
 # Sync to AWS public bucket
 aws s3 sync "/mnt/ibl/public" s3://ibl-brain-wide-map-public/data --exclude "*.zip" --exclude ".*" --profile miles --follow-symlinks --delete
 # Remove tmp directory
