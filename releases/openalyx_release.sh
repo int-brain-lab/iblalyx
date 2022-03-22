@@ -6,7 +6,7 @@ set -e
 # Set Apache on the openalyx instance to Maintenance
 ########################################################################################
 
-OPENALYX_INSTANCE=ec2-35-177-177-13.eu-west-2.compute.amazonaws.com
+OPENALYX_INSTANCE=ec2-3-8-123-127.eu-west-2.compute.amazonaws.com
 
 TMP_DIR=/home/datauser/temp/openalyx_wd
 ALYX_DIR=/home/datauser/Documents/github/alyx
@@ -33,7 +33,8 @@ source $ALYX_DIR/alyxvenv/bin/activate
 # Reset the public database (THIS WILL DESTROY OPENALYX!)
 python $ALYX_DIR/alyx/manage.py reset_db -D public --noinput ## never change this part: -D public !!!!
 # Load the production alyx sql dump to openalyx
-psql -h "$OPENALYX_INSTANCE" -U ibl_dev -d public -f "$TMP_DIR"/alyxfull.sql
+psql -h "$OPENALYX_INSTANCE" -U ibl_dev -d ibl -f "$TMP_DIR"/alyxfull.sql
+python $ALYX_DIR/alyx/manage.py migrate --database=public
 # Prune and anonymize
 python $ALYX_DIR/alyx/manage.py shell < openalyx_pruning.py
 # Create symlinks
