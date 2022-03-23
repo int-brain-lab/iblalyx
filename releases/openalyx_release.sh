@@ -40,7 +40,7 @@ python $ALYX_DIR/alyx/manage.py shell < openalyx_pruning.py
 # Create symlinks
 python $ALYX_DIR/alyx/manage.py shell < openalyx_symlinks.py
 # Sync to AWS public bucket
-aws s3 sync "/mnt/ibl/public" s3://ibl-brain-wide-map-public/data --exclude "*.zip" --exclude ".*" --profile miles --follow-symlinks --delete
+aws s3 sync "/mnt/ibl/public" s3://ibl-brain-wide-map-public/data --exclude "*.zip" --exclude ".*" --profile ibladmin --follow-symlinks --delete
 # Remove tmp directory
 rm -rf "$TMP_DIR"
 
