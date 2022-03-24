@@ -1,6 +1,6 @@
 '''
 After pruning the public database to the released datasets, this script creates symlinks in publicly available folder.
-This script needs to be run on the SDSC server!
+This script needs to be run on the SDSC server with alyxvenv activated
 '''
 
 from pathlib import Path
@@ -21,7 +21,7 @@ for dset in datasets:
         dest = Path('/mnt/ibl/public').joinpath(rel_path)
         if source.exists():
             if dest.exists():
-                print(f'...destination exists: {dest}')
+                pass
             else:
                 dest.parent.mkdir(exist_ok=True, parents=True)
                 dest.symlink_to(source)

@@ -1,7 +1,7 @@
 """
-This script is designed to run using a Django installation that has access to both the current production
-and public alyx database. It can be run on the SDSC server or locally, as long as the 'public' database is
-connected to the openalyx EC2 instance. Make sure to set the openalyx website to maintenance (see dev playbook)!
+This script is designed to run using a Django installation that has access to the public alyx database.
+It can be run on the SDSC server or locally, as long as the 'public' database is connected to the openalyx RDS instance.
+Make sure to set the openalyx website to maintenance (see dev playbook)!
 
 This script is part of a shell script sequence in which the public database is first recreated as a copy of the production
 database. Subsequently, this script will
