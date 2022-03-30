@@ -96,9 +96,8 @@ DLC = [
     ('camera.times', 'alf', True, ['left', 'right', 'body']),
     ('camera.ROIMotionEnergy', 'alf', False, ['left', 'right', 'body']),
     ('ROIMotionEnergy.position', 'alf', False, ['left', 'right', 'body']),
-    ('_ibl_leftCamera.features.pqt', 'alf', True),
-    ('_ibl_rightCamera.features.pqt', 'alf', True),
-    ('licks.times.npy', 'alf', True)
+    ('camera.features', 'alf', True, ['left', 'right']),
+    ('licks.times', 'alf', True)
 ]
 
 VIDEO = [
@@ -163,7 +162,7 @@ RAW_VIDEO_TASKS = ['TrainingRegisterRaw', 'EphysVideoCompress']
 # PROCESSED DATA TASKS
 PASSIVE_TASKS = ['EphysPassive']
 EPHYS_TASKS = ['EphysPulses', 'RawEphysQC']
-VIDEO_TASKS = ['EphysSyncQc']
+VIDEO_TASKS = ['EphysVideoSyncQc']
 TRIAL_TASKS = ['EphysTrials']
 WHEEL_TASKS = ['EphysTrials']
 SPIKE_SORTING_TASKS = ['SpikeSorting', 'EphysCellsQc']
@@ -180,9 +179,7 @@ EPHYS_PLOTS = ['raw_ephys_bad_channels',
 
 HISTOLOGY_PLOTS = ['histology_slices']
 
-SPIKE_SORTING_PLOTS = ['spike_sorting_raster_pykilosort',
-                       'spike_sorting_raster_',
-                       'spike_sorting_raster_ks2_preproc_tests']
+SPIKE_SORTING_PLOTS = ['spike_sorting_raster']
 
 VIDEO_PLOTS = ['dlc_qc_plot']
 
@@ -199,11 +196,12 @@ PLOT_MAP = {
     'behaviour': BEHAVIOUR_PLOTS
 }
 
+# Tuple, plot name and whether or not to display placeholder of plot not available
+OVERVIEW_PROBE_PLOTS = [('raw_ephys_bad_channels_destripe', True),
+                        ('spike_sorting_raster_pykilosort', True),
+                        ('lfp_spectrum', True),
+                        ('histology_slices', False)]
 
-OVERVIEW_PROBE_PLOTS = ['raw_ephys_bad_channels_destripe',
-                        'spike_sorting_raster_pykilosort',
-                        'lfp_spectrum']
-
-OVERVIEW_SESSION_PLOTS = ['dlc_qc_plot',
-                          'psychometric_curve',
-                          'reaction_time_with_trials']
+OVERVIEW_SESSION_PLOTS = [('psychometric_curve', True),
+                          ('reaction_time_with_trials', True),
+                          ('dlc_qc_plot', False)]

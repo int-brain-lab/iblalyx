@@ -279,8 +279,12 @@ def get_plots(notes, plot_type):
 
     ordered_plots = {}
     for pl in plots:
-        note = notes.filter(text=pl)
-        if note.count() != 0:
+        note = notes.filter(text__icontains=pl)
+        if note.count() > 1:
+            note = note.order_by('text')
+            for n in note:
+                ordered_plots[n.text] = n
+        elif note.count() == 1:
             ordered_plots[pl] = note.first()
         else:
             ordered_plots[pl] = None

@@ -39,7 +39,7 @@
                 <div class="card my-2">
                     <div class="card-header bg">
                         <div class="row">
-                            <div class="col-md-4"><h5>{{ session.id }} </h5></div>
+                            <div class="col-md-4"><h5><a href="{% url 'admin:actions_session_change' session.id %}" style="color: white">{{ session.id }} </a></h5></div>
                             <div class="col-md-4"><h5>{{ session|get_session_path }}</h5></div>
                             <div class="col-md-4"><h5><a href={% url 'session' eid=session.id %}> See more plots <i class="fa fa-arrow-circle-right"></i></a></h5></div>
                         </div>
