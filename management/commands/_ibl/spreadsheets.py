@@ -337,6 +337,12 @@ def _populate_sheet(insertions, spreadsheetID, spreadsheetRange):
     sheets = build('sheets', 'v4', http=credentials.authorize(Http()))
     write_spreadsheetID = spreadsheetID
     write_spreadsheetRange = spreadsheetRange
+
+    # Clear sheet first
+    request = sheets.spreadsheets(). \
+        values().clear(spreadsheetId=write_spreadsheetID, range=write_spreadsheetRange)
+    response = request.execute()
+
     write_data = sheets.spreadsheets(). \
         values().update(spreadsheetId=write_spreadsheetID, valueInputOption='RAW',  # USER_ENTERED
                         range=write_spreadsheetRange,
