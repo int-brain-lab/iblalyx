@@ -4,6 +4,7 @@ Write to sheet histology assignment
 
 from pathlib import Path
 import pandas as pd
+from django.db.models import Q
 import numpy as np
 import sys
 from datetime import date
@@ -357,12 +358,16 @@ def _query_insertions():
     :return:
     '''
 
-    all_insertions = ProbeInsertion.objects.filter(
+    all_insertions1 = ProbeInsertion.objects.filter(
         session__task_protocol__icontains='_iblrig_tasks_ephysChoiceWorld',
         session__project__name='ibl_neuropixel_brainwide_01',
         session__subject__actions_sessions__procedures__name='Histology',
-        session__json__IS_MOCK=False
+        session__json__IS_MOCK=False,
+        session__extended_qc__behavior=1,  # Added 2022-04-04
+        session__qc__lt=50  # Added 2022-04-04
     )
+
+    all_insertions = all_insertions1.filter(~Q(json__qc='CRITICAL')) # Added 2022-04-04
 
     insertions = all_insertions.filter(
         json__todo_alignment__isnull=True
