@@ -367,7 +367,7 @@ def _query_insertions():
         session__qc__lt=50  # Added 2022-04-04
     )
 
-    all_insertions = all_insertions1.filter(~Q(json__qc='CRITICAL')) # Added 2022-04-04
+    all_insertions = all_insertions1.filter(~Q(json__qc='CRITICAL'))  # Added 2022-04-04
 
     insertions = all_insertions.filter(
         json__todo_alignment__isnull=True
