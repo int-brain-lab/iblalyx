@@ -4,6 +4,7 @@ Write to sheet histology assignment
 
 from pathlib import Path
 import pandas as pd
+from django.db.models import Q
 import numpy as np
 import sys
 from datetime import date
@@ -337,6 +338,12 @@ def _populate_sheet(insertions, spreadsheetID, spreadsheetRange):
     sheets = build('sheets', 'v4', http=credentials.authorize(Http()))
     write_spreadsheetID = spreadsheetID
     write_spreadsheetRange = spreadsheetRange
+
+    # Clear sheet first
+    request = sheets.spreadsheets(). \
+        values().clear(spreadsheetId=write_spreadsheetID, range=write_spreadsheetRange)
+    response = request.execute()
+
     write_data = sheets.spreadsheets(). \
         values().update(spreadsheetId=write_spreadsheetID, valueInputOption='RAW',  # USER_ENTERED
                         range=write_spreadsheetRange,
@@ -431,7 +438,7 @@ def histology_assign_update():
 
     # Once done:
     # Take only insertion for BW project, with histology, remove critical insertions
-    all_insertions = ProbeInsertion.objects.filter(
+    all_insertions1 = ProbeInsertion.objects.filter(
         session__task_protocol__icontains='_iblrig_tasks_ephysChoiceWorld',
         session__project__name='ibl_neuropixel_brainwide_01',
         session__subject__actions_sessions__procedures__name='Histology',
@@ -448,6 +455,8 @@ def histology_assign_update():
         session__extended_qc__behavior=1,
         json__extended_qc__tracing_exists=True
     )
+
+    all_insertions = all_insertions1.filter(~Q(json__qc='CRITICAL'))  # Added 2022-04-04
 
     # Get list of all insertions that are not yet resolved but have >=2 alignments
     insertions_toresolve = all_insertions.filter(
