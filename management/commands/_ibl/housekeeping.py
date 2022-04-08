@@ -70,7 +70,7 @@ def remove_sessions_local_servers(labname, archive_date=None, gc=None, dry_run=F
             eids.append(ses)
             try:
                 gc.operation_ls(server_repository.globus_endpoint_id, path=session_path)
-            except globus_sdk.TransferAPIError as e:
+            except globus_sdk.GlobusError as e:
                 if not "404, 'ClientError.NotFound'" in str(e):
                     raise e
                 else:  # the directory doesn't exist on the target
