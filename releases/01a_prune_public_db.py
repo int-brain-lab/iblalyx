@@ -42,16 +42,16 @@ Settings and Inputs
 dtypes_exclude = DatasetType.objects.filter(name__icontains='raw').exclude(name__in=['_iblrig_Camera.raw',
                                                                                      '_iblrig_RFMapStim.raw'])
 
-public_ds_files = ['2021_Q1_BehaviourPaper_datasets.pqt',
-                   '2021_Q2_ErdemPaper_datasets.pqt',
-                   '2021_Q2_MattPaper_datasets.pqt',
-                   '2021_Q2_PreReleaseAnnualMeeting_datasets.pqt'
+public_ds_files = ['2021_Q1_IBL_et_al_datasets.pqt',
+                   '2021_Q2_Varol_et_al_datasets.pqt',
+                   '2021_Q3_Whiteway_et_al_datasets.pqt',
+                   '2021_Q2_PreRelease_datasets.pqt'
                    ]
 public_ds_tags = [
-    "cfc4906a-316e-4150-8222-fe7e7f13bdac",  # "Behaviour Paper",
-    "9dec1de8-389d-40f6-b00b-763e4fda6552",  # "Erdem's paper",
-    "c8f0892a-a95b-4181-b8e6-d5d31cb97449",  # "Matt's paper",
-    "dcd8b2e5-3a32-41b4-ac15-085a208a4466",  # "May 2021 pre-release"
+    "cfc4906a-316e-4150-8222-fe7e7f13bdac",  # "Behaviour Paper", "2021_Q1_IBL_et_al"
+    "9dec1de8-389d-40f6-b00b-763e4fda6552",  # "Erdem's paper", "2021_Q2_Varol_et_al"
+    "c8f0892a-a95b-4181-b8e6-d5d31cb97449",  # "Matt's paper", "2021_Q3_Whiteway_et_al"
+    "dcd8b2e5-3a32-41b4-ac15-085a208a4466",  # "May 2021 pre-release", "2021_Q2_PreRelease"
     ]
 
 # Get public aws information from local file to avoid storing this on github,

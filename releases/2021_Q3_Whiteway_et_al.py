@@ -24,5 +24,5 @@ for dset in dsets:
 # Save dataset IDs for release in public database
 dset_ids = [str(eid) for eid in dsets.values_list('pk', flat=True)]
 df = pd.DataFrame(dset_ids, columns=['dataset_id'])
-df.to_parquet('./2021_Q2_MattPaper_datasets.pqt')
+df.to_parquet('./2021_Q3_Whiteway_et_al_datasets.pqt')
 

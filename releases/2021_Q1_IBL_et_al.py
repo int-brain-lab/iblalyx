@@ -6,7 +6,7 @@ from actions.models import Session
 # Releases as part of paper The International Brain Laboratory et al, 2021, DOI: 10.7554/eLife.63711
 
 # Original query based on list of session ids
-eids = list(pd.read_csv('2021_Q1_BehaviourPaper_sessions.csv', index_col=0)['session_id'])
+eids = list(pd.read_csv('2021_Q1_IBL_et_al_sessions.csv', index_col=0)['session_id'])
 
 # First get the trials.table datasets for all session that they are available for
 tables_ds = Dataset.objects.filter(session__in=eids, dataset_type__name='trials.table')
@@ -41,4 +41,4 @@ for dset in dsets:
 # Saving dataset IDs for release in the public database
 dset_ids = [str(eid) for eid in dsets.values_list('pk', flat=True)]
 df = pd.DataFrame(dset_ids, columns=['dataset_id'])
-df.to_parquet('./2021_Q1_BehaviourPaper_datasets.pqt')
+df.to_parquet('./2021_Q1_IBL_et_al_datasets.pqt')
