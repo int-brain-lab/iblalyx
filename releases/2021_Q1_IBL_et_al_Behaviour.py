@@ -34,7 +34,7 @@ repnum_ds = Dataset.objects.filter(session__in=eids, dataset_type__name='trials.
 dsets = tables_ds | indv_ds | repnum_ds
 
 # Tagging in production database
-tag, _ = Tag.objects.get_or_create(name="Behaviour Paper", protected=True, public=True)
+tag, _ = Tag.objects.get_or_create(name="2021_Q1_IBL_et_al_Behaviour", protected=True, public=True)
 for dset in dsets:
     dset.tags.add(tag)
 

@@ -17,7 +17,7 @@ dsets = (Dataset.objects.filter(session=eid_1, dataset_type__name=dtype_1) |
          Dataset.objects.filter(session=eid_2, name__in=dnames_2))
 
 # Tagging in production database
-tag, _ = Tag.objects.get_or_create(name="Matt's paper", protected=True, public=True)
+tag, _ = Tag.objects.get_or_create(name="2021_Q3_Whiteway_et_al", protected=True, public=True)
 for dset in dsets:
     dset.tags.add(tag)
 

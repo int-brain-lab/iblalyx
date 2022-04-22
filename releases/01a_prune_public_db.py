@@ -37,11 +37,6 @@ from jobs.models import Task
 """
 Settings and Inputs
 """
-# This is an artefact of the PreReleaseAnnualMeeting, which did not specify which dataset types to release
-# We remove the raw ones (most) for now, in the future any release should specify exactly which datasets to release
-dtypes_exclude = DatasetType.objects.filter(name__icontains='raw').exclude(name__in=['_iblrig_Camera.raw',
-                                                                                     '_iblrig_RFMapStim.raw'])
-
 public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2021_Q2_Varol_et_al_datasets.pqt',
                    '2021_Q3_Whiteway_et_al_datasets.pqt',
@@ -61,7 +56,6 @@ with open(aws_info_file) as f:
     aws_info = json.load(f)
 
 print(f"Dataset IDs from files: {public_ds_files}")
-print(f"Dataset types to exclude: {list(dtypes_exclude.values_list('name', flat=True))}")
 print(f"Tags to keep: {public_ds_tags}\n")
 
 # Load all datasets ids into one list
@@ -77,7 +71,6 @@ Pruning and anonymizing database
 print(f"\nStarting to prune public database")
 print("...pruning datasets")
 # Delete all datasets that are not in that list, along with their file records, also datasets with to be excluded types
-Dataset.objects.using('public').filter(dataset_type__in=dtypes_exclude).delete()
 Dataset.objects.using('public').exclude(pk__in=public_ds_ids).delete()
 datasets = Dataset.objects.using('public').all()
 
@@ -157,7 +150,8 @@ for lm in lab_members:
 # Create public user
 public_user = LabMember.objects.using('public').create(username='intbrainlab',
                                                        is_active=True,
-                                                       is_staff=True)
+                                                       is_staff=True,
+                                                       is_public_user=True)
 public_user.set_password('international')
 public_user.groups.add(Group.objects.using('public').filter(name='Lab members')[0])
 public_user.save()

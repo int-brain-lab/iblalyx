@@ -18,8 +18,8 @@ set -e
 OPENALYX_RDS=openlayx.clfrcwlvymbw.eu-west-2.rds.amazonaws.com  # The address of the openalyx database
 TMP_DIR="$HOME"/openalyx_wd  # This will be recreated and later destroyed, make sure you have write access
 ALYX_DIR=/var/www/alyx-main/alyx # The alyx installation you are using with public db set up
-SSH_STR=(alyx)  # ssh/scp alias to connect to alyx production. If you don't have an alias set up you can pass your
-                # the ssh/scp options as an array such as (-i ~/.ssh/my_key.pem ubuntu@alyx.internationalbrainlab.org)
+SSH_STR=(mbox)  # ssh/scp alias to connect to the mbox EC2. If you don't have an alias set up you can pass your
+                # the ssh/scp options as an array such as (-i ~/.ssh/my_key.pem ubuntu@mbox.internationalbrainlab.org)
 
 echo "$(date '+%Y-%m-%d') Beginning to create public database"
 # Create a working directory
