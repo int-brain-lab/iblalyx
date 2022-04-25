@@ -55,23 +55,26 @@ aws_info_file = Path.home().joinpath('aws_public_info.json')
 with open(aws_info_file) as f:
     aws_info = json.load(f)
 
+# Check that files exist
+for f in public_ds_files:
+    assert Path.cwd().joinpath(f).exists()
+
 print(f"Dataset IDs from files: {public_ds_files}")
 print(f"Tags to keep: {public_ds_tags}\n")
 
-# Load all datasets ids into one list
-# TECHNICAL DEBT: This is probably not great for the future when we start to have many more datasets public
-public_ds_ids = []
-for f in public_ds_files:
-    public_ds_ids.extend(list(pd.read_parquet(f)['dataset_id']))
-public_ds_ids = list(set(public_ds_ids))
 
 """
 Pruning and anonymizing database
 """
+
 print(f"\nStarting to prune public database")
+# Delete all datasets that are not in that list, along with their file records
+# TECHNICAL DEBT: This is probably not great for the future when we start to have many more datasets public
 print("...pruning datasets")
-# Delete all datasets that are not in that list, along with their file records, also datasets with to be excluded types
-Dataset.objects.using('public').exclude(pk__in=public_ds_ids).delete()
+datasets_to_del = Dataset.objects.using('public').all()
+for f in public_ds_files:
+    datasets_to_del = datasets_to_del.exclude(pk__in=list(pd.read_parquet(f)['dataset_id']))
+datasets_to_del.delete()
 datasets = Dataset.objects.using('public').all()
 
 # Delete tags that aren't in the list above (released datasets might have additional, not-yet-released tags)
