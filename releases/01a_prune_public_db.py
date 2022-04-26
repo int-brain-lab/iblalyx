@@ -132,10 +132,12 @@ lab_members = LabMember.objects.using('public').filter(
 )
 LabMember.objects.using('public').exclude(pk__in=lab_members).delete()
 
-# Anonymize remaining lab members
+# Anonymize remaining lab members and build dict for replace names elsewhere
+anon_dict = {}
 for lm in lab_members:
     if lm.username == 'root':
         continue
+    anon_dict[lm.username] = str(lm.id)[:8]
     lm.is_staff = False
     lm.is_superuser = False
     lm.email = ""
@@ -164,6 +166,14 @@ print("...pruning probe insertions")
 probeinsertions = ProbeInsertion.objects.using('public').filter(
     datasets__pk__in=datasets.values_list('pk', flat=True)).distinct()
 ProbeInsertion.objects.using('public').exclude(pk__in=probeinsertions.values_list('pk', flat=True)).delete()
+# Remove identifying information from probe insertion json
+probeinsertions = ProbeInsertion.objects.using('public').all()
+for p in probeinsertions:
+    pdict = p.json
+    datestr = pdict['extended_qc']['alignment_stored'][:20]
+    exp_str = pdict['extended_qc']['alignment_stored'][20:]
+    pdict['extended_qc']['alignment_stored'] = datestr + anon_dict[exp_str]
+    ProbeInsertion.objects.using('public').filter(pk=p.id).update(json=pdict)
 
 # Keep only ephys aligned histology track that have probe insertion in public db now
 trajectories = TrajectoryEstimate.objects.using('public').filter(
