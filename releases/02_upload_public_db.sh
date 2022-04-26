@@ -16,15 +16,15 @@ OPENALYX_RDS=openlayx.clfrcwlvymbw.eu-west-2.rds.amazonaws.com  # The address of
 TMP_DIR="$HOME"/openalyx_wd  # This will be recreated and later destroyed, make sure you have write access
 
 # Reset the public database on the RDS instance
-echo "$(date '+%Y-%m-%d') Beginning to replace public database on Openalyx"
+echo "$(date '+%Y-%m-%d %H:%M:%S') Beginning to upload database to openalyx RDS"
 echo "... destroying the openalyx database"
 psql -U postgres -h $OPENALYX_RDS -d public -c "drop schema public cascade"
 psql -U postgres -h $OPENALYX_RDS -d public -c "create schema public"
 
 # Load the production alyx sql dump to public db
 echo "... loading pruned database to openalyx"
-psql -U postgres -h $OPENALYX_RDS -d public -f "$TMP_DIR"/openalyx.sql
+psql -q -U postgres -h $OPENALYX_RDS -d public -f "$TMP_DIR"/openalyx.sql
 
 # Remove tmp directory
 rm -rf "$TMP_DIR"
-echo "Finished creating local version of public database"
+echo "$(date '+%Y-%m-%d %H:%M:%S') Finished uploading database to openalyx RDS"

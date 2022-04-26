@@ -18,14 +18,14 @@ ALYX_DIR=/var/www/alyx-main/alyx # The alyx installation you are using with publ
 SSH_STR=(mbox)  # ssh/scp alias to connect to the mbox EC2. If you don't have an alias set up you can pass your
                 # the ssh/scp options as an array such as (-i ~/.ssh/my_key.pem ubuntu@mbox.internationalbrainlab.org)
 
-echo "$(date '+%Y-%m-%d') Beginning to create local version of public database"
+echo "$(date '+%Y-%m-%d %H:%M:%S') Beginning to create local version of public database"
 # Create a working directory
 echo "... creating working directory $TMP_DIR"
 mkdir -p "$TMP_DIR"
 # Copying and unzipping the most recent alyx backup into it, SSH_STR needs to be setup correctly above
 echo "... copying latest backup of production database"
 scp "${SSH_STR[@]}":/backups/alyx-backups/$(date +%Y-%m-%d)/alyx_full.sql.gz "$TMP_DIR"/alyxfull.sql.gz
-gunzip -c "$TMP_DIR"/alyxfull.sql.gz > "$TMP_DIR"/alyxfull.sql
+gunzip -f -c "$TMP_DIR"/alyxfull.sql.gz > "$TMP_DIR"/alyxfull.sql
 
 # Source alyx env
 source $ALYX_DIR/alyxvenv/bin/activate
@@ -33,16 +33,15 @@ source $ALYX_DIR/alyxvenv/bin/activate
 echo "... destroying local public database"
 python $ALYX_DIR/alyx/manage.py reset_db -D public --noinput
 echo "... rebuilding local public database from production"
-psql -U labdbuser -h localhost -d public -f "$TMP_DIR"/alyxfull.sql
+psql -q -U labdbuser -h localhost -d public -f "$TMP_DIR"/alyxfull.sql
 # Prune local public database
 echo "... pruning local public database"
 python $ALYX_DIR/alyx/manage.py shell < 01a_prune_public_db.py
 # Export the public db to sql
 echo "... creating sql dump of local public database"
 /usr/bin/pg_dump -cOx -U labdbuser -h localhost -d public -f "$TMP_DIR"/openalyx.sql
-gzip -k "$TMP_DIR"/openalyx.sql
+gzip -f -k "$TMP_DIR"/openalyx.sql
 ## Copy sql as backup to mbox
 echo "... copying sql dump to mbox as backup"
 scp "$TMP_DIR"/openalyx.sql.gz "${SSH_STR[@]}":/backups/openalyx-backups/$(date +%Y-%m-%d)_openalyx.sql.gz
-
-echo "Finished creating local version of public database"
+echo "$(date '+%Y-%m-%d %H:%M:%S') Finished creating local version of public database"
