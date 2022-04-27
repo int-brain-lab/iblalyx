@@ -172,12 +172,14 @@ ProbeInsertion.objects.using('public').exclude(pk__in=probeinsertions.values_lis
 probeinsertions = ProbeInsertion.objects.using('public').all()
 for p in probeinsertions:
     pdict = p.json
-    if pdict and 'alignment_stored' not in pdict.keys():
-        continue
-    datestr = pdict['extended_qc']['alignment_stored'][:20]
-    exp_str = pdict['extended_qc']['alignment_stored'][20:]
-    pdict['extended_qc']['alignment_stored'] = datestr + anon_dict[exp_str]
-    ProbeInsertion.objects.using('public').filter(pk=p.id).update(json=pdict)
+    if pdict and 'extended_qc' in pdict.keys() and 'alignment_stored' in pdict['extended_qc'].keys():
+        datestr = pdict['extended_qc']['alignment_stored'][:20]
+        exp_str = pdict['extended_qc']['alignment_stored'][20:]
+        if exp_str in anon_dict.keys():
+            pdict['extended_qc']['alignment_stored'] = datestr + anon_dict[exp_str]
+        else:
+            pdict['extended_qc']['alignment_stored'] = datestr + 'xxx'
+        ProbeInsertion.objects.using('public').filter(pk=p.id).update(json=pdict)
 
 # Keep only ephys aligned histology track that have probe insertion in public db now
 trajectories = TrajectoryEstimate.objects.using('public').filter(
