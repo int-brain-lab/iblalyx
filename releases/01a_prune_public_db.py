@@ -86,7 +86,6 @@ DataRepository.objects.using('public').exclude(globus_is_personal=False).delete(
 for dr in DataRepository.objects.using('public').all():
     if 'flatiron' in dr.hostname:
         dr.data_url = dr.data_url.replace('.org/', '.org/public/')
-        dr.globus_path = '/public' + dr.globus_path
         dr.json = {}
         dr.save()
     elif 'aws' in dr.hostname:
