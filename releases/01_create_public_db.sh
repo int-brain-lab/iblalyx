@@ -14,10 +14,17 @@ set -e
 
 # Variables
 TMP_DIR="$HOME"/openalyx_wd  # This will be recreated and later destroyed, make sure you have write access
+#whoami ? Julia
 ALYX_DIR=/var/www/alyx-main/alyx # The alyx installation you are using with public db set up
-SSH_STR=(mbox)  # ssh/scp alias to connect to the mbox EC2. If you don't have an alias set up you can pass your
-                # the ssh/scp options as an array such as (-i ~/.ssh/my_key.pem ubuntu@mbox.internationalbrainlab.org)
+SSH_STR=(mbox)  # julia uses sshconfig file
+ALYX_VENV=$ALYX_DIR/alyxvenv  # path of the alyx env
+# whoami ? Olivier
+ALYX_DIR=/var/www/alyx_local # The alyx installation you are using with public db set up
+SSH_STR=(-i ~/.ssh/alyx.internationalbrainlab.org.pem ubuntu@18.171.16.87)  # ssh/scp alias to connect to the mbox EC2. If you don't have an alias set up you can pass your
+ALYX_VENV=$ALYX_DIR/alyxvenv # The alyx installation you are using with public db set up
 
+# Source alyx env
+source $ALYX_VENV/bin/activate
 echo "$(date '+%Y-%m-%d %H:%M:%S') Beginning to create local version of public database"
 # Create a working directory
 echo "... creating working directory $TMP_DIR"
@@ -27,13 +34,15 @@ echo "... copying latest backup of production database"
 scp "${SSH_STR[@]}":/backups/alyx-backups/$(date +%Y-%m-%d)/alyx_full.sql.gz "$TMP_DIR"/alyxfull.sql.gz
 gunzip -f -c "$TMP_DIR"/alyxfull.sql.gz > "$TMP_DIR"/alyxfull.sql
 
-# Source alyx env
-source $ALYX_DIR/alyxvenv/bin/activate
 # Destroy local public database and load production database into it
 echo "... destroying local public database"
-python $ALYX_DIR/alyx/manage.py reset_db -D public --noinput
+psql -q -U labdbuser -h localhost -d public -c "drop schema public cascade"
+psql -q -U labdbuser -h localhost -d public -c "create schema public"
 echo "... rebuilding local public database from production"
 psql -q -U labdbuser -h localhost -d public -f "$TMP_DIR"/alyxfull.sql
+python $ALYX_DIR/alyx/manage.py makemigrations
+python $ALYX_DIR/alyx/manage.py migrate
+
 # Prune local public database
 echo "... pruning local public database"
 python $ALYX_DIR/alyx/manage.py shell < 01a_prune_public_db.py

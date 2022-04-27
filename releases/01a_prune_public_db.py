@@ -36,17 +36,20 @@ from jobs.models import Task
 
 """
 Settings and Inputs
+the parquet files names match exactly the tag name in the database
 """
 public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2021_Q2_Varol_et_al_datasets.pqt',
                    '2021_Q3_Whiteway_et_al_datasets.pqt',
-                   '2021_Q2_PreRelease_datasets.pqt'
+                   '2021_Q2_PreRelease_datasets.pqt',
+                   '2022_Q2_IBL_et_al_RepeatedSite_datasets.pqt',
                    ]
 public_ds_tags = [
     "cfc4906a-316e-4150-8222-fe7e7f13bdac",  # "Behaviour Paper", "2021_Q1_IBL_et_al_Behaviour"
     "9dec1de8-389d-40f6-b00b-763e4fda6552",  # "Erdem's paper", "2021_Q2_Varol_et_al"
     "c8f0892a-a95b-4181-b8e6-d5d31cb97449",  # "Matt's paper", "2021_Q3_Whiteway_et_al"
     "dcd8b2e5-3a32-41b4-ac15-085a208a4466",  # "May 2021 pre-release", "2021_Q2_PreRelease"
+    "05fbaa4e-681d-41c5-ae53-072cb96f4c0a",  # 2022_Q2_IBL_et_al_RepeatedSite_datasets
     ]
 
 # Get public aws information from local file to avoid storing this on github,
@@ -169,6 +172,8 @@ ProbeInsertion.objects.using('public').exclude(pk__in=probeinsertions.values_lis
 probeinsertions = ProbeInsertion.objects.using('public').all()
 for p in probeinsertions:
     pdict = p.json
+    if pdict and 'alignment_stored' not in pdict.keys():
+        continue
     datestr = pdict['extended_qc']['alignment_stored'][:20]
     exp_str = pdict['extended_qc']['alignment_stored'][20:]
     pdict['extended_qc']['alignment_stored'] = datestr + anon_dict[exp_str]
