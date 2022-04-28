@@ -13,14 +13,14 @@ set -e
 # * Adjust the variables below according to your setup (any changes here should also be made in 02_upload_public_db.sh)
 
 # Variables
+MBOX_USER_HOST=ubuntu@18.171.16.87
 TMP_DIR="$HOME"/openalyx_wd  # This will be recreated and later destroyed, make sure you have write access
-#whoami ? Julia
+SSH_STR=(mbox)  # have to use ssh config file for all the commands below to work
+# whoami ? Julia
 ALYX_DIR=/var/www/alyx-main/alyx # The alyx installation you are using with public db set up
-SSH_STR=(mbox)  # julia uses sshconfig file
 ALYX_VENV=$ALYX_DIR/alyxvenv  # path of the alyx env
 # whoami ? Olivier
 ALYX_DIR=/var/www/alyx_local # The alyx installation you are using with public db set up
-SSH_STR=(-i ~/.ssh/alyx.internationalbrainlab.org.pem ubuntu@18.171.16.87)  # ssh/scp alias to connect to the mbox EC2. If you don't have an alias set up you can pass your
 ALYX_VENV=$ALYX_DIR/alyxvenv # The alyx installation you are using with public db set up
 
 # Source alyx env
@@ -41,7 +41,7 @@ psql -q -U labdbuser -h localhost -d public -c "create schema public"
 echo "... rebuilding local public database from production"
 psql -q -U labdbuser -h localhost -d public -f "$TMP_DIR"/alyxfull.sql
 python $ALYX_DIR/alyx/manage.py makemigrations
-python $ALYX_DIR/alyx/manage.py migrate
+python $ALYX_DIR/alyx/manage.py migrate --database public
 
 # Prune local public database
 echo "... pruning local public database"

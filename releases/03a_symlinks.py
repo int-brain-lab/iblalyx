@@ -8,8 +8,9 @@ from data.transfers import _add_uuid_to_filename
 from data.models import DataRepository, Dataset
 
 datasets = Dataset.objects.using('public').all()
-
-print("Starting to create symlinks")
+ndsets = datasets.count()
+print(f"Starting to create {ndsets} symlinks")
+c = 0
 for dset in datasets:
     fr = dset.file_records.filter(data_repository__name__startswith='flatiron').first()
     if fr is None:
@@ -27,5 +28,8 @@ for dset in datasets:
                 dest.symlink_to(source)
         else:
             print(f'...source does not exist: {source}')
+    c += 1
+    if c % 20000 == 0:
+        print(f"creating symlinks {c}/{ndsets}")
 
 print("Finished creating symlinks\n")
