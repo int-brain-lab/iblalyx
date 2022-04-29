@@ -19,6 +19,7 @@ format_time() {
   printf "%02d:%02d:%02d\n" $h $m $s
  }
 
+echo "/mnt/ibl$LAB -> s3://ibl-brain-wide-map-private/data$LAB"
 aws s3 sync "/mnt/ibl$LAB" "s3://ibl-brain-wide-map-private/data$LAB" --exclude ".*" --profile ibladmin --delete
 
 echo "Sync completed in $(format_time $SECONDS)"
