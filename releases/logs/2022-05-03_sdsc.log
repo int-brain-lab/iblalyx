@@ -1,0 +1,9 @@
+2022-05-03 14:12:34 Beginning copy data
+Starting to create 22533 symlinks
+...source does not exist: /mnt/ibl/mainenlab/Subjects/ZFM-02372/2021-06-01/002/alf/probe00/pykilosort/drift_depths.um.cc6d9fe4-df88-4f3b-9feb-20a15bce9472.npy
+...source does not exist: /mnt/ibl/mainenlab/Subjects/ZFM-02372/2021-06-01/002/alf/probe00/pykilosort/drift.times.14ae32d5-c1d6-44a2-9e53-86aa8a0dd1f7.npy
+creating symlinks 20000/22533
+Finished creating symlinks
+
+Syncing to public S3 bucket
+2022-05-03 22:37:59 Finished copying data
