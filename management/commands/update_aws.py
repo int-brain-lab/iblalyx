@@ -44,6 +44,9 @@ class Command(BaseCommand):
         parser.add_argument('-d', '--dataset', action='extend', nargs='+', type=uuid.UUID,
                             help='Dataset uuid to sync')
         parser.add_argument('-h', '--hostname', type=str, default='ibl.flatironinstitute.org')
+        parser.add_argument('--dryrun', action='store_true',
+                            help='Displays the operations that would be performed using the '
+                            'specified command without actually running them.')
 
     def handle(self, *_, **options):
         # TODO Check logging works from outside main Alyx package
@@ -55,8 +58,9 @@ class Command(BaseCommand):
         required = ('hours', 'from_date', 'session', 'dataset')
         assert any(map(options.get, required)), \
             'At least one of the following options must be passed: "{}"'.format('", "'.join(required))
+        dry = options.pop('dryrun')
         query_paginated = self.build_query(**options)
-        self.sync(query_paginated)
+        self.sync(query_paginated, dry=dry)
 
     @staticmethod
     def build_query(**options) -> Paginator:
@@ -89,7 +93,7 @@ class Command(BaseCommand):
         return Paginator(qs, batch_size)
 
     @staticmethod
-    def sync(paginated_query):
+    def sync(paginated_query, dry=False):
 
         # S3 credential information
         r = DataRepository.objects.filter(name__startswith='aws').first()
@@ -125,6 +129,8 @@ class Command(BaseCommand):
                 src_dir = ROOT + session_path.as_posix()
                 dst_dir = bucket_name.strip('/') + '/' + get_alf_path(src_dir)
                 cmd = ['aws', 's3', 'sync', src_dir, dst_dir, '--delete', '--profile', 'ibladmin']
+                if dry:
+                    cmd.append('--dryrun')
                 logger.debug(' '.join(cmd))
                 t0 = time.time()
                 process = Popen(cmd, stdout=PIPE, stderr=STDOUT)
@@ -144,12 +150,21 @@ class Command(BaseCommand):
                         'data_repository': DataRepository.objects.get(name=repo),
                         'relative_path': row['file_path'].replace(f'{lab}/Subjects', '').strip('/')
                     }
-                    fr, is_new = FileRecord.objects.get_or_create(**record)
+                    if dry:
+                        try:
+                            fr = FileRecord.objects.get(**record)
+                            is_new = False
+                        except FileRecord.DoesNotExist:
+                            is_new = True
+                            fr = record
+                    else:
+                        fr, is_new = FileRecord.objects.get_or_create(**record)
                     exists = Path(ROOT + row['file_path']).exists()
                     if is_new:
-                        logger.debug(f'ADDED: {fr.relative_path}')
+                        logger.debug(f'ADDED: {record["relative_path"]}')
                     elif fr.exists != exists:
-                        logger.debug(f'MODIFIED: {fr.relative_path}; EXISTS = {exists}')
+                        logger.debug(f'MODIFIED: {record["relative_path"]}; EXISTS = {exists}')
                         fr.exists = exists
-                    fr.full_clean()
-                    fr.save()
+                    if not dry:
+                        fr.full_clean()
+                        fr.save()
