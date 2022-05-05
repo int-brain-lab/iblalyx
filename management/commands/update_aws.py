@@ -57,10 +57,12 @@ class Command(BaseCommand):
             logger.setLevel(logging.DEBUG)
         required = ('hours', 'from_date', 'session', 'dataset')
         assert any(map(options.get, required)), \
-            'At least one of the following options must be passed: "{}"'.format('", "'.join(required))
+            'At least one of the following options must be passed: "%s"' % '", "'.join(required)
         dry = options.pop('dryrun')
+        t0 = time.time()
         query_paginated = self.build_query(**options)
         self.sync(query_paginated, dry=dry)
+        logger.debug(f'Entire sync and update took {(time.time() - t0) / 60:.2f}min')
 
     @staticmethod
     def build_query(**options) -> Paginator:
@@ -94,6 +96,7 @@ class Command(BaseCommand):
         if limit:
             qs = qs[:limit]
         logger.debug(qs.query)
+        # logger.debug(f'{qs.count():,} file records to update')
         return Paginator(qs, batch_size)
 
     @staticmethod
@@ -108,7 +111,7 @@ class Command(BaseCommand):
 
         # Ugly hack because globus_path doesn't actually contain the correct absolute path
         ROOT = '/mnt/ibl'  # This should be in the globus_path but isn't
-
+        counts = {'total': 0, 'added': 0, 'modified': 0, 'sessions': 0}
         for i in paginated_query.page_range:
             data = paginated_query.get_page(i)
             current_qs = data.object_list
@@ -121,16 +124,21 @@ class Command(BaseCommand):
                 'dataset__id': 'id',
                 'dataset__auto_datetime': 'modified'}
             df = df.rename(fields_map, axis=1).set_index('eid')
-
+            counts['total'] += len(df)
             # Sync is done and the session level
             for eid, rec in df.groupby('eid', axis=0):
                 logger.info(f'Updating session {eid}')
+                counts['sessions'] += 1
                 session_path = next(map(get_session_path, rec['file_path'].values))
                 src_dir = ROOT + session_path.as_posix()
                 dst_dir = bucket_name.strip('/') + '/' + get_alf_path(src_dir)
                 cmd = ['aws', 's3', 'sync', src_dir, dst_dir, '--delete', '--profile', 'ibladmin']
                 if dry:
                     cmd.append('--dryrun')
+                if logger.level > logging.DEBUG:
+                    cmd.append('--only-show-errors')  # Suppress verbose output
+                else:
+                    cmd.append('--no-progress')  # Suppress progress info, estimated time, etc.
                 logger.debug(' '.join(cmd))
                 t0 = time.time()
                 process = Popen(cmd, stdout=PIPE, stderr=STDOUT)
@@ -153,15 +161,21 @@ class Command(BaseCommand):
                         try:
                             fr = FileRecord.objects.get(**record)
                             if fr.exists != exists:
+                                counts['modified'] += 1
                                 logger.info(f'(dryrun) MODIFIED: {fr.relative_path}; EXISTS = {exists}')
                         except FileRecord.DoesNotExist:
-                            logger.info(f'(dryrun) ADDED: {record["relative_path"]}')
+                            counts['added'] += 1
+                            logger.info('(dryrun) ADDED: ' + record['relative_path'])
                     else:
                         fr, is_new = FileRecord.objects.get_or_create(**record)
                         if is_new:
+                            counts['added'] += 1
                             logger.info(f'ADDED: {fr.relative_path}')
                         elif fr.exists != exists:
+                            counts['modified'] += 1
                             logger.info(f'MODIFIED: {fr.relative_path}; EXISTS = {exists}')
                             fr.exists = exists
                         fr.full_clean()
                         fr.save()
+        logger.info('{total:,} files over {sessions:,} sessions sync\'d; '
+                    '{added:,} records added, {modified:,} modified'.format(**counts))
