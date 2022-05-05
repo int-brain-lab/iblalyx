@@ -16,12 +16,12 @@ from django.core.management import BaseCommand
 
 from data.models import DataRepository, Dataset, FileRecord
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('data.transfers').getChild('aws')
 
 
 def log_subprocess_output(pipe):
-    for line in iter(pipe.readline, b''):  # b'\n'-separated lines
-        logging.info('%r', line)
+    for line in iter(pipe.readline, b''):
+        logger.info(line.decode().strip())
 
 
 class Command(BaseCommand):
@@ -35,7 +35,7 @@ class Command(BaseCommand):
                             help='Max number of datasets per batch')
         parser.add_argument('--limit', default=500_000, type=int,
                             help='Max number of datasets to process')
-        parser.add_argument('-hr', '--hours', nargs=1, type=int,
+        parser.add_argument('-hr', '--hours', type=int,
                             help='Sync datasets modified within this many hours')
         parser.add_argument('--from-date', nargs=1, type=datetime.datetime.fromisoformat,
                             help='Sync datasets added/modified after this date')
@@ -43,7 +43,7 @@ class Command(BaseCommand):
                             help='A session uuid to sync')
         parser.add_argument('-d', '--dataset', action='extend', nargs='+', type=uuid.UUID,
                             help='Dataset uuid to sync')
-        parser.add_argument('-h', '--hostname', type=str, default='ibl.flatironinstitute.org')
+        parser.add_argument('-H', '--hostname', type=str, default='ibl.flatironinstitute.org')
         parser.add_argument('--dryrun', action='store_true',
                             help='Displays the operations that would be performed using the '
                             'specified command without actually running them.')
@@ -75,18 +75,22 @@ class Command(BaseCommand):
             if k == 'session':
                 q = Q(dataset__session=v[0]) if len(v) == 1 else Q(dataset__session__in=v)
                 query.add(q, Q.OR)
-            if k == 'dataset':
+            elif k == 'dataset':
                 q = Q(dataset__pk=v[0]) if len(v) == 1 else Q(dataset__pk__in=v)
                 query.add(q, Q.OR)
-            if k == 'hours':
+            elif k == 'hours':
                 nuo = datetime.datetime.now() - datetime.timedelta(hours=v)
                 query.add(Q(dataset__auto_datetime__gt=nuo), Q.OR)
-            if k == 'from_date':
+            elif k == 'from_date':
                 query.add(Q(dataset__auto_datetime__gt=v), Q.OR)
             else:
                 raise ValueError(f'Unknown kwarg "{k}"')
+        # fields to keep from Dataset table
+        fields = (
+            'dataset__id', 'dataset__session', 'dataset__auto_datetime',
+            'relative_path', 'data_repository__globus_path')
         qs = FileRecord.objects.filter(query, exists=True, data_repository__hostname=hostname)
-        qs = qs.order_by('dataset__auto_datetime').select_related()
+        qs = qs.order_by('dataset__auto_datetime').values(*fields).select_related()
         if limit:
             qs = qs[:limit]
         logger.debug(qs.query)
@@ -105,16 +109,12 @@ class Command(BaseCommand):
         # Ugly hack because globus_path doesn't actually contain the correct absolute path
         ROOT = '/mnt/ibl'  # This should be in the globus_path but isn't
 
-        # fields to keep from Dataset table
-        fields = (
-            'dataset__id', 'dataset__session', 'dataset__auto_datetime',
-            'relative_path', 'data_repository__globus_path'
-        )
-
         for i in paginated_query.page_range:
             data = paginated_query.get_page(i)
             current_qs = data.object_list
-            df = pd.DataFrame.from_records(current_qs.values(*fields))
+            df = pd.DataFrame.from_records(current_qs)
+            if df.empty:
+                continue
             df['file_path'] = df.pop('data_repository__globus_path').str.cat(df.pop('relative_path'))
             fields_map = {
                 'dataset__session': 'eid',
@@ -144,9 +144,9 @@ class Command(BaseCommand):
 
                 lab, *_ = folder_parts(session_path)
                 repo = f'aws_{lab}'
-                for did, row in rec.iterrows():
+                for _, row in rec.iterrows():
                     record = {
-                        'dataset': Dataset.objects.get(id=did),
+                        'dataset': Dataset.objects.get(id=row['id']),
                         'data_repository': DataRepository.objects.get(name=repo),
                         'relative_path': row['file_path'].replace(f'{lab}/Subjects', '').strip('/')
                     }
@@ -161,9 +161,9 @@ class Command(BaseCommand):
                         fr, is_new = FileRecord.objects.get_or_create(**record)
                     exists = Path(ROOT + row['file_path']).exists()
                     if is_new:
-                        logger.debug(f'ADDED: {record["relative_path"]}')
+                        logger.info(f'ADDED: {record["relative_path"]}')
                     elif fr.exists != exists:
-                        logger.debug(f'MODIFIED: {record["relative_path"]}; EXISTS = {exists}')
+                        logger.info(f'MODIFIED: {record["relative_path"]}; EXISTS = {exists}')
                         fr.exists = exists
                     if not dry:
                         fr.full_clean()
