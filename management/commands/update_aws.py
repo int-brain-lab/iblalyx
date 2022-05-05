@@ -2,13 +2,13 @@
 Currently expected to run on SDSC with access to /mnt/ibl Flatiron directory.
 """
 import time
-from pathlib import Path
 import datetime
+from dateutil.relativedelta import relativedelta as rd
 from subprocess import Popen, PIPE, STDOUT
 import logging
 import uuid
 
-from one.alf.files import folder_parts, get_session_path, get_alf_path
+from one.alf.files import folder_parts, get_session_path, get_alf_path, add_uuid_string
 import pandas as pd
 from django.db.models import Q
 from django.core.paginator import Paginator
@@ -19,9 +19,16 @@ from data.models import DataRepository, Dataset, FileRecord
 logger = logging.getLogger('data.transfers').getChild('aws')
 
 
-def log_subprocess_output(pipe):
+def log_subprocess_output(pipe, log_function=logger.info):
     for line in iter(pipe.readline, b''):
-        logger.info(line.decode().strip())
+        log_function(line.decode().strip())
+
+
+def format_seconds(seconds):
+    """Represent seconds in either minutes, seconds or hours depending on order of magnitude"""
+    intervals = ('days', 'hours', 'minutes', 'seconds')
+    x = rd(seconds=seconds)
+    return ' '.join('{:.0f} {}'.format(getattr(x, k), k) for k in intervals if getattr(x, k))
 
 
 class Command(BaseCommand):
@@ -62,7 +69,7 @@ class Command(BaseCommand):
         t0 = time.time()
         query_paginated = self.build_query(**options)
         self.sync(query_paginated, dry=dry)
-        logger.debug(f'Entire sync and update took {(time.time() - t0) / 60:.2f}min')
+        logger.debug('Entire sync and update took ' + format_seconds(time.time() - t0))
 
     @staticmethod
     def build_query(**options) -> Paginator:
@@ -136,16 +143,18 @@ class Command(BaseCommand):
                 if dry:
                     cmd.append('--dryrun')
                 if logger.level > logging.DEBUG:
+                    log_fcn = logger.error
                     cmd.append('--only-show-errors')  # Suppress verbose output
                 else:
+                    log_fcn = logger.debug
                     cmd.append('--no-progress')  # Suppress progress info, estimated time, etc.
                 logger.debug(' '.join(cmd))
                 t0 = time.time()
                 process = Popen(cmd, stdout=PIPE, stderr=STDOUT)
                 with process.stdout:
-                    log_subprocess_output(process.stdout)
+                    log_subprocess_output(process.stdout, log_fcn)
                 assert process.wait() == 0
-                logger.debug(f'Sync took {(time.time() - t0) / 60:.2f}min')
+                logger.debug('Session sync took ' + format_seconds(time.time() - t0))
 
                 # Update file records
                 lab, *_ = folder_parts(session_path)
@@ -156,7 +165,8 @@ class Command(BaseCommand):
                         'data_repository': DataRepository.objects.get(name=repo),
                         'relative_path': row['file_path'].replace(f'{lab}/Subjects', '').strip('/')
                     }
-                    exists = Path(ROOT + row['file_path']).exists()
+                    # Check the real file path - WITH uuid in filename - exists
+                    exists = add_uuid_string(ROOT + row['file_path'], row['id']).exists()
                     if dry:
                         try:
                             fr = FileRecord.objects.get(**record)
