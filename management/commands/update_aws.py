@@ -37,7 +37,7 @@ class Command(BaseCommand):
                             help='Max number of datasets to process')
         parser.add_argument('-hr', '--hours', type=int,
                             help='Sync datasets modified within this many hours')
-        parser.add_argument('--from-date', nargs=1, type=datetime.datetime.fromisoformat,
+        parser.add_argument('--from-date', type=datetime.datetime.fromisoformat,
                             help='Sync datasets added/modified after this date')
         parser.add_argument('--session', action='extend', nargs='+', type=uuid.UUID,
                             help='A session uuid to sync')
@@ -85,12 +85,12 @@ class Command(BaseCommand):
                 query.add(Q(dataset__auto_datetime__gt=v), Q.OR)
             else:
                 raise ValueError(f'Unknown kwarg "{k}"')
-        # fields to keep from Dataset table
+        # relevant fields to select
         fields = (
             'dataset__id', 'dataset__session', 'dataset__auto_datetime',
             'relative_path', 'data_repository__globus_path')
         qs = FileRecord.objects.filter(query, exists=True, data_repository__hostname=hostname)
-        qs = qs.order_by('dataset__auto_datetime').values(*fields).select_related()
+        qs = qs.order_by('dataset__auto_datetime').select_related().values(*fields)
         if limit:
             qs = qs[:limit]
         logger.debug(qs.query)
@@ -137,11 +137,9 @@ class Command(BaseCommand):
                 with process.stdout:
                     log_subprocess_output(process.stdout)
                 assert process.wait() == 0
-
-                # result = subprocess.run(cmd)
-                # result.check_returncode()
                 logger.debug(f'Sync took {(time.time() - t0) / 60:.2f}min')
 
+                # Update file records
                 lab, *_ = folder_parts(session_path)
                 repo = f'aws_{lab}'
                 for _, row in rec.iterrows():
@@ -150,21 +148,20 @@ class Command(BaseCommand):
                         'data_repository': DataRepository.objects.get(name=repo),
                         'relative_path': row['file_path'].replace(f'{lab}/Subjects', '').strip('/')
                     }
+                    exists = Path(ROOT + row['file_path']).exists()
                     if dry:
                         try:
                             fr = FileRecord.objects.get(**record)
-                            is_new = False
+                            if fr.exists != exists:
+                                logger.info(f'(dryrun) MODIFIED: {fr.relative_path}; EXISTS = {exists}')
                         except FileRecord.DoesNotExist:
-                            is_new = True
-                            fr = record
+                            logger.info(f'(dryrun) ADDED: {record["relative_path"]}')
                     else:
                         fr, is_new = FileRecord.objects.get_or_create(**record)
-                    exists = Path(ROOT + row['file_path']).exists()
-                    if is_new:
-                        logger.info(f'ADDED: {record["relative_path"]}')
-                    elif fr.exists != exists:
-                        logger.info(f'MODIFIED: {record["relative_path"]}; EXISTS = {exists}')
-                        fr.exists = exists
-                    if not dry:
+                        if is_new:
+                            logger.info(f'ADDED: {fr.relative_path}')
+                        elif fr.exists != exists:
+                            logger.info(f'MODIFIED: {fr.relative_path}; EXISTS = {exists}')
+                            fr.exists = exists
                         fr.full_clean()
                         fr.save()
