@@ -99,6 +99,10 @@ class Command(BaseCommand):
             'dataset__id', 'dataset__session', 'dataset__auto_datetime',
             'relative_path', 'data_repository__globus_path')
         qs = FileRecord.objects.filter(query, exists=True, data_repository__hostname=hostname)
+        on_aws = FileRecord.objects.filter(exists=True, data_repository__name__startswith='aws').values('dataset')
+        # Exclude file records already on AWS
+        qs = qs.exclude(dataset__in=on_aws)
+        # TODO deal with file_records that are on AWS but not FlatIron
         qs = qs.order_by('dataset__auto_datetime').select_related().values(*fields)
         if limit:
             qs = qs[:limit]
@@ -124,7 +128,9 @@ class Command(BaseCommand):
             current_qs = data.object_list
             df = pd.DataFrame.from_records(current_qs)
             if df.empty:
+                logger.debug('No file records to process')
                 continue
+            logger.info(f'Processing {len(df)} records ({i + 1}/{paginated_query.num_pages})')
             df['file_path'] = df.pop('data_repository__globus_path').str.cat(df.pop('relative_path'))
             fields_map = {
                 'dataset__session': 'eid',
