@@ -10,7 +10,7 @@ import uuid
 
 from one.alf.files import folder_parts, get_session_path, get_alf_path, add_uuid_string
 import pandas as pd
-from django.db.models import Q
+from django.db.models import Q, OuterRef
 from django.core.paginator import Paginator
 from django.core.management import BaseCommand
 
@@ -99,9 +99,10 @@ class Command(BaseCommand):
             'dataset__id', 'dataset__session', 'dataset__auto_datetime',
             'relative_path', 'data_repository__globus_path')
         qs = FileRecord.objects.filter(query, exists=True, data_repository__hostname=hostname)
-        on_aws = FileRecord.objects.filter(exists=True, data_repository__name__startswith='aws').values('dataset')
         # Exclude file records already on AWS
-        qs = qs.exclude(dataset__in=on_aws)
+        on_aws = FileRecord.objects.filter(
+            dataset__in=OuterRef('dataset'), exists=True, data_repository__name__startswith='aws')
+        qs = qs.exclude(dataset__in=on_aws.values_list('dataset', flat=True).distinct())
         # TODO deal with file_records that are on AWS but not FlatIron
         qs = qs.order_by('dataset__auto_datetime').select_related().values(*fields)
         if limit:
