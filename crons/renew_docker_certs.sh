@@ -1,43 +1,57 @@
 #!/bin/bash
 # A script to renew let's encrypt certificates from within a restricted dockerized AWS EC2 instance
+# $1 determines the environment (alyx-prod, alyx-dev, openalyx)
 
 # Set Vars
 EC2_REGION="eu-west-2"
 CERTBOT_SG="sg-07b6343c0d485e097"
 
-# Retrieve instance-id from local metadata
-EC2_INSTANCE_ID=$(wget -q -O - http://169.254.169.254/latest/meta-data/instance-id)
+echo "Checking arg passed for build environment, special case for alyx-dev..."
+if [ -z "$1" ]; then
+  echo "Error: No argument supplied, script requires first argument for build env (alyx-prod, alyx-dev, openalyx, etc)"
+  exit 1
+else
+  if [ "${1}" == "alyx-dev" ]; then
+    ALYX_URL="dev.alyx.internationalbrainlab.org"
+  else
+    ALYX_URL="${1}.internationalbrainlab.org"
+  fi
+fi
 
-# Get a list of security groups attached to this instance
+echo "Retrieving instance-id from local metadata..."
+EC2_INSTANCE_ID=$(wget -q -O - http://169.254.169.254/latest/meta-data/instance-id)
+echo "EC2_INSTANCE_ID found: ${EC2_INSTANCE_ID}"
+
+echo "Retrieving list of security groups attached to this instance..."
 SG_IDS=$(aws ec2 describe-instances \
   --region=$EC2_REGION \
   --instance-id $EC2_INSTANCE_ID \
   --query "Reservations[].Instances[].SecurityGroups[].GroupId[]" \
   --output text)
+echo "SG_IDS found: ${SG_IDS}"
 
 # check if the "certbot_renewal" security group is in SG_IDS list
 in_list=0
 case $SG_IDS in *$CERTBOT_SG*) in_list=1 ;; esac
 
-# Add the "certbot_renewal" security group to the instance temporarily
-if [ $in_list -eq 1 ]; then
-  sg_ids_with_certbot="${SG_IDS} ${CERTBOT_SG}"
+if [ $in_list -eq 0 ]; then
+  echo "Adding the 'certbot_renewal' security group to the instance temporarily..."
+  sg_ids_with_certbot_sg="${SG_IDS} ${CERTBOT_SG}"
   aws ec2 modify-instance-attribute \
     --region $EC2_REGION \
     --instance-id $EC2_INSTANCE_ID \
-    --groups $sg_ids_with_certbot
+    --groups $sg_ids_with_certbot_sg
 fi
 
-# Renew certs
-# TODO: determine the hostname with nslookup or pass along hostname with an argument
-# certbot --apache --noninteractive --agree-tos --email admin@internationalbrainlab.org -d dev.alyx.internationalbrainlab.org
-# certbot --apache --noninteractive --agree-tos --email admin@internationalbrainlab.org -d openalyx.internationalbrainlab.org
-# certbot --apache --noninteractive --agree-tos --email admin@internationalbrainlab.org -d alyx.internationalbrainlab.org
+echo "Attempting to renew certs..."
+certbot --apache --noninteractive --agree-tos --email admin@internationalbrainlab.org -d $ALYX_URL
 
-# sudo certbot -q renew  || echo "Failed to renew certs"
-
-# Revert security groups for instance
-aws ec2 modify-instance-attribute \
-  --region $EC2_REGION \
-  --instance-id $EC2_INSTANCE_ID \
-  --groups $SG_IDS
+if [ $in_list -eq 0 ]; then
+  echo "Reverting security groups for instance..."
+  aws ec2 modify-instance-attribute \
+    --region $EC2_REGION \
+    --instance-id $EC2_INSTANCE_ID \
+    --groups $SG_IDS
+else
+  echo "Security Group for cerbot renewal was found assigned prior to script running and was not removed. Please manually remove the security group if it is no longer required."
+fi
