@@ -481,7 +481,7 @@ class GalleryFilter(django_filters.FilterSet):
     lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')  # here
     project = django_filters.ModelChoiceFilter(queryset=Project.objects.all(), label='Project', method='filter_project')
     repeated = django_filters.ChoiceFilter(choices=REPEATEDSITE, label='Location', method='filter_repeated')
-    session_qc = django_filters.ChoiceFilter(choices=Session.QC_CHOICES, label='Session QC', method='filter_qc')
+    session_qc = django_filters.MultipleChoiceFilter(choices=Session.QC_CHOICES, label='Session QC', method='filter_qc')
 
     class Meta:
         model = Note
