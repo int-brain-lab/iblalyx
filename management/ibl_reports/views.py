@@ -2,7 +2,7 @@ import django_filters
 from django.http import HttpResponse, JsonResponse
 from django.template import loader
 from django.views.generic.list import ListView
-from django.db.models import Count, Q, F, Max, OuterRef, Exists, UUIDField
+from django.db.models import Q, F, OuterRef, Exists, UUIDField, DateTimeField
 from django.db.models.functions import Coalesce
 from django.contrib.auth.mixins import LoginRequiredMixin
 
@@ -449,7 +449,10 @@ class GalleryPlotsOverview(LoginRequiredMixin, ListView):
         qs = qs.annotate(session=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session'),
                                           Session.objects.filter(id=OuterRef('object_id')).values('pk'), output_field=UUIDField()))
 
-        self.f = GalleryFilter(self.request.GET, queryset=qs)
+        qs = qs.annotate(session_time=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__start_time'),
+                                               Session.objects.filter(id=OuterRef('object_id')).values('start_time')))
+
+        self.f = GalleryFilter(self.request.GET, queryset=qs.order_by('-session_time'))
 
         return self.f.qs
 
