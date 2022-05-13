@@ -492,7 +492,7 @@ class GalleryFilter(django_filters.FilterSet):
         super(GalleryFilter, self).__init__(*args, **kwargs)
 
     def filter_qc(self, queryset, name, value):
-        queryset = queryset.filter(session_qc=value )
+        queryset = queryset.filter(session_qc__in=value)
         return queryset
 
     def filter_project(self, queryset, name, value):
