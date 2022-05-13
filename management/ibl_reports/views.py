@@ -452,6 +452,9 @@ class GalleryPlotsOverview(LoginRequiredMixin, ListView):
         qs = qs.annotate(session_time=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__start_time'),
                                                Session.objects.filter(id=OuterRef('object_id')).values('start_time')))
 
+        qs = qs.annotate(session_qc=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__qc'),
+                                               Session.objects.filter(id=OuterRef('object_id')).values('qc')))
+
         self.f = GalleryFilter(self.request.GET, queryset=qs.order_by('-session_time'))
 
         return self.f.qs
@@ -464,7 +467,10 @@ for ip, pl in enumerate(plot_types):
 
 
 class GalleryFilter(django_filters.FilterSet):
-
+    """
+    Class that filters over Notes queryset.
+    Annotations are provided by the list view
+    """
     REPEATEDSITE = (
         (0, 'All'),
         (1, 'Repeated Site')
@@ -475,6 +481,7 @@ class GalleryFilter(django_filters.FilterSet):
     lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')  # here
     project = django_filters.ModelChoiceFilter(queryset=Project.objects.all(), label='Project', method='filter_project')
     repeated = django_filters.ChoiceFilter(choices=REPEATEDSITE, label='Location', method='filter_repeated')
+    session_qc = django_filters.ChoiceFilter(choices=Session.QC_CHOICES, label='Session QC', method='filter_qc')
 
     class Meta:
         model = Note
@@ -484,14 +491,15 @@ class GalleryFilter(django_filters.FilterSet):
     def __init__(self, *args, **kwargs):
         super(GalleryFilter, self).__init__(*args, **kwargs)
 
+    def filter_qc(self, queryset, name, value):
+        queryset = queryset.filter(session_qc=value )
+        return queryset
+
     def filter_project(self, queryset, name, value):
-
         queryset = queryset.filter(project=value.name)
-
         return queryset
 
     def filter_plot(self, queryset, name, value):
-
         text = [pl[1] for pl in PLOT_OPTIONS if pl[0] == int(value)][0]
         queryset = queryset.filter(text=text)
         return queryset
