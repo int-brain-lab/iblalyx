@@ -635,7 +635,7 @@ class SubjectTrainingPlots(LoginRequiredMixin, ListView):
         return s, data
 
     def get_queryset(self):
-        qs = Subject.objects.filter.all()
+        qs = Subject.objects.all()
         self.f = SubjectFilter(self.request.GET, queryset=qs)
 
         return self.f.qs.order_by('-start_time')
