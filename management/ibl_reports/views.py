@@ -638,7 +638,7 @@ class SubjectTrainingPlots(LoginRequiredMixin, ListView):
         qs = Subject.objects.all()
         self.f = SubjectFilter(self.request.GET, queryset=qs)
 
-        return self.f.qs.order_by('-start_time')
+        return self.f.qs.order_by('-session__start_time')
 
 
 class SubjectFilter(django_filters.FilterSet):
