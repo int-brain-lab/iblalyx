@@ -9,7 +9,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from data.models import Dataset
 from experiments.models import TrajectoryEstimate, ProbeInsertion
 from misc.models import Note, Lab
-from subjects.models import Project
+from subjects.models import Project, Subject
 from actions.models import Session
 
 import numpy as np
@@ -597,5 +597,64 @@ class SessionFilter(django_filters.FilterSet):
                                    Q(probe_insertion__trajectory_estimate__x=-2243) &
                                    Q(probe_insertion__trajectory_estimate__y=-2000) &
                                    Q(probe_insertion__trajectory_estimate__theta=15))
+
+
+class SubjectTrainingPlots(LoginRequiredMixin, ListView):
+    template_name = 'ibl_reports/gallery_subject_overview.html'
+    login_url = LOGIN_URL
+    paginate_by = 20
+
+    def get_context_data(self, **kwargs):
+        # need to figure out which is more efficient
+        context = super(SubjectTrainingPlots, self).get_context_data(**kwargs)
+        context['subjectFilter'] = self.f
+        notes = Note.objects.all().filter(json__tag="## report ##")
+        s, data = self.get_my_data(context['object_list'], notes)
+
+        context['info'] = data
+        context['subjects'] = s
+
+        return context
+
+    def get_my_data(self, subjects, notes):
+        data = []
+        s = []
+        for subj in subjects:
+            info = {}
+            s.append(subj)
+            plot_dict = {}
+            for plot in data_info.OVERVIEW_SUBJECT_PLOTS:
+                note = notes.filter(object_id=subj.id, text=plot[0]).first()
+                if not note and not plot[1]:
+                    continue
+                else:
+                    plot_dict[plot[0]] = note
+            info[''] = plot_dict
+            data.append(info)
+
+        return s, data
+
+    def get_queryset(self):
+        qs = Subject.objects.filter.all()
+        self.f = SubjectFilter(self.request.GET, queryset=qs)
+
+        return self.f.qs.order_by('-start_time')
+
+
+class SubjectFilter(django_filters.FilterSet):
+
+    nickname = django_filters.ModelChoiceFilter(queryset=Subject.objects.all(), label='Nickname')
+    lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')
+
+    class Meta:
+        model = Note
+        fields = ['nickname', 'lab']
+        exclude = ['json']
+
+    def __init__(self, *args, **kwargs):
+        super(SubjectFilter, self).__init__(*args, **kwargs)
+
+
+
 
 
