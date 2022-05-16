@@ -2,7 +2,7 @@ import django_filters
 from django.http import HttpResponse, JsonResponse
 from django.template import loader
 from django.views.generic.list import ListView
-from django.db.models import Q, F, OuterRef, Exists, UUIDField, DateTimeField
+from django.db.models import Q, F, OuterRef, Exists, UUIDField, DateTimeField, Max, Count
 from django.db.models.functions import Coalesce
 from django.contrib.auth.mixins import LoginRequiredMixin
 
@@ -643,10 +643,13 @@ class SubjectTrainingPlots(LoginRequiredMixin, ListView):
         return s, data
 
     def get_queryset(self):
-        qs = Subject.objects.all()
+        qs = Subject.objects.all().prefetch_related('actions_sessions')
+        qs = qs.annotate(latest_sess=Max('actions_sessions__start_time'), n_sess=Count('actions_sessions'))
+        qs = qs.filter(n_sess__gte=1)
+        qs = qs.order_by('-latest_sess')
         self.f = SubjectFilter(self.request.GET, queryset=qs)
 
-        return self.f.qs.order_by('-session__start_time')
+        return self.f.qs
 
 
 class SubjectFilter(django_filters.FilterSet):
@@ -661,8 +664,3 @@ class SubjectFilter(django_filters.FilterSet):
 
     def __init__(self, *args, **kwargs):
         super(SubjectFilter, self).__init__(*args, **kwargs)
-
-
-
-
-
