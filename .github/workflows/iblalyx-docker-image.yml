@@ -1,0 +1,79 @@
+name: Build Docker iblalyx image
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  iblalyx_build_and_push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Get Previous tag
+        id: previoustag
+        uses: WyriHaximus/github-action-get-previous-tag@v1
+        with:
+          fallback: v0.0.0
+
+      - name: Get current date
+        id: timestamp
+        run: echo "::set-output name=date::$(date -d @${{ steps.previoustag.outputs.timestamp }} +'%Y-%m-%dT%H:%M:%SZ')"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      - name: Set up Docker buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+        with:
+          install: true
+          driver: docker-container
+          driver-opts: |
+            image=moby/buildkit:master
+          buildkitd-flags: --debug
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push iblalyx_apache
+        id: docker_build_iblalyx_apache
+        uses: docker/build-push-action@v2
+        with:
+          build-args: |
+            IMAGE_CREATED=${{ steps.timestamp.outputs.date }}
+            IMAGE_VERSION=${{ steps.previoustag.outputs.tag }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/iblalyx_apache:latest
+            ghcr.io/${{ github.repository_owner }}/iblalyx_apache:${{ steps.previoustag.outputs.tag }}
+          context: ./local-alyx-docker/build
+          file: ./local-alyx-docker/build/Dockerfile
+          target: iblalyx_apache
+          platforms: linux/arm64,linux/amd64
+          push: true
+
+      - name: Build and push iblalyx
+        id: docker_build_iblalyx
+        uses: docker/build-push-action@v2
+        with:
+          build-args: |
+            IMAGE_CREATED=${{ steps.timestamp.outputs.date }}
+            IMAGE_VERSION=${{ steps.previoustag.outputs.tag }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/iblalyx:latest
+            ghcr.io/${{ github.repository_owner }}/iblalyx:${{ steps.previoustag.outputs.tag }}
+          context: ./local-alyx-docker/build
+          file: ./local-alyx-docker/build/Dockerfile
+          target: iblalyx
+          platforms: linux/arm64,linux/amd64
+          push: true
+
+      - name: Docker build digest
+        run: |
+          echo ${{ steps.docker_build_iblalyx_apache.outputs.digest }}
+          echo ${{ steps.docker_build_iblalyx.outputs.digest }}

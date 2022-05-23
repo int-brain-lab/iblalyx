@@ -1,0 +1,17 @@
+boto3
+django
+globus-sdk
+graphviz
+ipykernel
+jupyterlab
+matplotlib
+notebook
+numba
+numpy>=1.21.0
+pandas
+pillow
+pyarrow
+scikit-learn
+scipy
+seaborn
+tqdm
