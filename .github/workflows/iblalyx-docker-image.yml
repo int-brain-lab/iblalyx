@@ -8,6 +8,8 @@ jobs:
   iblalyx_build_and_push:
     runs-on: ubuntu-latest
     steps:
+      - run: docker builder prune -fa
+
       - name: Checkout Repository
         uses: actions/checkout@v2
 
@@ -71,6 +73,7 @@ jobs:
           file: ./local-alyx-docker/build/Dockerfile
           target: iblalyx
           platforms: linux/arm64,linux/amd64
+          no-cache: true
           push: true
 
       - name: Docker build digest
