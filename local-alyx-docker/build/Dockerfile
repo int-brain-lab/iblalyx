@@ -25,6 +25,8 @@ ARG PY_VER=3.9
 ENV TZ=${TIMEZONE}
 ENV LANG=en_US.utf8
 ENV LC_ALL=en_US.utf8
+ENV LANGUAGE=en_US.utf8
+ENV LC_CTYPE=en_US.utf8
 
 # shell exit on first error within EOF sections
 SHELL [ "/bin/sh", "-ec" ]
@@ -292,7 +294,7 @@ ENV FLATIRON_SERVER_PWD=
 # image labels
 LABEL org.opencontainers.image.ref.name="iblalyx"
 LABEL org.opencontainers.image.authors "Joseph Burling"
-LABEL org.opencontainers.image.vendor="DataJoint"
+LABEL org.opencontainers.image.vendor="International Brain Lab"
 LABEL org.opencontainers.image.title "iblalyx_debian_micromamba"
 LABEL org.opencontainers.image.description "A debian-based, local alyx installation with a micromamba-python environment."
 LABEL org.opencontainers.image.created="$IMAGE_CREATED"
@@ -357,7 +359,7 @@ ENV APACHE_LYNX='www-browser -dump'
 # image labels
 LABEL org.opencontainers.image.ref.name="iblalyx_apache"
 LABEL org.opencontainers.image.authors "Joseph Burling"
-LABEL org.opencontainers.image.vendor="DataJoint"
+LABEL org.opencontainers.image.vendor="International Brain Lab"
 LABEL org.opencontainers.image.title "iblalyx_debian_micromamba_apache"
 LABEL org.opencontainers.image.description "A debian-based, local alyx apache web-server installation with a micromamba-python environment."
 LABEL org.opencontainers.image.created="$IMAGE_CREATED"
