@@ -60,7 +60,7 @@ services:
       interval: 30s
       retries: 5
       start_period: 2m0s
-    image: ghcr.io/${GITHUB_USERNAME:-int-brain-lab}/iblalyx:latest
+    image: ghcr.io/${GITHUB_USERNAME:-int-brain-lab}/iblalyx-apache:latest
     init: true
     networks:
       ibl: null
