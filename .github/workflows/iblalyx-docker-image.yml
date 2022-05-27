@@ -56,7 +56,8 @@ jobs:
           context: ./local-alyx-docker/build
           file: ./local-alyx-docker/build/Dockerfile
           target: iblalyx_apache
-          platforms: linux/arm64,linux/amd64
+          # platforms: linux/arm64,linux/amd64
+          platforms: linux/amd64
           push: true
 
       - name: Build and push iblalyx
@@ -72,7 +73,8 @@ jobs:
           context: ./local-alyx-docker/build
           file: ./local-alyx-docker/build/Dockerfile
           target: iblalyx
-          platforms: linux/arm64,linux/amd64
+          # platforms: linux/arm64,linux/amd64
+          platforms: linux/amd64
           no-cache: true
           push: true
 

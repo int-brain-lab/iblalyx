@@ -1,57 +1,81 @@
-"""
-Django settings for alyx project.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/stable/topics/settings/
-
-For the full list of settings and their values, see
-https://docs.djangoproject.com/en/stable/ref/settings/
-"""
-
-
+# DO NOT EDIT ! --- Template SETTINGS for autogenerating Django configuration
 import os
+from textwrap import dedent
 
 import structlog
 from django.conf.locale.en import formats as en_formats
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-try:
-    from .settings_secret import *  # noqa
-except ImportError:
-    # We're probably autobuilding some documentation so let's just import something
-    # to keep Django happy...
-    from .settings_secret_template import *  # noqa
+# settings_secret.py -------------------------------------------------------------------
 
-# Lab-specific settings
-try:
-    from .settings_lab import *  # noqa
-except ImportError:
-    from .settings_lab_template import *  # noqa
+SECRET_KEY = "%DJANGO_SECRET_KEY%"
+S3_ACCESS = {}
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql_psycopg2",
+        "NAME": "%PGDATABASE%",
+        "USER": "%PGUSER%",
+        "PASSWORD": "%PGPASSWORD%",
+        "HOST": "%PGHOST%",
+        "PORT": "5432",
+        "OPTIONS": {"options": "-c default_transaction_read_only=%PGREADONLY%"},
+    }
+}
+EMAIL_HOST = "mail.superserver.net"
+EMAIL_HOST_USER = "alyx@awesomedomain.org"
+EMAIL_HOST_PASSWORD = "UnbreakablePassword"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+# settings_lab.py ----------------------------------------------------------------------
+
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "host.docker.internal", "%ALYX_NETWORK%"]
+LANGUAGE_CODE = "en-us"
+TIME_ZONE = "GB"
+GLOBUS_CLIENT_ID = "525cc543-8ccb-4d11-8036-af332da5eafd"
+SUBJECT_REQUEST_EMAIL_FROM = "alyx@internationalbrainlab.org"
+DEFAULT_SOURCE = "IBL"
+DEFAULT_PROTOCOL = "1"
+SUPERUSERS = ("%PGUSER%",)
+STOCK_MANAGERS = ("%PGUSER%",)
+WEIGHT_THRESHOLD = 0.75
+DEFAULT_LAB_NAME = "defaultlab"
+WATER_RESTRICTIONS_EDITABLE = False
+DEFAULT_LAB_PK = "4027da48-7be3-43ec-a222-f75dffe36872"
+SESSION_REPO_URL = (
+    "http://ibl.flatironinstitute.org/{lab}/Subjects/{subject}/{date}/{number:03d}/"
+)
+NARRATIVE_TEMPLATES = {
+    "Headplate implant": dedent(
+        """
+    == General ==
+
+    Start time (hh:mm):   ___:___
+    End time (hh:mm):    ___:___
+
+    Bregma-Lambda :   _______  (mm)
+
+    == Drugs == (copy paste as many times as needed; select IV, SC or IP)
+    __________________( IV / SC / IP ) Admin. time (hh:mm)  ___:___
+
+    == Coordinates ==  (copy paste as many times as needed; select B or L)
+    (B / L) - Region: AP:  _______  ML:  ______  (mm)
+    Region: _____________________________
+
+    == Notes ==
+    <write your notes here>
+        """
+    ),
+}
+
+# settings.py --------------------------------------------------------------------------
 
 en_formats.DATETIME_FORMAT = "d/m/Y H:i"
 DATE_INPUT_FORMATS = ("%d/%m/%Y",)
-USE_DEPRECATED_PYTZ = True  # Support for using pytz will be removed in Django 5.0
-
-if "GITHUB_ACTIONS" in os.environ:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql_psycopg2",
-            "NAME": "githubactions",
-            "USER": "postgres",
-            "PASSWORD": "postgres",
-            "HOST": "localhost",
-            "PORT": "5432",
-        }
-    }
-
-# Custom User model with UUID primary key
+USE_DEPRECATED_PYTZ = True
 AUTH_USER_MODEL = "misc.LabMember"
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
-
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -117,19 +141,7 @@ LOGGING = {
         "propagate": True,
     },
 }
-
-
-if "TRAVIS" in os.environ or "READTHEDOCS" in os.environ:
-    LOGGING["handlers"]["file"]["filename"] = "alyx.log"
-
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
-
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = "%ALYX_INSTANCE%" != "prod"
-
-# Production settings:
 if not DEBUG:
     CSRF_COOKIE_SECURE = True
     X_FRAME_OPTIONS = "DENY"
@@ -140,10 +152,6 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 30
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-
-
-# Application definition
-
 INSTALLED_APPS = (
     # 'dal',
     # 'dal_select2',
@@ -173,7 +181,6 @@ INSTALLED_APPS = (
     "subjects",
     "django_cleanup.apps.CleanupConfig",  # needs to be last in the list
 )
-
 MIDDLEWARE = (
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -185,9 +192,7 @@ MIDDLEWARE = (
     "alyx.base.QueryPrintingMiddleware",
     "django_structlog.middlewares.RequestMiddleware",
 )
-
 ROOT_URLCONF = "alyx.urls"
-
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -203,7 +208,6 @@ TEMPLATES = [
         },
     },
 ]
-
 TEMPLATE_LOADERS = (
     (
         "django.template.loaders.cached.Loader",
@@ -213,9 +217,7 @@ TEMPLATE_LOADERS = (
         ),
     ),
 )
-
 WSGI_APPLICATION = "alyx.wsgi.application"
-
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.SessionAuthentication",
@@ -231,32 +233,15 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "rest_framework.schemas.coreapi.AutoSchema",
     "PAGE_SIZE": 250,
 }
-
-# Internationalization
-# https://docs.djangoproject.com/en/1.8/topics/i18n/
-
-
 USE_I18N = False
 USE_L10N = False
 USE_TZ = False
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/1.8/howto/static-files/
-
 STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 STATIC_URL = "/static/"
-
-# MEDIA_ROOT = os.path.realpath(os.path.join(BASE_DIR, "../uploaded/"))
 MEDIA_ROOT = "/backups/uploaded/"
 MEDIA_URL = "/uploaded/"
-
-# The location for saving and/or serving the cache tables.
-# May be a local path, http address or s3 uri (i.e. s3://)
-# TABLES_ROOT = os.path.realpath(os.path.join(BASE_DIR, "../tables/"))
 TABLES_ROOT = "/backups/tables/"
-
 UPLOADED_IMAGE_WIDTH = 800
-
 
 structlog.configure(
     processors=[

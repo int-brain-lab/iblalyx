@@ -44,7 +44,7 @@ services:
       PGHOST: alyx-postgres
       PGDATABASE: ${ALYX_DBNAME:?}
       PGREADONLY: ${PGREADONLY:-off}
-      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:? Must be set in .env file}
       FLATIRON_SERVER: https://ibl.flatironinstitute.org
       FLATIRON_SERVER_LOGIN: ${FLATIRON_SERVER_LOGIN:-}
       FLATIRON_SERVER_PWD: ${FLATIRON_SERVER_PWD:-}
@@ -69,7 +69,7 @@ services:
     tty: true
     user: ibl_dev:docker
     volumes:
-      - alyx-source:/var/www/alyx-local
+      - alyx-source:/var/www/alyx-local:rw
     # command: ["fetch_and_load_db"]
 
 # Global Networks and Volumes ----------------------------------------------------------

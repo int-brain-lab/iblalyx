@@ -2,7 +2,7 @@
 # Joseph Burling <joseph@datajoint.com>
 # --------------------------------------------------------------------------------------
 # Multifile Usage:
-#   docker-compose --verbose --log-level DEBUG -f docker-compose.yml -f docker-compose-build-local.yml up -d --remove-orphans --build --force-recreate
+#   docker-compose --verbose --log-level DEBUG -f docker-compose.yml -f docker-compose-build-local.yml up -d --remove-orphans --force-recreate --build
 #   docker-compose -f docker-compose.yml -f docker-compose-build-local.yml down --remove-orphans --volumes
 #   docker-compose -f docker-compose.yml -f docker-compose-build-local.yml config
 
@@ -24,7 +24,7 @@ services:
         USER_UID: ${USER_UID:-1000}
     environment:
       PGUSER: ${ALYX_ADMIN_USER?}
-    user: ${ALYX_ADMIN_USER}:docker # root:docker
+    user: root:docker # ${ALYX_ADMIN_USER}:docker
     # volumes:
     #   - ~/Datasets/iblalyx:/var/www/alyx-${ALYX_INST_TYPE:?}/shared
 

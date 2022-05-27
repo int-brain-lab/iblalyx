@@ -164,10 +164,7 @@ RUN <<-EOF
 
 	# copy custom alyx scripts to be found in PATH -------------------------------------
 	cp -f /tmp/scripts/alyx /tmp/scripts/alyx_apache /usr/local/bin
-	cp -f /tmp/scripts/alyx_cfg.py ./scripts/alyx_cfg
-	sed -i '1i #!/usr/local/bin/python' ./scripts/alyx_cfg
-	chmod 750 /usr/local/bin/alyx* ./scripts/alyx_cfg
-	ln -s /var/www/alyx-${ALYX_INST_TYPE}/scripts/alyx_cfg /usr/local/bin
+	chmod 750 /usr/local/bin/alyx*
 
 	# clone iblalyx source and link to appropriate alyx dirs ---------------------------
 	# git clone https://github.com/int-brain-lab/iblalyx.git

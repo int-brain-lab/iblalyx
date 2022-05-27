@@ -552,15 +552,19 @@ config_settings() {
 		echo "# => configuring alyx settings files"
 		[[ -n "${PGPASSWORD}" ]] ||
 			exit_if_error $? "database password environment variable PGPASSWORD is not set"
-
-		alyx_cfg -vv -d "${ALYX_SRC_PATH?}" \
-			-e PGUSER="${PGUSER}" \
-			-e PGHOST="${PGHOST}" \
-			-e PGPASSWORD="${PGPASSWORD}" \
-			-e PGREADONLY="${PGREADONLY:-off}" \
+		tmplcfg -vv \
+			-e DJANGO_SECRET_KEY="${DJANGO_SECRET_KEY:-0xdeadbeef}" \
 			-e ALYX_INSTANCE="${ALYX_INSTANCE}" \
 			-e ALYX_NETWORK="${ALYX_NETWORK}" \
-			settings --set-all --chmod=660
+			-e ALYX_LOG_FILE="${ALYX_LOG_FILE}" \
+			-e ALYX_JSON_LOG_FILE="${ALYX_JSON_LOG_FILE}" \
+			-e PGPASSWORD="${PGPASSWORD}" \
+			-e PGDATABASE="${PGDATABASE}" \
+			-e PGHOST="${PGHOST}" \
+			-e PGUSER="${PGUSER}" \
+			-e PGREADONLY="${PGREADONLY:-off}" \
+			--chmod=660 \
+			-s "${ALYX_SRC_PATH?}/alyx/alyx/settings_template.py"
 	fi
 }
 
@@ -577,14 +581,14 @@ config_apache() {
 	if ${APACHE_CTL_EXISTS} && ! sudo apache2ctl -t -D DUMP_MODULES | grep -q "wsgi"; then
 		echo "# => configuring apache server"
 		echo "# ==> setting apache sites available"
-		sudo alyx_cfg -vv \
+		sudo tmplcfg -vv \
 			-e PGUSER="${PGUSER}" \
 			-e PGHOST="${PGHOST}" \
 			-e ALYX_INSTANCE="${ALYX_INSTANCE}" \
 			-e ALYX_PORT="${ALYX_PORT}" \
 			-e ALYX_NETWORK="${ALYX_NETWORK}" \
-			apache /etc/apache2/sites-available -s \
-			"${ALYX_SRC_PATH?}/docs/_static/000-default.conf" \
+			-t /etc/apache2/sites-available \
+			-s "${ALYX_SRC_PATH?}/docs/_static/000-default.conf" \
 			"${ALYX_SRC_PATH?}/docs/_static/ip_whitelist.conf"
 
 		echo "# ==> mod_wsgi-express"
@@ -603,19 +607,20 @@ config_apache() {
 
 set_su_tokens() {
 	local source_file=${ALYX_SRC_PATH}/alyx/alyx/su_authtoken_template.json
-	local pk
-	local pw
-	local key
+	local userpk
+	local usersaltpw
+	local userkey
 	if [[ -f "${source_file}" ]]; then
-		pk=$(psql -d "${PGDATABASE?}" -tAc "SELECT id FROM misc_labmember WHERE username = '${PGUSER?}' AND is_superuser = 't';")
-		pw=$(psql -d "${PGDATABASE}" -tAc "SELECT password FROM misc_labmember WHERE username = '${PGUSER}' AND is_superuser = 't';")
-		key=$(psql -d "${PGDATABASE}" -tAc "SELECT key FROM authtoken_token WHERE user_id = '${pk}';")
-		sed \
-			-e "s/%SUPERUSERTOKEN%/${key}/" \
-			-e "s/%SUPERUSERPK%/${pk}/" \
-			-e "s/%SUPERUSERSALTPW%/${pw}/" \
-			-e "s/%PGUSER%/${PGUSER}/" \
-			"${source_file}" >"${su_token_fixture}"
+		userpk=$(psql -d "${PGDATABASE?}" -tAc "SELECT id FROM misc_labmember WHERE username = '${PGUSER?}' AND is_superuser = 't';")
+		usersaltpw=$(psql -d "${PGDATABASE}" -tAc "SELECT password FROM misc_labmember WHERE username = '${PGUSER}' AND is_superuser = 't';")
+		userkey=$(psql -d "${PGDATABASE}" -tAc "SELECT key FROM authtoken_token WHERE user_id = '${userpk}';")
+		tmplcfg -vv --allow-empty \
+			-e PGUSER="${PGUSER}" \
+			-e SUPERUSERPK="${userpk}" \
+			-e SUPERUSERTOKEN="${userkey}" \
+			-e SUPERUSERSALTPW="${usersaltpw}" \
+			--chmod=660 \
+			-s "${source_file}" -t "${su_token_fixture}"
 	fi
 }
 

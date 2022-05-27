@@ -35,14 +35,14 @@ The following environment variables are required for minimal use. Set them in a 
   - _description_: Sets the main database name for the `postgres-13` and `iblalyx` images.
   - _`.env` file_: Set `ALYX_DBNAME`
 
+- **`DJANGO_SECRET_KEY`**
+
+  - _description_: Sets `SECRET_KEY` in `settings_secret.py` for the `iblalyx` image.
+  - _`.env` file_: Set `DJANGO_SECRET_KEY`
+
 ### Suggested
 
 The following environment variables are optional but are suggested to be set manually.
-
-- **`DJANGO_SECRET_KEY`**
-
-  - _description_: Sets `SECRET_KEY` in `settings_secret.py` for the `iblalyx` image. If unset or empty, a key will be generated from the `alyx_cfg.py` script which uses the `django` module.
-  - _`.env` file_: Set `DJANGO_SECRET_KEY`
 
 - **`FLATIRON_SERVER_LOGIN`**
 
