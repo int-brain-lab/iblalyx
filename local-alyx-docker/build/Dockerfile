@@ -106,28 +106,33 @@ RUN <<-EOF
 	cat /etc/skel/.bashrc | tee -a /root/.bashrc /root/.profile >/dev/null
 	cp -f /usr/local/.condarc /etc/skel/.conda/.condarc
 	chmod a+rx /etc/profile.d/micromamba.sh
+
+	# add a default user (no sudo)
+	useradd -u 999 -g 999 --no-log-init -ms /bin/bash ubuntu
+	chown -R 999:999 /usr/local
+	chmod -R a+rwX,o-w,ug+s,+t,-t /usr/local
+	chown -R 999:999 /var/log
+	chmod -R a+rwX,o-w,ug+s,+t,-t /var/log
 EOF
 
 SHELL [ "/bin/bash",  "-elc" ]
-
+USER 999:999
 RUN <<-EOF
 	# install base python and pip
 	micromamba activate
 	micromamba install -yvq -c conda-forge "python=${PY_VER}" pip
 
 	# cleanup and management
-	micromamba clean -ya
-	rm -rf /tmp/* /usr/local/pkgs
-	mkdir -p /usr/local/pkgs /usr/local/envs
-	chown -R :999 /usr/local
-	chmod -R 775 /usr/local
-	chown -R 999:999 /var/log
+	micromamba clean -fya
+	micromamba update -ya
+	mkdir -p /usr/local/envs
+EOF
 
-	# add a default user (no sudo)
-	useradd -u 999 -g 999 --no-log-init -ms /bin/bash ubuntu
-
+USER 0:999
+RUN <<-EOF
 	# updating base env only allowed for root or owner of history file
-	chown 999:999 /usr/local/conda-meta/history
+	chmod -R a+rwX,o-w,ug+s,+t,-t /usr/local
+	rm -rf /tmp/*
 EOF
 
 SHELL [ "/bin/sh", "-c" ]
@@ -148,10 +153,12 @@ ARG TIMEZONE
 # system environment
 ENV LANG=en_US.utf8
 ENV LC_ALL=en_US.utf8
+ENV LANGUAGE=en_US.utf8
+ENV LC_CTYPE=en_US.utf8
 ENV TZ=${TIMEZONE}
 
 USER root:docker
-COPY --chown=:docker ./ /tmp/
+COPY --chown=999:999 ./ /tmp/
 SHELL [ "/bin/bash",  "-elc" ]
 WORKDIR /var/www/alyx-${ALYX_INST_TYPE}
 
@@ -167,7 +174,7 @@ RUN <<-EOF
 	chmod 750 /usr/local/bin/alyx*
 
 	# clone iblalyx source and link to appropriate alyx dirs ---------------------------
-	# git clone https://github.com/int-brain-lab/iblalyx.git
+	git clone https://github.com/int-brain-lab/iblalyx.git
 	# ln -s /var/www/alyx-${ALYX_INST_TYPE}/iblalyx/management/ibl_reports \
 	# 	/var/www/alyx-${ALYX_INST_TYPE}/alyx/ibl_reports
 	# ln -s /var/www/alyx-${ALYX_INST_TYPE}/iblalyx/management/ibl_reports/templates \
@@ -183,6 +190,7 @@ RUN <<-EOF
 	chmod -R 775 .
 EOF
 
+USER 999:999
 RUN <<-EOF
 	# install conda-specific packages using micromamba ---------------------------------
 	micromamba activate
@@ -193,7 +201,8 @@ RUN <<-EOF
 	pip install --no-cache --no-input -vr /tmp/requirements/pip_requirements.txt
 
 	# cleanup --------------------------------------------------------------------------
-	micromamba clean -ya
+	micromamba clean -fya
+	micromamba update -ya
 	rm -rf /tmp/*
 EOF
 
@@ -212,10 +221,12 @@ ARG USER_UID
 # system environment
 ENV LANG=en_US.utf8
 ENV LC_ALL=en_US.utf8
+ENV LANGUAGE=en_US.utf8
+ENV LC_CTYPE=en_US.utf8
 ENV TZ=${TIMEZONE}
 
 USER root:docker
-COPY --chown=${USER_UID}:docker ./ /tmp/
+COPY --chown=${USER_UID}:999 ./ /tmp/
 SHELL [ "/bin/bash",  "-elc" ]
 WORKDIR /var/www/alyx-${ALYX_INST_TYPE}
 
@@ -242,11 +253,17 @@ RUN <<-EOF
 	chown ${USER_NAME}:docker /etc/apache2/mods-available/wsgi.load
 	cp -f /tmp/apache/apache2.conf /etc/apache2/apache2.conf
 
+	chown -R ${USER_UID}:999 /usr/local
+	rm -rf /tmp/*
+EOF
+
+USER ${USER_UID}:999
+RUN <<-EOF
 	# update python environment --------------------------------------------------------
 	micromamba activate
 	pip install --no-cache --no-input -v mod_wsgi
-	chown ${USER_UID}:999 /usr/local/conda-meta/history
-	rm -rf /tmp/*
+	micromamba clean -fya
+	micromamba update -ya
 EOF
 
 ## Stage 4 =============================================================================
@@ -265,6 +282,8 @@ ARG TIMEZONE
 # system environment
 ENV LANG=en_US.utf8
 ENV LC_ALL=en_US.utf8
+ENV LANGUAGE=en_US.utf8
+ENV LC_CTYPE=en_US.utf8
 ENV TZ=${TIMEZONE}
 ENV ALYX_INSTANCE=${ALYX_INST_TYPE}
 ENV ALYX_SRC_PATH=/var/www/alyx-${ALYX_INST_TYPE}
@@ -321,6 +340,8 @@ ARG USER_NAME
 # system environment
 ENV LANG=en_US.utf8
 ENV LC_ALL=en_US.utf8
+ENV LANGUAGE=en_US.utf8
+ENV LC_CTYPE=en_US.utf8
 ENV TZ=${TIMEZONE}
 ENV ALYX_INSTANCE=${ALYX_INST_TYPE}
 ENV ALYX_SRC_PATH=/var/www/alyx-${ALYX_INST_TYPE}

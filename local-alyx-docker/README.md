@@ -160,11 +160,11 @@ For running and debugging intermediate stages before the final target stage.
 
 ```bash
 cd local-alyx-docker/build
-PLTARCH=$(uname -m)            # target architecture for platform
-MSTARG=micromamba_debian       # multi-stage build target name
+PLTARCH=$(uname -m)              # target architecture for platform
+MSTARG=micromamba_debian         # multi-stage build target name
 IMGTAG=iblalyx-alyx-test:v0.0.0  # image tag
 DCNAME=alyx-test                 # container name
-DCUSER=ubuntu                  # container user
+DCUSER=ubuntu                    # container user
 ```
 
 ```bash
@@ -176,7 +176,7 @@ docker run --rm -itdu "$DCUSER:docker" --name $DCNAME $IMGTAG bash
 
 # execute a command to running container as root
 DCID=$(docker ps -aqf "name=$DCNAME")
-docker exec -u "root:docker" $DCID chown $DCUSER:docker /usr/local/conda-meta/history
+docker exec -u "root:docker" ${DCID?} chown $DCUSER:docker /usr/local/conda-meta/history
 
 # stop container
 docker stop $DCNAME
@@ -192,6 +192,21 @@ DCUSER=ubuntu
 ```
 
 Use the same docker commands from above.
+
+**Stage**: `iblalyx-apache`
+
+```bash
+MSTARG=iblalyx_apache
+IMGTAG=iblalyx-web:v0.0.0
+DCNAME=iblalyx-web
+DCUSER=ibl_dev
+```
+
+```bash
+docker run -itdu "$DCUSER:docker" --name $DCNAME $IMGTAG -
+DCID=$(docker ps -aqf "name=$DCNAME")
+docker exec -u "root:docker" ${DCID?} chown -R $DCUSER:docker /usr/local
+```
 
 ## Interaction with the database
 
