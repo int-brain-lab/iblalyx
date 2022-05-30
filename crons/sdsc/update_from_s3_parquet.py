@@ -1,16 +1,23 @@
 import json
 from pathlib import PurePosixPath, Path
-import warnings
+import time
+import logging.config
 
 import pandas as pd
-from iblutil.util import flatten
 from one.alf import spec, io as alfio, files as alfiles
+from one.webclient import AlyxClient
 
 import boto3
 from data.models import DataRepository, Dataset, FileRecord
 
-LAB = 'churchlandlab_ucla'
-ROOT = r'F:\\'
+alyx_client = AlyxClient()
+LAB = 'all'  # Which lab to register
+ROOT = 'data/'  # Root location of Alyx files on S3
+
+# Set up log
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logger.addHandler(logging.FileHandler(alyx_client.cache_dir / 'S3_inventory.log'))
 
 
 def get_s3_access(repo_name='aws_cortexlab'):
@@ -75,7 +82,7 @@ def get_bucket_list_key(bucket, location):
     Returns
     -------
     inventory : dict
-        A record of the most recent inventory file(s)
+        A record of the m   ost recent inventory file(s)
 
     See Also
     --------
@@ -88,7 +95,8 @@ def get_bucket_list_key(bucket, location):
     # Find meta files
     meta = filter(lambda x: x.key.endswith('json'), bucket.objects.filter(Prefix=prefix))
     meta_latest = sorted(meta, key=lambda x: x.key, reverse=True)[0]
-    return json.loads(meta_latest.get()['Body'].read())
+    date = meta_latest.key.split('/')[-2]
+    return json.loads(meta_latest.get()['Body'].read()), date
 
 
 # Instantiate S3 resource
@@ -100,7 +108,7 @@ bucket = s3.Bucket(bucket_name)
 # Location of S3 inventory
 prefix = '/'.join(['info', bucket_name, 'bucket-list'])
 # Get latest inventory list file path
-inventory = get_bucket_list_key(bucket, prefix)
+inventory, version = get_bucket_list_key(bucket, prefix)
 format = inventory['fileFormat']
 assert format == 'Parquet', f'inventory format "{format}" unsupported; check settings'
 assert inventory['sourceBucket'] == bucket_name
@@ -108,30 +116,128 @@ assert inventory['sourceBucket'] == bucket_name
 assert len(inventory['files']) == 1, 'multi-part inventory files not supported'
 assert inventory['files'][0]['size'] < 1e9, 'inventory file too big!'
 source = inventory['files'][0]['key']
-destination = str(Path(ROOT).joinpath(f'{inventory["version"]}_{source.split("/")[-1]}'))
+destination = str(alyx_client.cache_dir.joinpath(f'{version}_{source.split("/")[-1]}'))
 
 # Locate most recent inventory
-bucket.download_file(source, destination)
+if not Path(destination).exists():
+    logger.info(f'Downloading {destination}')
+    bucket.download_file(source, destination)
+logger.debug(f'Loading {destination}')
 df = pd.read_parquet(destination)
+if not df.index.name == 'key':
+    df = df.set_index('key').sort_index()
 
-# Remove folders from dataframe
-df = df[~df['key'].str.endswith('/')].copy()  # Copy avoids slice assign warnings below
+# Check for previous run
+progress = {}
+meta_file = alyx_client.cache_dir.joinpath('s3_pqt_meta.json')
+if meta_file.exists():
+    logger.debug('Previous run found:')
+    with open(meta_file, 'r') as fp:
+        progress = json.load(fp)
+    logger.debug(progress)
+
+# Remove folders and non-root files from dataframe
+to_drop = df.index.str.endswith('/') | ~df.index.str.startswith(ROOT)
+df.drop(df.index[to_drop], inplace=True)
+
+# If there was a previous run, remove the files that have already been registered
+if progress:
+    inventories = sorted(alyx_client.cache_dir.glob('*.parquet'))
+    if len(inventories) == 1 or progress['inventory'] == destination:
+        # Still using the same parquet
+        ind = df.index.get_loc(progress['index'])
+        df.drop(df.index[:ind], inplace=True)
+    else:
+        logger.debug('Loading previous inventory: ' + progress['inventory'])
+        prev_df = pd.read_parquet(progress['inventory'])
+        ind = prev_df.index.get_loc(progress['index'])
+        to_drop = prev_df.index[:ind]
+        df.drop(to_drop[to_drop.isin(df.index)], inplace=True)
+        # TODO Move over isALF and exists columns
+    logger.info(f'Dropped {ind} rows (datasets already processed)')
+
 
 # Prepare dataframe for some database information
-df['isALF'] = True  # Filename is ALF compliant
-df['exists'] = True  # Filename record exists on Alyx database
+if ('isALF' not in df.columns) or ('exists' not in df.columns):
+    df['isALF'] = True  # Filename is ALF compliant
+    df['exists'] = True  # Filename record exists on Alyx database
 
 # Load sessions table so we can recuse the number of queries
-from one.webclient import AlyxClient
-alyx_client = AlyxClient()
-files = alyx_client.download_cache_tables()
-sessions = pd.read_parquet(next(x for x in files if 'sessions' in str(x)))
+session_cache = next(alyx_client.cache_dir.glob('sessions.pqt'), None)
+if not session_cache or (time.time() - session_cache.stat().st_mtime) > 60*60*24:
+    url = alyx_client.get('cache/info', expires=True)['location']
+    files = alyx_client.download_cache_tables(url)
+    session_cache = next(x for x in files if 'sessions' in str(x))
+sessions = pd.read_parquet(session_cache).reset_index().set_index(['lab', 'subject', 'date', 'number']).sort_index()
 
 # Iterate over non-directory keys
-for i, key in df['key'].iteritems():
+progress['inventory'] = destination
+progress['version'] = version
+j = 0  # Save progress every 100 files
+all_keys = df.index if LAB == 'all' else df.index[df.index.str.contains(LAB)]
+for key in all_keys:
+    logger.info(f'Processing dataset {j}/{len(all_keys)}')
     parsed = alfiles.full_path_parts(key, as_dict=True, assert_valid=False)
-    df.at[i, 'isALF'] = parsed['object'] is not None
+    df.at[key, 'isALF'] = parsed['object'] is not None and parsed['lab'] is not None
+    if not df.at[key, 'isALF']:
+        logger.debug(f'Invalid ALF: {key}')
+        continue
+    if 'test' in parsed['lab']:
+        logger.debug(f'Test session; skipping')
+        continue
     dataset_name = PurePosixPath(alfio.remove_uuid_file(key, dry=True)).name
-    dset = Dataset.objects.select_related('revision').filter(
-        name=dataset_name, collection=parsed['collection'], revision__name=parsed['revision'])
-    dset
+    try:
+        did = key.split('.')[-2]
+        assert spec.is_uuid(did)
+        dset = Dataset.objects.get(id=did)
+    except Dataset.DoesNotExist:
+        logger.warning(f'Dataset does not exist: {key}')
+        df.at[key, 'exists'] = False
+        continue
+    except (IndexError, AssertionError):
+        # No UUID in filename, try to get dataset from session path.
+        # Locate the session eid from the path using the sessions cache table
+        session_key = list(parsed.values())[:4]
+        assert all(session_key), 'lab, subject, date and/or number not detected in path'
+        session_key[-1] = int(session_key[-1])  # Session number to int
+        try:
+            eid, = sessions.loc[(*session_key,), 'id']
+        except (KeyError, ValueError):
+            logger.warning(f'Failed to located session for {session_key}')
+            df.at[key, 'exists'] = False
+            continue
+
+        filters = dict(session=eid, name=dataset_name, collection=parsed['collection'])
+        if parsed['revision'] is None:
+            filters['revision__isnull'] = True
+        else:
+            filters['revision__name'] = parsed['revision']
+        try:
+            dset = Dataset.objects.select_related('revision').filter(**filters).get()
+        except Dataset.DoesNotExist:
+            logger.debug(f'Dataset does not exist on Alyx:\n{filters}')
+            df.at[key, 'exists'] = False
+            continue
+
+    # Update file record
+    logger.info(f'Registering {key}')
+    rel_path = alfio.remove_uuid_file(key.replace(f'{ROOT}{parsed["lab"]}/Subjects', '').strip('/'), dry=True).as_posix()
+    record = {
+        'dataset': dset,
+        'data_repository': DataRepository.objects.get(name='aws_' + parsed['lab']),
+        'relative_path': rel_path
+    }
+    fr, is_new = FileRecord.objects.get_or_create(**record)
+    fr.exists = True
+    fr.full_clean()
+    fr.save()
+    logger.debug('File record already present' if not is_new else 'File record created')
+
+    # Record progress
+    progress['index'] = key
+    if j % 100 == 0 or j == len(df.index) - 1:
+        logger.debug('Saving progress to file')
+        with open(meta_file, 'w') as fp:
+            json.dump(progress, fp)
+        df.to_parquet(destination)
+    j += 1
