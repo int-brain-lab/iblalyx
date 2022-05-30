@@ -131,7 +131,7 @@ class Command(BaseCommand):
             if df.empty:
                 logger.debug('No file records to process')
                 continue
-            logger.info(f'Processing {len(df)} records ({i + 1}/{paginated_query.num_pages})')
+            logger.info(f'Processing {len(df)} records (batch {i}/{paginated_query.num_pages})')
             df['file_path'] = df.pop('data_repository__globus_path').str.cat(df.pop('relative_path'))
             fields_map = {
                 'dataset__session': 'eid',
@@ -145,7 +145,7 @@ class Command(BaseCommand):
                 counts['sessions'] += 1
                 session_path = next(map(get_session_path, rec['file_path'].values))
                 src_dir = ROOT + session_path.as_posix()
-                dst_dir = bucket_name.strip('/') + '/' + get_alf_path(src_dir)
+                dst_dir = bucket_name.strip('/') + '/data/' + get_alf_path(src_dir)
                 cmd = ['aws', 's3', 'sync', src_dir, dst_dir, '--delete', '--profile', 'ibladmin']
                 if dry:
                     cmd.append('--dryrun')
@@ -196,3 +196,30 @@ class Command(BaseCommand):
                         fr.save()
         logger.info('{total:,} files over {sessions:,} sessions sync\'d; '
                     '{added:,} records added, {modified:,} modified'.format(**counts))
+
+
+def sync_changed():
+    """Sync all sessions where file records on flatiron don't match those on AWS.
+
+    Note: The next version of Django has an XOR Q filter, until then, this method is too slow.
+    """
+    from django.db.models import Exists, F, Count
+    fr = FileRecord.objects.select_related('data_repository')
+    # File records on Flatiron
+    on_flatiron = fr.filter(dataset=OuterRef('pk'),
+                            exists=True,
+                            data_repository__name__startswith='flatiron').values_list('pk', flat=True)
+    # File records on AWS
+    on_aws = fr.filter(dataset=OuterRef('pk'),
+                       exists=True,
+                       data_repository__name__startswith='aws').values_list('pk', flat=True)
+    # Filter out datasets that do not exist on either repository
+    ds = Dataset.objects.alias(exists_flatiron=Exists(on_flatiron), exists_aws=Exists(on_aws))
+    on_aws = Q(exists_aws=True)
+    on_flatiron = Q(exists_flatiron=True)
+    xor_ds = ds.filter((on_aws & ~on_flatiron) | (~on_aws & on_flatiron)).distinct().values_list('pk', flat=True)  # 47416
+    # xor_ds = ds.alias(mismatch=Count(F('exists_aws')) + Count(F('exists_flatiron'))).filter(mismatch=1)
+    fr = fr.filter(exists=True, data_repository__globus_is_personal=False, dataset__in=xor_ds)
+    # This isn't going to work :(
+    on_server = FileRecord.objects.select_related('data_repository').filter(dataset=OuterRef('pk'), exists=True, data_repository__globus_is_personal=False).values_list('pk', flat=True)
+    ds = Dataset.objects.select_related('file_record').alias(mismatch=Count(on_server)).filter(mismatch=1)
