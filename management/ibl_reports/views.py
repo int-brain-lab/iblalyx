@@ -2,14 +2,14 @@ import django_filters
 from django.http import HttpResponse, JsonResponse
 from django.template import loader
 from django.views.generic.list import ListView
-from django.db.models import Count, Q, F, Max, OuterRef, Exists, UUIDField
+from django.db.models import Q, F, OuterRef, Exists, UUIDField, DateTimeField, Max, Count
 from django.db.models.functions import Coalesce
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 from data.models import Dataset
 from experiments.models import TrajectoryEstimate, ProbeInsertion
 from misc.models import Note, Lab
-from subjects.models import Project
+from subjects.models import Project, Subject
 from actions.models import Session
 
 import numpy as np
@@ -449,7 +449,13 @@ class GalleryPlotsOverview(LoginRequiredMixin, ListView):
         qs = qs.annotate(session=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session'),
                                           Session.objects.filter(id=OuterRef('object_id')).values('pk'), output_field=UUIDField()))
 
-        self.f = GalleryFilter(self.request.GET, queryset=qs)
+        qs = qs.annotate(session_time=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__start_time'),
+                                               Session.objects.filter(id=OuterRef('object_id')).values('start_time')))
+
+        qs = qs.annotate(session_qc=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__qc'),
+                                               Session.objects.filter(id=OuterRef('object_id')).values('qc')))
+
+        self.f = GalleryFilter(self.request.GET, queryset=qs.order_by('-session_time'))
 
         return self.f.qs
 
@@ -461,7 +467,10 @@ for ip, pl in enumerate(plot_types):
 
 
 class GalleryFilter(django_filters.FilterSet):
-
+    """
+    Class that filters over Notes queryset.
+    Annotations are provided by the list view
+    """
     REPEATEDSITE = (
         (0, 'All'),
         (1, 'Repeated Site')
@@ -472,6 +481,7 @@ class GalleryFilter(django_filters.FilterSet):
     lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')  # here
     project = django_filters.ModelChoiceFilter(queryset=Project.objects.all(), label='Project', method='filter_project')
     repeated = django_filters.ChoiceFilter(choices=REPEATEDSITE, label='Location', method='filter_repeated')
+    session_qc = django_filters.MultipleChoiceFilter(choices=Session.QC_CHOICES, label='Session QC', method='filter_qc')
 
     class Meta:
         model = Note
@@ -481,14 +491,15 @@ class GalleryFilter(django_filters.FilterSet):
     def __init__(self, *args, **kwargs):
         super(GalleryFilter, self).__init__(*args, **kwargs)
 
+    def filter_qc(self, queryset, name, value):
+        queryset = queryset.filter(session_qc__in=value)
+        return queryset
+
     def filter_project(self, queryset, name, value):
-
         queryset = queryset.filter(project=value.name)
-
         return queryset
 
     def filter_plot(self, queryset, name, value):
-
         text = [pl[1] for pl in PLOT_OPTIONS if pl[0] == int(value)][0]
         queryset = queryset.filter(text=text)
         return queryset
@@ -596,3 +607,60 @@ class SessionFilter(django_filters.FilterSet):
                                    Q(probe_insertion__trajectory_estimate__theta=15))
 
 
+class SubjectTrainingPlots(LoginRequiredMixin, ListView):
+    template_name = 'ibl_reports/gallery_subject_overview.html'
+    login_url = LOGIN_URL
+    paginate_by = 20
+
+    def get_context_data(self, **kwargs):
+        # need to figure out which is more efficient
+        context = super(SubjectTrainingPlots, self).get_context_data(**kwargs)
+        context['subjectFilter'] = self.f
+        notes = Note.objects.all().filter(json__tag="## report ##")
+        s, data = self.get_my_data(context['object_list'], notes)
+
+        context['info'] = data
+        context['subjects'] = s
+
+        return context
+
+    def get_my_data(self, subjects, notes):
+        data = []
+        s = []
+        for subj in subjects:
+            info = {}
+            s.append(subj)
+            plot_dict = {}
+            for plot in data_info.OVERVIEW_SUBJECT_PLOTS:
+                note = notes.filter(object_id=subj.id, text=plot[0]).first()
+                if not note and not plot[1]:
+                    continue
+                else:
+                    plot_dict[plot[0]] = note
+            info[''] = plot_dict
+            data.append(info)
+
+        return s, data
+
+    def get_queryset(self):
+        qs = Subject.objects.all().prefetch_related('actions_sessions')
+        qs = qs.annotate(latest_sess=Max('actions_sessions__start_time'), n_sess=Count('actions_sessions'))
+        qs = qs.filter(n_sess__gte=1)
+        qs = qs.order_by('-latest_sess')
+        self.f = SubjectFilter(self.request.GET, queryset=qs)
+
+        return self.f.qs
+
+
+class SubjectFilter(django_filters.FilterSet):
+
+    nickname = django_filters.ModelChoiceFilter(queryset=Subject.objects.all(), label='Nickname')
+    lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')
+
+    class Meta:
+        model = Note
+        fields = ['nickname', 'lab']
+        exclude = ['json']
+
+    def __init__(self, *args, **kwargs):
+        super(SubjectFilter, self).__init__(*args, **kwargs)

@@ -1,0 +1,1750 @@
+2022-04-25 17:30:21 Beginning to create local version of public database
+... creating working directory /home/julia/openalyx_wd
+... copying latest backup of production database
+... destroying local public database
+... rebuilding local public database from production
+ set_config 
+------------
+ 
+(1 row)
+
+psql:/home/julia/openalyx_wd/alyxfull.sql:19: ERROR:  relation "public.subjects_zygosityrule" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:20: ERROR:  relation "public.subjects_zygosityrule" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:21: ERROR:  relation "public.subjects_zygosityrule" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:22: ERROR:  relation "public.subjects_zygosityrule" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:23: ERROR:  relation "public.subjects_zygosity" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:24: ERROR:  relation "public.subjects_zygosity" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:25: ERROR:  relation "public.subjects_subjectrequest" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:26: ERROR:  relation "public.subjects_subjectrequest" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:27: ERROR:  relation "public.subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:28: ERROR:  relation "public.subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:29: ERROR:  relation "public.subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:30: ERROR:  relation "public.subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:31: ERROR:  relation "public.subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:32: ERROR:  relation "public.subjects_subject_projects" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:33: ERROR:  relation "public.subjects_subject_projects" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:34: ERROR:  relation "public.subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:35: ERROR:  relation "public.subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:36: ERROR:  relation "public.subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:37: ERROR:  relation "public.subjects_project_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:38: ERROR:  relation "public.subjects_project_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:39: ERROR:  relation "public.subjects_litter" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:40: ERROR:  relation "public.subjects_litter" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:41: ERROR:  relation "public.subjects_line" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:42: ERROR:  relation "public.subjects_line" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:43: ERROR:  relation "public.subjects_line" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:44: ERROR:  relation "public.subjects_line" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:45: ERROR:  relation "public.subjects_line_alleles" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:46: ERROR:  relation "public.subjects_line_alleles" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:47: ERROR:  relation "public.subjects_genotypetest" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:48: ERROR:  relation "public.subjects_genotypetest" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:49: ERROR:  relation "public.subjects_breedingpair" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:50: ERROR:  relation "public.subjects_breedingpair" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:51: ERROR:  relation "public.subjects_breedingpair" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:52: ERROR:  relation "public.subjects_breedingpair" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:53: ERROR:  relation "public.subjects_allele_sequences" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:54: ERROR:  relation "public.subjects_allele_sequences" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:55: ERROR:  relation "public.reversion_version" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:56: ERROR:  relation "public.reversion_version" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:57: ERROR:  relation "public.reversion_revision" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:58: ERROR:  relation "public.misc_note" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:59: ERROR:  relation "public.misc_note" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:60: ERROR:  relation "public.misc_labmembership" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:61: ERROR:  relation "public.misc_labmembership" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:62: ERROR:  relation "public.misc_labmember_user_permissions" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:63: ERROR:  relation "public.misc_labmember_user_permissions" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:64: ERROR:  relation "public.misc_labmember_groups" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:65: ERROR:  relation "public.misc_labmember_groups" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:66: ERROR:  relation "public.misc_labmember_allowed_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:67: ERROR:  relation "public.misc_labmember_allowed_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:68: ERROR:  relation "public.misc_lablocation" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:69: ERROR:  relation "public.misc_lab_repositories" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:70: ERROR:  relation "public.misc_lab_repositories" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:71: ERROR:  relation "public.misc_lab" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:72: ERROR:  relation "public.misc_lab" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:73: ERROR:  relation "public.misc_lab" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:74: ERROR:  relation "public.misc_housingsubject" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:75: ERROR:  relation "public.misc_housingsubject" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:76: ERROR:  relation "public.misc_housing" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:77: ERROR:  relation "public.misc_housing" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:78: ERROR:  relation "public.misc_housing" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:79: ERROR:  relation "public.jobs_task" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:80: ERROR:  relation "public.jobs_task_parents" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:81: ERROR:  relation "public.jobs_task_parents" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:82: ERROR:  relation "public.experiments_trajectoryestimate" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:83: ERROR:  relation "public.experiments_trajectoryestimate" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:84: ERROR:  relation "public.experiments_probeinsertion" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:85: ERROR:  relation "public.experiments_probeinsertion_datasets" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:86: ERROR:  relation "public.experiments_probeinsertion" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:87: ERROR:  relation "public.experiments_probeinsertion_datasets" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:88: ERROR:  relation "public.experiments_probeinsertion" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:89: ERROR:  relation "public.experiments_channel" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:90: ERROR:  relation "public.experiments_channel" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:91: ERROR:  relation "public.experiments_brainregion" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:92: ERROR:  relation "public.django_admin_log" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:93: ERROR:  relation "public.django_admin_log" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:94: ERROR:  relation "public.data_filerecord" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:95: ERROR:  relation "public.data_filerecord" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:96: ERROR:  relation "public.data_download" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:97: ERROR:  relation "public.data_download_projects" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:98: ERROR:  relation "public.data_download_projects" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:99: ERROR:  relation "public.data_download" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:100: ERROR:  relation "public.data_datasettype" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:101: ERROR:  relation "public.data_dataset_tags" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:102: ERROR:  relation "public.data_dataset_tags" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:103: ERROR:  relation "public.data_dataset" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:104: ERROR:  relation "public.data_dataset" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:105: ERROR:  relation "public.data_dataset" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:106: ERROR:  relation "public.data_dataset" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:107: ERROR:  relation "public.data_dataset" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:108: ERROR:  relation "public.data_dataset" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:109: ERROR:  relation "public.data_datarepository" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:110: ERROR:  relation "public.authtoken_token" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:111: ERROR:  relation "public.auth_permission" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:112: ERROR:  relation "public.auth_group_permissions" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:113: ERROR:  relation "public.auth_group_permissions" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:114: ERROR:  relation "public.actions_weighing" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:115: ERROR:  relation "public.actions_weighing" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:116: ERROR:  relation "public.actions_waterrestriction" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:117: ERROR:  relation "public.actions_waterrestriction_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:118: ERROR:  relation "public.actions_waterrestriction_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:119: ERROR:  relation "public.actions_waterrestriction" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:120: ERROR:  relation "public.actions_waterrestriction" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:121: ERROR:  relation "public.actions_waterrestriction_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:122: ERROR:  relation "public.actions_waterrestriction" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:123: ERROR:  relation "public.actions_waterrestriction_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:124: ERROR:  relation "public.actions_wateradministration" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:125: ERROR:  relation "public.actions_wateradministration" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:126: ERROR:  relation "public.actions_wateradministration" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:127: ERROR:  relation "public.actions_wateradministration" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:128: ERROR:  relation "public.actions_virusinjection" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:129: ERROR:  relation "public.actions_virusinjection_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:130: ERROR:  relation "public.actions_virusinjection_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:131: ERROR:  relation "public.actions_virusinjection" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:132: ERROR:  relation "public.actions_virusinjection_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:133: ERROR:  relation "public.actions_virusinjection" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:134: ERROR:  relation "public.actions_virusinjection_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:135: ERROR:  relation "public.actions_surgery_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:136: ERROR:  relation "public.actions_surgery_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:137: ERROR:  relation "public.actions_surgery" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:138: ERROR:  relation "public.actions_surgery_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:139: ERROR:  relation "public.actions_surgery_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:140: ERROR:  relation "public.actions_surgery" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:141: ERROR:  relation "public.actions_surgery" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:142: ERROR:  relation "public.actions_session_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:143: ERROR:  relation "public.actions_session_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:144: ERROR:  relation "public.actions_session" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:145: ERROR:  relation "public.actions_session" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:146: ERROR:  relation "public.actions_session_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:147: ERROR:  relation "public.actions_session_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:148: ERROR:  relation "public.actions_session" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:149: ERROR:  relation "public.actions_session" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:150: ERROR:  relation "public.actions_session" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:151: ERROR:  relation "public.actions_otheraction" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:152: ERROR:  relation "public.actions_otheraction" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:153: ERROR:  relation "public.actions_otheraction" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:154: ERROR:  relation "public.actions_otheraction_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:155: ERROR:  relation "public.actions_otheraction_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:156: ERROR:  relation "public.actions_otheraction_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:157: ERROR:  relation "public.actions_otheraction_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:158: ERROR:  relation "public.actions_notificationrule" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:159: ERROR:  relation "public.actions_notification" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:160: ERROR:  relation "public.actions_notification_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:161: ERROR:  relation "public.actions_notification_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:162: ERROR:  relation "public.actions_cull" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:163: ERROR:  relation "public.actions_cull" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:164: ERROR:  relation "public.actions_cull" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:165: ERROR:  relation "public.actions_cull" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:166: ERROR:  relation "public.actions_chronicrecording" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:167: ERROR:  relation "public.actions_chronicrecording" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:168: ERROR:  relation "public.actions_chronicrecording_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:169: ERROR:  relation "public.actions_chronicrecording" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:170: ERROR:  relation "public.actions_chronicrecording_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:171: ERROR:  relation "public.actions_chronicrecording_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:172: ERROR:  relation "public.actions_chronicrecording_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:173: ERROR:  index "subjects_zygosityrule_sequence1_id_e9eb3304" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:174: ERROR:  index "subjects_zygosityrule_sequence0_id_42532d3f" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:175: ERROR:  index "subjects_zygosityrule_line_id_373398aa" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:176: ERROR:  index "subjects_zygosityrule_allele_id_a0c552e5" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:177: ERROR:  index "subjects_zygosity_subject_id_f88301c3" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:178: ERROR:  index "subjects_zygosity_allele_id_3f2c26c3" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:179: ERROR:  index "subjects_subjectrequest_user_id_bab190d5" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:180: ERROR:  index "subjects_subjectrequest_line_id_7c48ef39" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:181: ERROR:  index "subjects_subject_strain_id_81db4224" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:182: ERROR:  index "subjects_subject_species_id_11dd3120" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:183: ERROR:  index "subjects_subject_source_id_b0de39f1" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:184: ERROR:  index "subjects_subject_responsible_user_id_c6d1a5d4" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:185: ERROR:  index "subjects_subject_request_id_def22c22" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:186: ERROR:  index "subjects_subject_projects_subject_id_991d901c" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:187: ERROR:  index "subjects_subject_projects_project_id_915b5341" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:188: ERROR:  index "subjects_subject_litter_id_2397cfaf" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:189: ERROR:  index "subjects_subject_line_id_fd580bf6" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:190: ERROR:  index "subjects_subject_lab_id_7933e472" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:191: ERROR:  index "subjects_species_nickname_964063dc_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:192: ERROR:  index "subjects_sequence_name_d2bdfdf5_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:193: ERROR:  index "subjects_project_users_project_id_63d63655" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:194: ERROR:  index "subjects_project_users_labmember_id_0a63cd4a" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:195: ERROR:  index "subjects_project_name_faea5608_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:196: ERROR:  index "subjects_litter_line_id_e44e31e2" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:197: ERROR:  index "subjects_litter_breeding_pair_id_8e863351" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:198: ERROR:  index "subjects_line_strain_id_d6ef2675" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:199: ERROR:  index "subjects_line_species_id_002ef5dd" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:200: ERROR:  index "subjects_line_source_id_bd0caeff" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:201: ERROR:  index "subjects_line_nickname_22b7ee2d_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:202: ERROR:  index "subjects_line_lab_id_c1c568e0" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:203: ERROR:  index "subjects_line_alleles_line_id_cfee50df" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:204: ERROR:  index "subjects_line_alleles_allele_id_d97a050c" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:205: ERROR:  index "subjects_genotypetest_subject_id_39372756" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:206: ERROR:  index "subjects_genotypetest_sequence_id_6586d796" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:207: ERROR:  index "subjects_breedingpair_mother2_id_fa5df479" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:208: ERROR:  index "subjects_breedingpair_mother1_id_7e14f4d4" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:209: ERROR:  index "subjects_breedingpair_line_id_6df3916a" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:210: ERROR:  index "subjects_breedingpair_father_id_51f24160" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:211: ERROR:  index "subjects_allele_sequences_sequence_id_934c088d" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:212: ERROR:  index "subjects_allele_sequences_allele_id_b4813b29" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:213: ERROR:  index "subjects_allele_nickname_f78167b1_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:214: ERROR:  index "reversion_version_revision_id_af9f6a9d" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:215: ERROR:  index "reversion_version_content_type_id_7d0ff25c" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:216: ERROR:  index "reversion_v_content_f95daf_idx" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:217: ERROR:  index "reversion_revision_user_id_17095f45" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:218: ERROR:  index "reversion_revision_date_created_96f7c20c" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:219: ERROR:  index "misc_note_user_id_62c6e82c" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:220: ERROR:  index "misc_note_content_type_id_52ba51bd" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:221: ERROR:  index "misc_labmembership_user_id_a11852f6" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:222: ERROR:  index "misc_labmembership_lab_id_31faf4a9" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:223: ERROR:  index "misc_labmember_username_00bcd5e3_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:224: ERROR:  index "misc_labmember_user_permissions_permission_id_8815c475" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:225: ERROR:  index "misc_labmember_user_permissions_labmember_id_17cc3aeb" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:226: ERROR:  index "misc_labmember_groups_labmember_id_8200f190" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:227: ERROR:  index "misc_labmember_groups_group_id_741f24de" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:228: ERROR:  index "misc_labmember_allowed_users_to_labmember_id_3ffa53f5" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:229: ERROR:  index "misc_labmember_allowed_users_from_labmember_id_77b32c3d" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:230: ERROR:  index "misc_lablocation_lab_id_ec939418" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:231: ERROR:  index "misc_lab_repositories_lab_id_10705ddb" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:232: ERROR:  index "misc_lab_repositories_datarepository_id_ac96e28a" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:233: ERROR:  index "misc_lab_name_29b618ea_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:234: ERROR:  index "misc_lab_food_id_ac0e906b" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:235: ERROR:  index "misc_lab_enrichment_id_8459606c" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:236: ERROR:  index "misc_lab_cage_type_id_ad7daebe" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:237: ERROR:  index "misc_housingsubject_subject_id_c2487373" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:238: ERROR:  index "misc_housingsubject_housing_id_6645cb92" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:239: ERROR:  index "misc_housing_food_id_89bb1004" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:240: ERROR:  index "misc_housing_enrichment_id_43cd3d9a" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:241: ERROR:  index "misc_housing_cage_type_id_11712bbc" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:242: ERROR:  index "misc_food_name_8339d1ed_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:243: ERROR:  index "misc_enrichment_name_51e06895_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:244: ERROR:  index "jobs_task_session_id_c8741080" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:245: ERROR:  index "jobs_task_parents_to_task_id_3f1e3693" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:246: ERROR:  index "jobs_task_parents_from_task_id_21c65783" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:247: ERROR:  index "experiments_trajectoryestimate_probe_insertion_id_826f71bf" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:248: ERROR:  index "experiments_trajectoryestimate_coordinate_system_id_d4245314" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:249: ERROR:  index "experiments_probemodel_probe_model_ad6e6b0f_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:250: ERROR:  index "experiments_probeinsertion_session_id_595b4221" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:251: ERROR:  index "experiments_probeinsertion_model_id_0ca31b51" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:252: ERROR:  index "experiments_probeinsertion_datasets_probeinsertion_id_cc53f096" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:253: ERROR:  index "experiments_probeinsertion_datasets_dataset_id_22827b79" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:254: ERROR:  index "experiments_probeinsertion_chronic_recording_id_333924ed" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:255: ERROR:  index "experiments_coordinatesystem_description_31c0fe6d_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:256: ERROR:  index "experiments_channel_trajectory_estimate_id_b31f579e" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:257: ERROR:  index "experiments_channel_brain_region_id_4b8d1ced" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:258: ERROR:  index "experiments_brainregion_tree_id_4f6f5811" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:259: ERROR:  index "experiments_brainregion_parent_id_dd00eb67" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:260: ERROR:  index "experiments_brainregion_name_ca3b986f_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:261: ERROR:  index "experiments_brainregion_acronym_7146fc7f_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:262: ERROR:  index "django_session_session_key_c0390e0f_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:263: ERROR:  index "django_session_expire_date_a5c62663" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:264: ERROR:  index "django_admin_log_user_id_c564eba6" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:265: ERROR:  index "django_admin_log_content_type_id_c4bce8eb" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:266: ERROR:  index "data_tag_name_87f0d4af_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:267: ERROR:  index "data_revision_name_d68a2101_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:268: ERROR:  index "data_filerecord_dataset_id_bf52dd2f" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:269: ERROR:  index "data_filerecord_data_repository_id_19ea8843" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:270: ERROR:  index "data_download_user_id_803fa7e9" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:271: ERROR:  index "data_download_projects_project_id_d9776dc7" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:272: ERROR:  index "data_download_projects_download_id_6410ebb7" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:273: ERROR:  index "data_download_dataset_id_b047fb82" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:274: ERROR:  index "data_datasettype_name_23dc6925_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:275: ERROR:  index "data_datasettype_filename_pattern_917eb0cc_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:276: ERROR:  index "data_datasettype_created_by_id_129af3ec" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:277: ERROR:  index "data_dataset_tags_tag_id_ad536839" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:278: ERROR:  index "data_dataset_tags_dataset_id_ae02dd46" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:279: ERROR:  index "data_dataset_session_id_ab72710b" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:280: ERROR:  index "data_dataset_revision_id_55a2ccac" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:281: ERROR:  index "data_dataset_provenance_directory_id_f294296a" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:282: ERROR:  index "data_dataset_dataset_type_id_94334f26" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:283: ERROR:  index "data_dataset_data_format_id_e0e5c7b1" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:284: ERROR:  index "data_dataset_created_by_id_0a90b878" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:285: ERROR:  index "data_datarepositorytype_name_41e4c6c7_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:286: ERROR:  index "data_datarepository_repository_type_id_8f041b17" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:287: ERROR:  index "data_datarepository_name_5561d58d_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:288: ERROR:  index "data_dataformat_name_d716355f_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:289: ERROR:  index "authtoken_token_key_10f0b77e_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:290: ERROR:  index "auth_permission_content_type_id_2f476e4b" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:291: ERROR:  index "auth_group_permissions_permission_id_84c5c92e" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:292: ERROR:  index "auth_group_permissions_group_id_b120cbf9" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:293: ERROR:  index "auth_group_name_a6ea08ec_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:294: ERROR:  index "actions_weighing_user_id_d99c1c61" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:295: ERROR:  index "actions_weighing_subject_id_fc2c9b3b" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:296: ERROR:  index "actions_watertype_name_2e75cab3_like" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:297: ERROR:  index "actions_waterrestriction_water_type_id_c4f99f9f" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:298: ERROR:  index "actions_waterrestriction_users_waterrestriction_id_ba08c0f7" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:299: ERROR:  index "actions_waterrestriction_users_labmember_id_bdfcb1d4" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:300: ERROR:  index "actions_waterrestriction_subject_id_fd70c47b" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:301: ERROR:  index "actions_waterrestriction_procedures_proceduretype_id_76881252" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:302: ERROR:  index "actions_waterrestriction_p_waterrestriction_id_59a5fc45" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:303: ERROR:  index "actions_waterrestriction_location_id_3a164227" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:304: ERROR:  index "actions_waterrestriction_lab_id_7fa14d2c" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:305: ERROR:  index "actions_wateradministration_water_type_id_73507491" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:306: ERROR:  index "actions_wateradministration_user_id_fd97af9c" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:307: ERROR:  index "actions_wateradministration_subject_id_2eebc4f4" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:308: ERROR:  index "actions_wateradministration_session_id_96b14888" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:309: ERROR:  index "actions_virusinjection_users_virusinjection_id_fa03f51a" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:310: ERROR:  index "actions_virusinjection_users_labmember_id_92c3a1df" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:311: ERROR:  index "actions_virusinjection_subject_id_44c3deaf" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:312: ERROR:  index "actions_virusinjection_procedures_virusinjection_id_ed343840" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:313: ERROR:  index "actions_virusinjection_procedures_proceduretype_id_c0e7c46c" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:314: ERROR:  index "actions_virusinjection_location_id_6f75e3db" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:315: ERROR:  index "actions_virusinjection_lab_id_b934db4a" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:316: ERROR:  index "actions_surgery_users_surgery_id_077a7da7" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:317: ERROR:  index "actions_surgery_users_labmember_id_806afa64" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:318: ERROR:  index "actions_surgery_subject_id_e6e5e154" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:319: ERROR:  index "actions_surgery_procedures_surgery_id_6c3f091c" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:320: ERROR:  index "actions_surgery_procedures_proceduretype_id_cf707911" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:321: ERROR:  index "actions_surgery_location_id_3e2560fd" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:322: ERROR:  index "actions_surgery_lab_id_c1b2831a" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:323: ERROR:  index "actions_session_users_session_id_40cb62aa" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:324: ERROR:  index "actions_session_users_labmember_id_77b1af7c" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:325: ERROR:  index "actions_session_subject_id_0340072c" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:326: ERROR:  index "actions_session_project_id_b5412a28" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:327: ERROR:  index "actions_session_procedures_session_id_a0bbe506" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:328: ERROR:  index "actions_session_procedures_proceduretype_id_5470baad" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:329: ERROR:  index "actions_session_parent_session_id_1a66da0c" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:330: ERROR:  index "actions_session_location_id_e331d2ad" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:331: ERROR:  index "actions_session_lab_id_b81b8ac9" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:332: ERROR:  index "actions_otheraction_users_otheraction_id_0b29bfe6" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:333: ERROR:  index "actions_otheraction_users_labmember_id_7082a144" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:334: ERROR:  index "actions_otheraction_subject_id_c27ce260" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:335: ERROR:  index "actions_otheraction_procedures_proceduretype_id_c1282091" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:336: ERROR:  index "actions_otheraction_procedures_otheraction_id_d11475f7" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:337: ERROR:  index "actions_otheraction_location_id_69a49193" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:338: ERROR:  index "actions_otheraction_lab_id_88f806cd" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:339: ERROR:  index "actions_notificationrule_user_id_b41f7942" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:340: ERROR:  index "actions_notification_users_notification_id_148acc03" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:341: ERROR:  index "actions_notification_users_labmember_id_e972dbba" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:342: ERROR:  index "actions_notification_subject_id_d419f368" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:343: ERROR:  index "actions_cull_user_id_6375414a" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:344: ERROR:  index "actions_cull_cull_reason_id_b5bfe7e1" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:345: ERROR:  index "actions_cull_cull_method_id_beb1587b" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:346: ERROR:  index "actions_chronicrecording_users_labmember_id_63729b82" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:347: ERROR:  index "actions_chronicrecording_users_chronicrecording_id_229ba951" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:348: ERROR:  index "actions_chronicrecording_subject_id_79bb521d" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:349: ERROR:  index "actions_chronicrecording_procedures_proceduretype_id_43a59726" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:350: ERROR:  index "actions_chronicrecording_p_chronicrecording_id_009ee7c8" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:351: ERROR:  index "actions_chronicrecording_location_id_84b105ea" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:352: ERROR:  index "actions_chronicrecording_lab_id_187c7a32" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:353: ERROR:  relation "public.experiments_trajectoryestimate" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:354: ERROR:  relation "public.jobs_task" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:355: ERROR:  relation "public.experiments_probeinsertion" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:356: ERROR:  relation "public.experiments_channel" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:357: ERROR:  relation "public.subjects_zygosityrule" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:358: ERROR:  relation "public.subjects_zygosityrule" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:359: ERROR:  relation "public.subjects_zygosity" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:360: ERROR:  relation "public.subjects_subjectrequest" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:361: ERROR:  relation "public.subjects_subject_projects" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:362: ERROR:  relation "public.subjects_subject_projects" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:363: ERROR:  relation "public.subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:364: ERROR:  relation "public.subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:365: ERROR:  relation "public.subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:366: ERROR:  relation "public.subjects_strain" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:367: ERROR:  relation "public.subjects_species" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:368: ERROR:  relation "public.subjects_species" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:369: ERROR:  relation "public.subjects_source" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:370: ERROR:  relation "public.subjects_sequence" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:371: ERROR:  relation "public.subjects_sequence" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:372: ERROR:  relation "public.subjects_project_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:373: ERROR:  relation "public.subjects_project_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:374: ERROR:  relation "public.subjects_project" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:375: ERROR:  relation "public.subjects_project" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:376: ERROR:  relation "public.subjects_litter" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:377: ERROR:  relation "public.subjects_litter" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:378: ERROR:  relation "public.subjects_line" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:379: ERROR:  relation "public.subjects_line" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:380: ERROR:  relation "public.subjects_line" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:381: ERROR:  relation "public.subjects_line_alleles" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:382: ERROR:  relation "public.subjects_line_alleles" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:383: ERROR:  relation "public.subjects_genotypetest" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:384: ERROR:  relation "public.subjects_breedingpair" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:385: ERROR:  relation "public.subjects_allele_sequences" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:386: ERROR:  relation "public.subjects_allele_sequences" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:387: ERROR:  relation "public.subjects_allele" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:388: ERROR:  relation "public.subjects_allele" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:389: ERROR:  relation "public.reversion_version" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:390: ERROR:  relation "public.reversion_version" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:391: ERROR:  relation "public.reversion_revision" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:392: ERROR:  relation "public.misc_note" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:393: ERROR:  relation "public.misc_labmembership" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:394: ERROR:  relation "public.misc_labmember" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:395: ERROR:  relation "public.misc_labmember_user_permissions" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:396: ERROR:  relation "public.misc_labmember_user_permissions" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:397: ERROR:  relation "public.misc_labmember" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:398: ERROR:  relation "public.misc_labmember_groups" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:399: ERROR:  relation "public.misc_labmember_groups" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:400: ERROR:  relation "public.misc_labmember_allowed_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:401: ERROR:  relation "public.misc_labmember_allowed_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:402: ERROR:  relation "public.misc_lablocation" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:403: ERROR:  relation "public.misc_lab_repositories" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:404: ERROR:  relation "public.misc_lab_repositories" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:405: ERROR:  relation "public.misc_lab" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:406: ERROR:  relation "public.misc_lab" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:407: ERROR:  relation "public.misc_housingsubject" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:408: ERROR:  relation "public.misc_housing" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:409: ERROR:  relation "public.misc_food" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:410: ERROR:  relation "public.misc_food" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:411: ERROR:  relation "public.misc_enrichment" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:412: ERROR:  relation "public.misc_enrichment" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:413: ERROR:  relation "public.misc_cagetype" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:414: ERROR:  relation "public.jobs_task" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:415: ERROR:  relation "public.jobs_task_parents" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:416: ERROR:  relation "public.jobs_task_parents" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:417: ERROR:  relation "public.experiments_trajectoryestimate" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:418: ERROR:  relation "public.experiments_probemodel" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:419: ERROR:  relation "public.experiments_probemodel" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:420: ERROR:  relation "public.experiments_probeinsertion" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:421: ERROR:  relation "public.experiments_probeinsertion_datasets" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:422: ERROR:  relation "public.experiments_probeinsertion_datasets" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:423: ERROR:  relation "public.experiments_coordinatesystem" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:424: ERROR:  relation "public.experiments_coordinatesystem" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:425: ERROR:  relation "public.experiments_channel" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:426: ERROR:  relation "public.experiments_brainregion" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:427: ERROR:  relation "public.experiments_brainregion" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:428: ERROR:  relation "public.experiments_brainregion" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:429: ERROR:  relation "public.django_session" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:430: ERROR:  relation "public.django_migrations" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:431: ERROR:  relation "public.django_content_type" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:432: ERROR:  relation "public.django_content_type" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:433: ERROR:  relation "public.django_admin_log" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:434: ERROR:  relation "public.data_tag" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:435: ERROR:  relation "public.data_tag" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:436: ERROR:  relation "public.data_revision" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:437: ERROR:  relation "public.data_revision" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:438: ERROR:  relation "public.data_filerecord" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:439: ERROR:  relation "public.data_filerecord" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:440: ERROR:  relation "public.data_download" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:441: ERROR:  relation "public.data_download_projects" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:442: ERROR:  relation "public.data_download_projects" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:443: ERROR:  relation "public.data_download" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:444: ERROR:  relation "public.data_datasettype" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:445: ERROR:  relation "public.data_datasettype" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:446: ERROR:  relation "public.data_datasettype" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:447: ERROR:  relation "public.data_dataset_tags" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:448: ERROR:  relation "public.data_dataset_tags" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:449: ERROR:  relation "public.data_dataset" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:450: ERROR:  relation "public.data_datarepositorytype" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:451: ERROR:  relation "public.data_datarepositorytype" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:452: ERROR:  relation "public.data_datarepository" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:453: ERROR:  relation "public.data_datarepository" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:454: ERROR:  relation "public.data_dataformat" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:455: ERROR:  relation "public.data_dataformat" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:456: ERROR:  relation "public.authtoken_token" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:457: ERROR:  relation "public.authtoken_token" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:458: ERROR:  relation "public.auth_permission" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:459: ERROR:  relation "public.auth_permission" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:460: ERROR:  relation "public.auth_group" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:461: ERROR:  relation "public.auth_group_permissions" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:462: ERROR:  relation "public.auth_group_permissions" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:463: ERROR:  relation "public.auth_group" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:464: ERROR:  relation "public.actions_weighing" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:465: ERROR:  relation "public.actions_watertype" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:466: ERROR:  relation "public.actions_watertype" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:467: ERROR:  relation "public.actions_waterrestriction_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:468: ERROR:  relation "public.actions_waterrestriction_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:469: ERROR:  relation "public.actions_waterrestriction_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:470: ERROR:  relation "public.actions_waterrestriction_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:471: ERROR:  relation "public.actions_waterrestriction" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:472: ERROR:  relation "public.actions_wateradministration" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:473: ERROR:  relation "public.actions_virusinjection_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:474: ERROR:  relation "public.actions_virusinjection_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:475: ERROR:  relation "public.actions_virusinjection_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:476: ERROR:  relation "public.actions_virusinjection" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:477: ERROR:  relation "public.actions_virusinjection_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:478: ERROR:  relation "public.actions_surgery_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:479: ERROR:  relation "public.actions_surgery_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:480: ERROR:  relation "public.actions_surgery_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:481: ERROR:  relation "public.actions_surgery_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:482: ERROR:  relation "public.actions_surgery" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:483: ERROR:  relation "public.actions_session_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:484: ERROR:  relation "public.actions_session_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:485: ERROR:  relation "public.actions_session_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:486: ERROR:  relation "public.actions_session_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:487: ERROR:  relation "public.actions_session" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:488: ERROR:  relation "public.actions_proceduretype" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:489: ERROR:  relation "public.actions_otheraction_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:490: ERROR:  relation "public.actions_otheraction_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:491: ERROR:  relation "public.actions_otheraction_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:492: ERROR:  relation "public.actions_otheraction_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:493: ERROR:  relation "public.actions_otheraction" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:494: ERROR:  relation "public.actions_notificationrule" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:495: ERROR:  relation "public.actions_notificationrule" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:496: ERROR:  relation "public.actions_notification_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:497: ERROR:  relation "public.actions_notification_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:498: ERROR:  relation "public.actions_notification" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:499: ERROR:  relation "public.actions_cullreason" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:500: ERROR:  relation "public.actions_cullmethod" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:501: ERROR:  relation "public.actions_cull" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:502: ERROR:  relation "public.actions_cull" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:503: ERROR:  relation "public.actions_chronicrecording_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:504: ERROR:  relation "public.actions_chronicrecording_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:505: ERROR:  relation "public.actions_chronicrecording" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:506: ERROR:  relation "public.actions_chronicrecording_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:507: ERROR:  relation "public.actions_chronicrecording_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:508: ERROR:  relation "public.subjects_subject_projects" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:509: ERROR:  relation "public.subjects_project_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:510: ERROR:  relation "public.subjects_line_alleles" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:511: ERROR:  relation "public.subjects_allele_sequences" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:512: ERROR:  relation "public.reversion_version" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:513: ERROR:  relation "public.reversion_revision" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:514: ERROR:  relation "public.misc_labmember_user_permissions" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:515: ERROR:  relation "public.misc_labmember_groups" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:516: ERROR:  relation "public.misc_labmember_allowed_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:517: ERROR:  relation "public.misc_lab_repositories" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:518: ERROR:  relation "public.jobs_task_parents" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:519: ERROR:  relation "public.experiments_probeinsertion_datasets" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:520: ERROR:  relation "public.django_migrations" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:521: ERROR:  relation "public.django_content_type" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:522: ERROR:  relation "public.django_admin_log" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:523: ERROR:  relation "public.data_download_projects" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:524: ERROR:  relation "public.data_dataset_tags" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:525: ERROR:  relation "public.auth_permission" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:526: ERROR:  relation "public.auth_group_permissions" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:527: ERROR:  relation "public.auth_group" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:528: ERROR:  relation "public.actions_waterrestriction_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:529: ERROR:  relation "public.actions_waterrestriction_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:530: ERROR:  relation "public.actions_virusinjection_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:531: ERROR:  relation "public.actions_virusinjection_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:532: ERROR:  relation "public.actions_surgery_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:533: ERROR:  relation "public.actions_surgery_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:534: ERROR:  relation "public.actions_session_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:535: ERROR:  relation "public.actions_session_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:536: ERROR:  relation "public.actions_otheraction_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:537: ERROR:  relation "public.actions_otheraction_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:538: ERROR:  relation "public.actions_notification_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:539: ERROR:  relation "public.actions_chronicrecording_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:540: ERROR:  relation "public.actions_chronicrecording_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:541: ERROR:  table "subjects_zygosityrule" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:542: ERROR:  table "subjects_zygosity" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:543: ERROR:  table "subjects_subjectrequest" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:544: ERROR:  sequence "subjects_subject_projects_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:545: ERROR:  table "subjects_subject_projects" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:546: ERROR:  table "subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:547: ERROR:  table "subjects_strain" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:548: ERROR:  table "subjects_species" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:549: ERROR:  table "subjects_source" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:550: ERROR:  table "subjects_sequence" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:551: ERROR:  sequence "subjects_project_users_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:552: ERROR:  table "subjects_project_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:553: ERROR:  table "subjects_project" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:554: ERROR:  table "subjects_litter" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:555: ERROR:  sequence "subjects_line_alleles_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:556: ERROR:  table "subjects_line_alleles" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:557: ERROR:  table "subjects_line" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:558: ERROR:  table "subjects_genotypetest" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:559: ERROR:  table "subjects_breedingpair" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:560: ERROR:  sequence "subjects_allele_sequences_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:561: ERROR:  table "subjects_allele_sequences" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:562: ERROR:  table "subjects_allele" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:563: ERROR:  sequence "reversion_version_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:564: ERROR:  table "reversion_version" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:565: ERROR:  sequence "reversion_revision_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:566: ERROR:  table "reversion_revision" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:567: ERROR:  table "misc_note" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:568: ERROR:  table "misc_labmembership" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:569: ERROR:  sequence "misc_labmember_user_permissions_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:570: ERROR:  table "misc_labmember_user_permissions" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:571: ERROR:  sequence "misc_labmember_groups_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:572: ERROR:  table "misc_labmember_groups" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:573: ERROR:  sequence "misc_labmember_allowed_users_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:574: ERROR:  table "misc_labmember_allowed_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:575: ERROR:  table "misc_labmember" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:576: ERROR:  table "misc_lablocation" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:577: ERROR:  sequence "misc_lab_repositories_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:578: ERROR:  table "misc_lab_repositories" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:579: ERROR:  table "misc_lab" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:580: ERROR:  table "misc_housingsubject" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:581: ERROR:  table "misc_housing" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:582: ERROR:  table "misc_food" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:583: ERROR:  table "misc_enrichment" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:584: ERROR:  table "misc_cagetype" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:585: ERROR:  sequence "jobs_task_parents_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:586: ERROR:  table "jobs_task_parents" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:587: ERROR:  table "jobs_task" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:588: ERROR:  table "experiments_trajectoryestimate" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:589: ERROR:  table "experiments_probemodel" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:590: ERROR:  sequence "experiments_probeinsertion_datasets_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:591: ERROR:  table "experiments_probeinsertion_datasets" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:592: ERROR:  table "experiments_probeinsertion" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:593: ERROR:  table "experiments_coordinatesystem" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:594: ERROR:  table "experiments_channel" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:595: ERROR:  table "experiments_brainregion" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:596: ERROR:  table "django_session" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:597: ERROR:  sequence "django_migrations_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:598: ERROR:  table "django_migrations" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:599: ERROR:  sequence "django_content_type_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:600: ERROR:  table "django_content_type" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:601: ERROR:  sequence "django_admin_log_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:602: ERROR:  table "django_admin_log" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:603: ERROR:  table "data_tag" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:604: ERROR:  table "data_revision" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:605: ERROR:  table "data_filerecord" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:606: ERROR:  sequence "data_download_projects_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:607: ERROR:  table "data_download_projects" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:608: ERROR:  table "data_download" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:609: ERROR:  table "data_datasettype" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:610: ERROR:  sequence "data_dataset_tags_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:611: ERROR:  table "data_dataset_tags" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:612: ERROR:  table "data_dataset" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:613: ERROR:  table "data_datarepositorytype" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:614: ERROR:  table "data_datarepository" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:615: ERROR:  table "data_dataformat" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:616: ERROR:  table "authtoken_token" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:617: ERROR:  sequence "auth_permission_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:618: ERROR:  table "auth_permission" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:619: ERROR:  sequence "auth_group_permissions_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:620: ERROR:  table "auth_group_permissions" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:621: ERROR:  sequence "auth_group_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:622: ERROR:  table "auth_group" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:623: ERROR:  table "actions_weighing" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:624: ERROR:  table "actions_watertype" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:625: ERROR:  sequence "actions_waterrestriction_users_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:626: ERROR:  table "actions_waterrestriction_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:627: ERROR:  sequence "actions_waterrestriction_procedures_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:628: ERROR:  table "actions_waterrestriction_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:629: ERROR:  table "actions_waterrestriction" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:630: ERROR:  table "actions_wateradministration" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:631: ERROR:  sequence "actions_virusinjection_users_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:632: ERROR:  table "actions_virusinjection_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:633: ERROR:  sequence "actions_virusinjection_procedures_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:634: ERROR:  table "actions_virusinjection_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:635: ERROR:  table "actions_virusinjection" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:636: ERROR:  sequence "actions_surgery_users_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:637: ERROR:  table "actions_surgery_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:638: ERROR:  sequence "actions_surgery_procedures_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:639: ERROR:  table "actions_surgery_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:640: ERROR:  table "actions_surgery" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:641: ERROR:  sequence "actions_session_users_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:642: ERROR:  table "actions_session_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:643: ERROR:  sequence "actions_session_procedures_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:644: ERROR:  table "actions_session_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:645: ERROR:  table "actions_session" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:646: ERROR:  table "actions_proceduretype" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:647: ERROR:  sequence "actions_otheraction_users_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:648: ERROR:  table "actions_otheraction_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:649: ERROR:  sequence "actions_otheraction_procedures_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:650: ERROR:  table "actions_otheraction_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:651: ERROR:  table "actions_otheraction" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:652: ERROR:  table "actions_notificationrule" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:653: ERROR:  sequence "actions_notification_users_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:654: ERROR:  table "actions_notification_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:655: ERROR:  table "actions_notification" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:656: ERROR:  table "actions_cullreason" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:657: ERROR:  table "actions_cullmethod" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:658: ERROR:  table "actions_cull" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:659: ERROR:  sequence "actions_chronicrecording_users_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:660: ERROR:  table "actions_chronicrecording_users" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:661: ERROR:  sequence "actions_chronicrecording_procedures_id_seq" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:662: ERROR:  table "actions_chronicrecording_procedures" does not exist
+psql:/home/julia/openalyx_wd/alyxfull.sql:663: ERROR:  table "actions_chronicrecording" does not exist
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+ 461882
+(1 row)
+
+ setval 
+--------
+     92
+(1 row)
+
+ setval 
+--------
+     84
+(1 row)
+
+ setval 
+--------
+  50805
+(1 row)
+
+ setval 
+--------
+ 102924
+(1 row)
+
+ setval 
+--------
+   4176
+(1 row)
+
+ setval 
+--------
+   3248
+(1 row)
+
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+     18
+(1 row)
+
+ setval 
+--------
+   2909
+(1 row)
+
+ setval 
+--------
+      2
+(1 row)
+
+ setval 
+--------
+    785
+(1 row)
+
+ setval 
+--------
+    280
+(1 row)
+
+ setval 
+--------
+ 119405
+(1 row)
+
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+ 126783
+(1 row)
+
+ setval 
+--------
+     70
+(1 row)
+
+ setval 
+--------
+     87
+(1 row)
+
+ setval  
+---------
+ 3453465
+(1 row)
+
+ setval 
+--------
+ 322689
+(1 row)
+
+ setval 
+--------
+     32
+(1 row)
+
+ setval 
+--------
+     29
+(1 row)
+
+ setval 
+--------
+    564
+(1 row)
+
+ setval 
+--------
+   1385
+(1 row)
+
+ setval 
+--------
+  33863
+(1 row)
+
+ setval  
+---------
+ 3343979
+(1 row)
+
+ setval 
+--------
+     98
+(1 row)
+
+ setval 
+--------
+     99
+(1 row)
+
+ setval 
+--------
+    102
+(1 row)
+
+ setval 
+--------
+   1908
+(1 row)
+
+... pruning local public database
+Dataset IDs from files: ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt', '2021_Q2_Varol_et_al_datasets.pqt', '2021_Q3_Whiteway_et_al_datasets.pqt', '2021_Q2_PreRelease_datasets.pqt']
+Tags to keep: ['cfc4906a-316e-4150-8222-fe7e7f13bdac', '9dec1de8-389d-40f6-b00b-763e4fda6552', 'c8f0892a-a95b-4181-b8e6-d5d31cb97449', 'dcd8b2e5-3a32-41b4-ac15-085a208a4466']
+
+
+Starting to prune public database
+...pruning datasets
+...pruning sessions
+...pruning subjects
+...pruning projects
+...pruning labs and labmembers, anonymizing lab members
+...pruning probe insertions
+...deleting some tables
+Finished pruning database
+
+... creating sql dump of local public database
+... copying sql dump to mbox as backup
+2022-04-25 17:52:27 Finished creating local version of public database
+2022-04-25 18:00:29 Beginning to upload database to openalyx RDS
+... destroying the openalyx database
+NOTICE:  drop cascades to 90 other objects
+DETAIL:  drop cascades to table actions_chronicrecording
+drop cascades to table actions_chronicrecording_procedures
+drop cascades to table actions_chronicrecording_users
+drop cascades to table actions_cull
+drop cascades to table actions_cullmethod
+drop cascades to table actions_cullreason
+drop cascades to table actions_notification
+drop cascades to table actions_notification_users
+drop cascades to table actions_notificationrule
+drop cascades to table actions_otheraction
+drop cascades to table actions_otheraction_procedures
+drop cascades to table actions_otheraction_users
+drop cascades to table actions_proceduretype
+drop cascades to table actions_session
+drop cascades to table actions_session_procedures
+drop cascades to table actions_session_users
+drop cascades to table actions_surgery
+drop cascades to table actions_surgery_procedures
+drop cascades to table actions_surgery_users
+drop cascades to table actions_virusinjection
+drop cascades to table actions_virusinjection_procedures
+drop cascades to table actions_virusinjection_users
+drop cascades to table actions_wateradministration
+drop cascades to table actions_waterrestriction
+drop cascades to table actions_waterrestriction_procedures
+drop cascades to table actions_waterrestriction_users
+drop cascades to table actions_watertype
+drop cascades to table actions_weighing
+drop cascades to table auth_group
+drop cascades to table auth_group_permissions
+drop cascades to table auth_permission
+drop cascades to table authtoken_token
+drop cascades to table data_dataformat
+drop cascades to table data_datarepository
+drop cascades to table data_datarepositorytype
+drop cascades to table data_dataset
+drop cascades to table data_dataset_tags
+drop cascades to table data_datasettype
+drop cascades to table data_download
+drop cascades to table data_download_projects
+drop cascades to table data_filerecord
+drop cascades to table data_revision
+drop cascades to table data_tag
+drop cascades to table django_admin_log
+drop cascades to table django_content_type
+drop cascades to table django_migrations
+drop cascades to table django_session
+drop cascades to table experiments_brainregion
+drop cascades to table experiments_channel
+drop cascades to table experiments_coordinatesystem
+drop cascades to table experiments_probeinsertion
+drop cascades to table experiments_probeinsertion_datasets
+drop cascades to table experiments_probemodel
+drop cascades to table experiments_trajectoryestimate
+drop cascades to table jobs_task
+drop cascades to table jobs_task_parents
+drop cascades to table misc_cagetype
+drop cascades to table misc_enrichment
+drop cascades to table misc_food
+drop cascades to table misc_housing
+drop cascades to table misc_housingsubject
+drop cascades to table misc_lab
+drop cascades to table misc_lab_repositories
+drop cascades to table misc_lablocation
+drop cascades to table misc_labmember
+drop cascades to table misc_labmember_allowed_users
+drop cascades to table misc_labmember_groups
+drop cascades to table misc_labmember_user_permissions
+drop cascades to table misc_labmembership
+drop cascades to table misc_note
+drop cascades to table reversion_revision
+drop cascades to table reversion_version
+drop cascades to table subjects_allele
+drop cascades to table subjects_allele_sequences
+drop cascades to table subjects_breedingpair
+drop cascades to table subjects_genotypetest
+drop cascades to table subjects_line
+drop cascades to table subjects_line_alleles
+drop cascades to table subjects_litter
+drop cascades to table subjects_project
+drop cascades to table subjects_project_users
+drop cascades to table subjects_sequence
+drop cascades to table subjects_source
+drop cascades to table subjects_species
+drop cascades to table subjects_strain
+drop cascades to table subjects_subject
+drop cascades to table subjects_subject_projects
+drop cascades to table subjects_subjectrequest
+drop cascades to table subjects_zygosity
+drop cascades to table subjects_zygosityrule
+DROP SCHEMA
+CREATE SCHEMA
+... loading pruned database to openalyx
+ set_config 
+------------
+ 
+(1 row)
+
+psql:/home/julia/openalyx_wd/openalyx.sql:19: ERROR:  relation "public.subjects_zygosityrule" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:20: ERROR:  relation "public.subjects_zygosityrule" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:21: ERROR:  relation "public.subjects_zygosityrule" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:22: ERROR:  relation "public.subjects_zygosityrule" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:23: ERROR:  relation "public.subjects_zygosity" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:24: ERROR:  relation "public.subjects_zygosity" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:25: ERROR:  relation "public.subjects_subjectrequest" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:26: ERROR:  relation "public.subjects_subjectrequest" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:27: ERROR:  relation "public.subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:28: ERROR:  relation "public.subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:29: ERROR:  relation "public.subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:30: ERROR:  relation "public.subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:31: ERROR:  relation "public.subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:32: ERROR:  relation "public.subjects_subject_projects" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:33: ERROR:  relation "public.subjects_subject_projects" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:34: ERROR:  relation "public.subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:35: ERROR:  relation "public.subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:36: ERROR:  relation "public.subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:37: ERROR:  relation "public.subjects_project_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:38: ERROR:  relation "public.subjects_project_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:39: ERROR:  relation "public.subjects_litter" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:40: ERROR:  relation "public.subjects_litter" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:41: ERROR:  relation "public.subjects_line" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:42: ERROR:  relation "public.subjects_line" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:43: ERROR:  relation "public.subjects_line" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:44: ERROR:  relation "public.subjects_line" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:45: ERROR:  relation "public.subjects_line_alleles" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:46: ERROR:  relation "public.subjects_line_alleles" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:47: ERROR:  relation "public.subjects_genotypetest" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:48: ERROR:  relation "public.subjects_genotypetest" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:49: ERROR:  relation "public.subjects_breedingpair" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:50: ERROR:  relation "public.subjects_breedingpair" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:51: ERROR:  relation "public.subjects_breedingpair" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:52: ERROR:  relation "public.subjects_breedingpair" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:53: ERROR:  relation "public.subjects_allele_sequences" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:54: ERROR:  relation "public.subjects_allele_sequences" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:55: ERROR:  relation "public.reversion_version" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:56: ERROR:  relation "public.reversion_version" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:57: ERROR:  relation "public.reversion_revision" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:58: ERROR:  relation "public.misc_note" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:59: ERROR:  relation "public.misc_note" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:60: ERROR:  relation "public.misc_labmembership" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:61: ERROR:  relation "public.misc_labmembership" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:62: ERROR:  relation "public.misc_labmember_user_permissions" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:63: ERROR:  relation "public.misc_labmember_user_permissions" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:64: ERROR:  relation "public.misc_labmember_groups" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:65: ERROR:  relation "public.misc_labmember_groups" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:66: ERROR:  relation "public.misc_labmember_allowed_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:67: ERROR:  relation "public.misc_labmember_allowed_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:68: ERROR:  relation "public.misc_lablocation" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:69: ERROR:  relation "public.misc_lab_repositories" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:70: ERROR:  relation "public.misc_lab_repositories" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:71: ERROR:  relation "public.misc_lab" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:72: ERROR:  relation "public.misc_lab" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:73: ERROR:  relation "public.misc_lab" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:74: ERROR:  relation "public.misc_housingsubject" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:75: ERROR:  relation "public.misc_housingsubject" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:76: ERROR:  relation "public.misc_housing" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:77: ERROR:  relation "public.misc_housing" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:78: ERROR:  relation "public.misc_housing" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:79: ERROR:  relation "public.jobs_task" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:80: ERROR:  relation "public.jobs_task_parents" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:81: ERROR:  relation "public.jobs_task_parents" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:82: ERROR:  relation "public.experiments_trajectoryestimate" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:83: ERROR:  relation "public.experiments_trajectoryestimate" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:84: ERROR:  relation "public.experiments_probeinsertion" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:85: ERROR:  relation "public.experiments_probeinsertion_datasets" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:86: ERROR:  relation "public.experiments_probeinsertion" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:87: ERROR:  relation "public.experiments_probeinsertion_datasets" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:88: ERROR:  relation "public.experiments_probeinsertion" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:89: ERROR:  relation "public.experiments_channel" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:90: ERROR:  relation "public.experiments_channel" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:91: ERROR:  relation "public.experiments_brainregion" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:92: ERROR:  relation "public.django_admin_log" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:93: ERROR:  relation "public.django_admin_log" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:94: ERROR:  relation "public.data_filerecord" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:95: ERROR:  relation "public.data_filerecord" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:96: ERROR:  relation "public.data_download" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:97: ERROR:  relation "public.data_download_projects" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:98: ERROR:  relation "public.data_download_projects" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:99: ERROR:  relation "public.data_download" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:100: ERROR:  relation "public.data_datasettype" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:101: ERROR:  relation "public.data_dataset_tags" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:102: ERROR:  relation "public.data_dataset_tags" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:103: ERROR:  relation "public.data_dataset" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:104: ERROR:  relation "public.data_dataset" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:105: ERROR:  relation "public.data_dataset" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:106: ERROR:  relation "public.data_dataset" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:107: ERROR:  relation "public.data_dataset" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:108: ERROR:  relation "public.data_dataset" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:109: ERROR:  relation "public.data_datarepository" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:110: ERROR:  relation "public.authtoken_token" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:111: ERROR:  relation "public.auth_permission" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:112: ERROR:  relation "public.auth_group_permissions" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:113: ERROR:  relation "public.auth_group_permissions" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:114: ERROR:  relation "public.actions_weighing" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:115: ERROR:  relation "public.actions_weighing" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:116: ERROR:  relation "public.actions_waterrestriction" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:117: ERROR:  relation "public.actions_waterrestriction_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:118: ERROR:  relation "public.actions_waterrestriction_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:119: ERROR:  relation "public.actions_waterrestriction" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:120: ERROR:  relation "public.actions_waterrestriction" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:121: ERROR:  relation "public.actions_waterrestriction_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:122: ERROR:  relation "public.actions_waterrestriction" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:123: ERROR:  relation "public.actions_waterrestriction_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:124: ERROR:  relation "public.actions_wateradministration" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:125: ERROR:  relation "public.actions_wateradministration" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:126: ERROR:  relation "public.actions_wateradministration" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:127: ERROR:  relation "public.actions_wateradministration" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:128: ERROR:  relation "public.actions_virusinjection" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:129: ERROR:  relation "public.actions_virusinjection_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:130: ERROR:  relation "public.actions_virusinjection_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:131: ERROR:  relation "public.actions_virusinjection" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:132: ERROR:  relation "public.actions_virusinjection_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:133: ERROR:  relation "public.actions_virusinjection" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:134: ERROR:  relation "public.actions_virusinjection_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:135: ERROR:  relation "public.actions_surgery_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:136: ERROR:  relation "public.actions_surgery_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:137: ERROR:  relation "public.actions_surgery" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:138: ERROR:  relation "public.actions_surgery_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:139: ERROR:  relation "public.actions_surgery_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:140: ERROR:  relation "public.actions_surgery" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:141: ERROR:  relation "public.actions_surgery" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:142: ERROR:  relation "public.actions_session_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:143: ERROR:  relation "public.actions_session_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:144: ERROR:  relation "public.actions_session" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:145: ERROR:  relation "public.actions_session" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:146: ERROR:  relation "public.actions_session_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:147: ERROR:  relation "public.actions_session_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:148: ERROR:  relation "public.actions_session" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:149: ERROR:  relation "public.actions_session" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:150: ERROR:  relation "public.actions_session" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:151: ERROR:  relation "public.actions_otheraction" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:152: ERROR:  relation "public.actions_otheraction" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:153: ERROR:  relation "public.actions_otheraction" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:154: ERROR:  relation "public.actions_otheraction_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:155: ERROR:  relation "public.actions_otheraction_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:156: ERROR:  relation "public.actions_otheraction_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:157: ERROR:  relation "public.actions_otheraction_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:158: ERROR:  relation "public.actions_notificationrule" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:159: ERROR:  relation "public.actions_notification" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:160: ERROR:  relation "public.actions_notification_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:161: ERROR:  relation "public.actions_notification_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:162: ERROR:  relation "public.actions_cull" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:163: ERROR:  relation "public.actions_cull" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:164: ERROR:  relation "public.actions_cull" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:165: ERROR:  relation "public.actions_cull" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:166: ERROR:  relation "public.actions_chronicrecording" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:167: ERROR:  relation "public.actions_chronicrecording" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:168: ERROR:  relation "public.actions_chronicrecording_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:169: ERROR:  relation "public.actions_chronicrecording" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:170: ERROR:  relation "public.actions_chronicrecording_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:171: ERROR:  relation "public.actions_chronicrecording_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:172: ERROR:  relation "public.actions_chronicrecording_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:173: ERROR:  index "subjects_zygosityrule_sequence1_id_e9eb3304" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:174: ERROR:  index "subjects_zygosityrule_sequence0_id_42532d3f" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:175: ERROR:  index "subjects_zygosityrule_line_id_373398aa" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:176: ERROR:  index "subjects_zygosityrule_allele_id_a0c552e5" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:177: ERROR:  index "subjects_zygosity_subject_id_f88301c3" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:178: ERROR:  index "subjects_zygosity_allele_id_3f2c26c3" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:179: ERROR:  index "subjects_subjectrequest_user_id_bab190d5" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:180: ERROR:  index "subjects_subjectrequest_line_id_7c48ef39" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:181: ERROR:  index "subjects_subject_strain_id_81db4224" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:182: ERROR:  index "subjects_subject_species_id_11dd3120" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:183: ERROR:  index "subjects_subject_source_id_b0de39f1" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:184: ERROR:  index "subjects_subject_responsible_user_id_c6d1a5d4" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:185: ERROR:  index "subjects_subject_request_id_def22c22" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:186: ERROR:  index "subjects_subject_projects_subject_id_991d901c" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:187: ERROR:  index "subjects_subject_projects_project_id_915b5341" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:188: ERROR:  index "subjects_subject_litter_id_2397cfaf" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:189: ERROR:  index "subjects_subject_line_id_fd580bf6" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:190: ERROR:  index "subjects_subject_lab_id_7933e472" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:191: ERROR:  index "subjects_species_nickname_964063dc_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:192: ERROR:  index "subjects_sequence_name_d2bdfdf5_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:193: ERROR:  index "subjects_project_users_project_id_63d63655" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:194: ERROR:  index "subjects_project_users_labmember_id_0a63cd4a" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:195: ERROR:  index "subjects_project_name_faea5608_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:196: ERROR:  index "subjects_litter_line_id_e44e31e2" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:197: ERROR:  index "subjects_litter_breeding_pair_id_8e863351" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:198: ERROR:  index "subjects_line_strain_id_d6ef2675" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:199: ERROR:  index "subjects_line_species_id_002ef5dd" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:200: ERROR:  index "subjects_line_source_id_bd0caeff" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:201: ERROR:  index "subjects_line_nickname_22b7ee2d_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:202: ERROR:  index "subjects_line_lab_id_c1c568e0" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:203: ERROR:  index "subjects_line_alleles_line_id_cfee50df" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:204: ERROR:  index "subjects_line_alleles_allele_id_d97a050c" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:205: ERROR:  index "subjects_genotypetest_subject_id_39372756" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:206: ERROR:  index "subjects_genotypetest_sequence_id_6586d796" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:207: ERROR:  index "subjects_breedingpair_mother2_id_fa5df479" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:208: ERROR:  index "subjects_breedingpair_mother1_id_7e14f4d4" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:209: ERROR:  index "subjects_breedingpair_line_id_6df3916a" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:210: ERROR:  index "subjects_breedingpair_father_id_51f24160" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:211: ERROR:  index "subjects_allele_sequences_sequence_id_934c088d" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:212: ERROR:  index "subjects_allele_sequences_allele_id_b4813b29" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:213: ERROR:  index "subjects_allele_nickname_f78167b1_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:214: ERROR:  index "reversion_version_revision_id_af9f6a9d" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:215: ERROR:  index "reversion_version_content_type_id_7d0ff25c" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:216: ERROR:  index "reversion_v_content_f95daf_idx" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:217: ERROR:  index "reversion_revision_user_id_17095f45" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:218: ERROR:  index "reversion_revision_date_created_96f7c20c" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:219: ERROR:  index "misc_note_user_id_62c6e82c" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:220: ERROR:  index "misc_note_content_type_id_52ba51bd" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:221: ERROR:  index "misc_labmembership_user_id_a11852f6" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:222: ERROR:  index "misc_labmembership_lab_id_31faf4a9" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:223: ERROR:  index "misc_labmember_username_00bcd5e3_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:224: ERROR:  index "misc_labmember_user_permissions_permission_id_8815c475" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:225: ERROR:  index "misc_labmember_user_permissions_labmember_id_17cc3aeb" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:226: ERROR:  index "misc_labmember_groups_labmember_id_8200f190" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:227: ERROR:  index "misc_labmember_groups_group_id_741f24de" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:228: ERROR:  index "misc_labmember_allowed_users_to_labmember_id_3ffa53f5" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:229: ERROR:  index "misc_labmember_allowed_users_from_labmember_id_77b32c3d" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:230: ERROR:  index "misc_lablocation_lab_id_ec939418" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:231: ERROR:  index "misc_lab_repositories_lab_id_10705ddb" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:232: ERROR:  index "misc_lab_repositories_datarepository_id_ac96e28a" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:233: ERROR:  index "misc_lab_name_29b618ea_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:234: ERROR:  index "misc_lab_food_id_ac0e906b" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:235: ERROR:  index "misc_lab_enrichment_id_8459606c" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:236: ERROR:  index "misc_lab_cage_type_id_ad7daebe" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:237: ERROR:  index "misc_housingsubject_subject_id_c2487373" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:238: ERROR:  index "misc_housingsubject_housing_id_6645cb92" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:239: ERROR:  index "misc_housing_food_id_89bb1004" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:240: ERROR:  index "misc_housing_enrichment_id_43cd3d9a" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:241: ERROR:  index "misc_housing_cage_type_id_11712bbc" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:242: ERROR:  index "misc_food_name_8339d1ed_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:243: ERROR:  index "misc_enrichment_name_51e06895_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:244: ERROR:  index "jobs_task_session_id_c8741080" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:245: ERROR:  index "jobs_task_parents_to_task_id_3f1e3693" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:246: ERROR:  index "jobs_task_parents_from_task_id_21c65783" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:247: ERROR:  index "experiments_trajectoryestimate_probe_insertion_id_826f71bf" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:248: ERROR:  index "experiments_trajectoryestimate_coordinate_system_id_d4245314" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:249: ERROR:  index "experiments_probemodel_probe_model_ad6e6b0f_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:250: ERROR:  index "experiments_probeinsertion_session_id_595b4221" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:251: ERROR:  index "experiments_probeinsertion_model_id_0ca31b51" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:252: ERROR:  index "experiments_probeinsertion_datasets_probeinsertion_id_cc53f096" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:253: ERROR:  index "experiments_probeinsertion_datasets_dataset_id_22827b79" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:254: ERROR:  index "experiments_probeinsertion_chronic_recording_id_333924ed" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:255: ERROR:  index "experiments_coordinatesystem_description_31c0fe6d_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:256: ERROR:  index "experiments_channel_trajectory_estimate_id_b31f579e" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:257: ERROR:  index "experiments_channel_brain_region_id_4b8d1ced" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:258: ERROR:  index "experiments_brainregion_tree_id_4f6f5811" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:259: ERROR:  index "experiments_brainregion_parent_id_dd00eb67" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:260: ERROR:  index "experiments_brainregion_name_ca3b986f_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:261: ERROR:  index "experiments_brainregion_acronym_7146fc7f_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:262: ERROR:  index "django_session_session_key_c0390e0f_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:263: ERROR:  index "django_session_expire_date_a5c62663" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:264: ERROR:  index "django_admin_log_user_id_c564eba6" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:265: ERROR:  index "django_admin_log_content_type_id_c4bce8eb" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:266: ERROR:  index "data_tag_name_87f0d4af_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:267: ERROR:  index "data_revision_name_d68a2101_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:268: ERROR:  index "data_filerecord_dataset_id_bf52dd2f" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:269: ERROR:  index "data_filerecord_data_repository_id_19ea8843" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:270: ERROR:  index "data_download_user_id_803fa7e9" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:271: ERROR:  index "data_download_projects_project_id_d9776dc7" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:272: ERROR:  index "data_download_projects_download_id_6410ebb7" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:273: ERROR:  index "data_download_dataset_id_b047fb82" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:274: ERROR:  index "data_datasettype_name_23dc6925_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:275: ERROR:  index "data_datasettype_filename_pattern_917eb0cc_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:276: ERROR:  index "data_datasettype_created_by_id_129af3ec" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:277: ERROR:  index "data_dataset_tags_tag_id_ad536839" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:278: ERROR:  index "data_dataset_tags_dataset_id_ae02dd46" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:279: ERROR:  index "data_dataset_session_id_ab72710b" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:280: ERROR:  index "data_dataset_revision_id_55a2ccac" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:281: ERROR:  index "data_dataset_provenance_directory_id_f294296a" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:282: ERROR:  index "data_dataset_dataset_type_id_94334f26" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:283: ERROR:  index "data_dataset_data_format_id_e0e5c7b1" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:284: ERROR:  index "data_dataset_created_by_id_0a90b878" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:285: ERROR:  index "data_datarepositorytype_name_41e4c6c7_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:286: ERROR:  index "data_datarepository_repository_type_id_8f041b17" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:287: ERROR:  index "data_datarepository_name_5561d58d_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:288: ERROR:  index "data_dataformat_name_d716355f_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:289: ERROR:  index "authtoken_token_key_10f0b77e_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:290: ERROR:  index "auth_permission_content_type_id_2f476e4b" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:291: ERROR:  index "auth_group_permissions_permission_id_84c5c92e" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:292: ERROR:  index "auth_group_permissions_group_id_b120cbf9" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:293: ERROR:  index "auth_group_name_a6ea08ec_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:294: ERROR:  index "actions_weighing_user_id_d99c1c61" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:295: ERROR:  index "actions_weighing_subject_id_fc2c9b3b" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:296: ERROR:  index "actions_watertype_name_2e75cab3_like" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:297: ERROR:  index "actions_waterrestriction_water_type_id_c4f99f9f" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:298: ERROR:  index "actions_waterrestriction_users_waterrestriction_id_ba08c0f7" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:299: ERROR:  index "actions_waterrestriction_users_labmember_id_bdfcb1d4" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:300: ERROR:  index "actions_waterrestriction_subject_id_fd70c47b" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:301: ERROR:  index "actions_waterrestriction_procedures_proceduretype_id_76881252" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:302: ERROR:  index "actions_waterrestriction_p_waterrestriction_id_59a5fc45" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:303: ERROR:  index "actions_waterrestriction_location_id_3a164227" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:304: ERROR:  index "actions_waterrestriction_lab_id_7fa14d2c" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:305: ERROR:  index "actions_wateradministration_water_type_id_73507491" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:306: ERROR:  index "actions_wateradministration_user_id_fd97af9c" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:307: ERROR:  index "actions_wateradministration_subject_id_2eebc4f4" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:308: ERROR:  index "actions_wateradministration_session_id_96b14888" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:309: ERROR:  index "actions_virusinjection_users_virusinjection_id_fa03f51a" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:310: ERROR:  index "actions_virusinjection_users_labmember_id_92c3a1df" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:311: ERROR:  index "actions_virusinjection_subject_id_44c3deaf" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:312: ERROR:  index "actions_virusinjection_procedures_virusinjection_id_ed343840" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:313: ERROR:  index "actions_virusinjection_procedures_proceduretype_id_c0e7c46c" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:314: ERROR:  index "actions_virusinjection_location_id_6f75e3db" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:315: ERROR:  index "actions_virusinjection_lab_id_b934db4a" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:316: ERROR:  index "actions_surgery_users_surgery_id_077a7da7" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:317: ERROR:  index "actions_surgery_users_labmember_id_806afa64" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:318: ERROR:  index "actions_surgery_subject_id_e6e5e154" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:319: ERROR:  index "actions_surgery_procedures_surgery_id_6c3f091c" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:320: ERROR:  index "actions_surgery_procedures_proceduretype_id_cf707911" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:321: ERROR:  index "actions_surgery_location_id_3e2560fd" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:322: ERROR:  index "actions_surgery_lab_id_c1b2831a" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:323: ERROR:  index "actions_session_users_session_id_40cb62aa" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:324: ERROR:  index "actions_session_users_labmember_id_77b1af7c" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:325: ERROR:  index "actions_session_subject_id_0340072c" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:326: ERROR:  index "actions_session_project_id_b5412a28" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:327: ERROR:  index "actions_session_procedures_session_id_a0bbe506" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:328: ERROR:  index "actions_session_procedures_proceduretype_id_5470baad" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:329: ERROR:  index "actions_session_parent_session_id_1a66da0c" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:330: ERROR:  index "actions_session_location_id_e331d2ad" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:331: ERROR:  index "actions_session_lab_id_b81b8ac9" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:332: ERROR:  index "actions_otheraction_users_otheraction_id_0b29bfe6" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:333: ERROR:  index "actions_otheraction_users_labmember_id_7082a144" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:334: ERROR:  index "actions_otheraction_subject_id_c27ce260" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:335: ERROR:  index "actions_otheraction_procedures_proceduretype_id_c1282091" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:336: ERROR:  index "actions_otheraction_procedures_otheraction_id_d11475f7" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:337: ERROR:  index "actions_otheraction_location_id_69a49193" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:338: ERROR:  index "actions_otheraction_lab_id_88f806cd" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:339: ERROR:  index "actions_notificationrule_user_id_b41f7942" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:340: ERROR:  index "actions_notification_users_notification_id_148acc03" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:341: ERROR:  index "actions_notification_users_labmember_id_e972dbba" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:342: ERROR:  index "actions_notification_subject_id_d419f368" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:343: ERROR:  index "actions_cull_user_id_6375414a" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:344: ERROR:  index "actions_cull_cull_reason_id_b5bfe7e1" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:345: ERROR:  index "actions_cull_cull_method_id_beb1587b" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:346: ERROR:  index "actions_chronicrecording_users_labmember_id_63729b82" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:347: ERROR:  index "actions_chronicrecording_users_chronicrecording_id_229ba951" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:348: ERROR:  index "actions_chronicrecording_subject_id_79bb521d" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:349: ERROR:  index "actions_chronicrecording_procedures_proceduretype_id_43a59726" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:350: ERROR:  index "actions_chronicrecording_p_chronicrecording_id_009ee7c8" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:351: ERROR:  index "actions_chronicrecording_location_id_84b105ea" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:352: ERROR:  index "actions_chronicrecording_lab_id_187c7a32" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:353: ERROR:  relation "public.experiments_trajectoryestimate" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:354: ERROR:  relation "public.jobs_task" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:355: ERROR:  relation "public.experiments_probeinsertion" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:356: ERROR:  relation "public.experiments_channel" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:357: ERROR:  relation "public.subjects_zygosityrule" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:358: ERROR:  relation "public.subjects_zygosityrule" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:359: ERROR:  relation "public.subjects_zygosity" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:360: ERROR:  relation "public.subjects_subjectrequest" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:361: ERROR:  relation "public.subjects_subject_projects" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:362: ERROR:  relation "public.subjects_subject_projects" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:363: ERROR:  relation "public.subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:364: ERROR:  relation "public.subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:365: ERROR:  relation "public.subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:366: ERROR:  relation "public.subjects_strain" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:367: ERROR:  relation "public.subjects_species" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:368: ERROR:  relation "public.subjects_species" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:369: ERROR:  relation "public.subjects_source" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:370: ERROR:  relation "public.subjects_sequence" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:371: ERROR:  relation "public.subjects_sequence" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:372: ERROR:  relation "public.subjects_project_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:373: ERROR:  relation "public.subjects_project_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:374: ERROR:  relation "public.subjects_project" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:375: ERROR:  relation "public.subjects_project" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:376: ERROR:  relation "public.subjects_litter" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:377: ERROR:  relation "public.subjects_litter" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:378: ERROR:  relation "public.subjects_line" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:379: ERROR:  relation "public.subjects_line" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:380: ERROR:  relation "public.subjects_line" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:381: ERROR:  relation "public.subjects_line_alleles" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:382: ERROR:  relation "public.subjects_line_alleles" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:383: ERROR:  relation "public.subjects_genotypetest" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:384: ERROR:  relation "public.subjects_breedingpair" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:385: ERROR:  relation "public.subjects_allele_sequences" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:386: ERROR:  relation "public.subjects_allele_sequences" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:387: ERROR:  relation "public.subjects_allele" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:388: ERROR:  relation "public.subjects_allele" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:389: ERROR:  relation "public.reversion_version" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:390: ERROR:  relation "public.reversion_version" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:391: ERROR:  relation "public.reversion_revision" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:392: ERROR:  relation "public.misc_note" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:393: ERROR:  relation "public.misc_labmembership" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:394: ERROR:  relation "public.misc_labmember" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:395: ERROR:  relation "public.misc_labmember_user_permissions" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:396: ERROR:  relation "public.misc_labmember_user_permissions" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:397: ERROR:  relation "public.misc_labmember" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:398: ERROR:  relation "public.misc_labmember_groups" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:399: ERROR:  relation "public.misc_labmember_groups" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:400: ERROR:  relation "public.misc_labmember_allowed_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:401: ERROR:  relation "public.misc_labmember_allowed_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:402: ERROR:  relation "public.misc_lablocation" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:403: ERROR:  relation "public.misc_lab_repositories" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:404: ERROR:  relation "public.misc_lab_repositories" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:405: ERROR:  relation "public.misc_lab" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:406: ERROR:  relation "public.misc_lab" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:407: ERROR:  relation "public.misc_housingsubject" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:408: ERROR:  relation "public.misc_housing" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:409: ERROR:  relation "public.misc_food" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:410: ERROR:  relation "public.misc_food" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:411: ERROR:  relation "public.misc_enrichment" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:412: ERROR:  relation "public.misc_enrichment" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:413: ERROR:  relation "public.misc_cagetype" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:414: ERROR:  relation "public.jobs_task" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:415: ERROR:  relation "public.jobs_task_parents" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:416: ERROR:  relation "public.jobs_task_parents" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:417: ERROR:  relation "public.experiments_trajectoryestimate" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:418: ERROR:  relation "public.experiments_probemodel" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:419: ERROR:  relation "public.experiments_probemodel" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:420: ERROR:  relation "public.experiments_probeinsertion" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:421: ERROR:  relation "public.experiments_probeinsertion_datasets" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:422: ERROR:  relation "public.experiments_probeinsertion_datasets" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:423: ERROR:  relation "public.experiments_coordinatesystem" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:424: ERROR:  relation "public.experiments_coordinatesystem" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:425: ERROR:  relation "public.experiments_channel" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:426: ERROR:  relation "public.experiments_brainregion" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:427: ERROR:  relation "public.experiments_brainregion" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:428: ERROR:  relation "public.experiments_brainregion" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:429: ERROR:  relation "public.django_session" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:430: ERROR:  relation "public.django_migrations" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:431: ERROR:  relation "public.django_content_type" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:432: ERROR:  relation "public.django_content_type" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:433: ERROR:  relation "public.django_admin_log" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:434: ERROR:  relation "public.data_tag" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:435: ERROR:  relation "public.data_tag" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:436: ERROR:  relation "public.data_revision" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:437: ERROR:  relation "public.data_revision" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:438: ERROR:  relation "public.data_filerecord" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:439: ERROR:  relation "public.data_filerecord" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:440: ERROR:  relation "public.data_download" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:441: ERROR:  relation "public.data_download_projects" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:442: ERROR:  relation "public.data_download_projects" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:443: ERROR:  relation "public.data_download" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:444: ERROR:  relation "public.data_datasettype" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:445: ERROR:  relation "public.data_datasettype" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:446: ERROR:  relation "public.data_datasettype" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:447: ERROR:  relation "public.data_dataset_tags" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:448: ERROR:  relation "public.data_dataset_tags" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:449: ERROR:  relation "public.data_dataset" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:450: ERROR:  relation "public.data_datarepositorytype" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:451: ERROR:  relation "public.data_datarepositorytype" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:452: ERROR:  relation "public.data_datarepository" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:453: ERROR:  relation "public.data_datarepository" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:454: ERROR:  relation "public.data_dataformat" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:455: ERROR:  relation "public.data_dataformat" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:456: ERROR:  relation "public.authtoken_token" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:457: ERROR:  relation "public.authtoken_token" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:458: ERROR:  relation "public.auth_permission" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:459: ERROR:  relation "public.auth_permission" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:460: ERROR:  relation "public.auth_group" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:461: ERROR:  relation "public.auth_group_permissions" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:462: ERROR:  relation "public.auth_group_permissions" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:463: ERROR:  relation "public.auth_group" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:464: ERROR:  relation "public.actions_weighing" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:465: ERROR:  relation "public.actions_watertype" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:466: ERROR:  relation "public.actions_watertype" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:467: ERROR:  relation "public.actions_waterrestriction_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:468: ERROR:  relation "public.actions_waterrestriction_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:469: ERROR:  relation "public.actions_waterrestriction_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:470: ERROR:  relation "public.actions_waterrestriction_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:471: ERROR:  relation "public.actions_waterrestriction" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:472: ERROR:  relation "public.actions_wateradministration" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:473: ERROR:  relation "public.actions_virusinjection_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:474: ERROR:  relation "public.actions_virusinjection_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:475: ERROR:  relation "public.actions_virusinjection_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:476: ERROR:  relation "public.actions_virusinjection" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:477: ERROR:  relation "public.actions_virusinjection_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:478: ERROR:  relation "public.actions_surgery_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:479: ERROR:  relation "public.actions_surgery_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:480: ERROR:  relation "public.actions_surgery_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:481: ERROR:  relation "public.actions_surgery_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:482: ERROR:  relation "public.actions_surgery" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:483: ERROR:  relation "public.actions_session_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:484: ERROR:  relation "public.actions_session_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:485: ERROR:  relation "public.actions_session_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:486: ERROR:  relation "public.actions_session_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:487: ERROR:  relation "public.actions_session" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:488: ERROR:  relation "public.actions_proceduretype" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:489: ERROR:  relation "public.actions_otheraction_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:490: ERROR:  relation "public.actions_otheraction_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:491: ERROR:  relation "public.actions_otheraction_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:492: ERROR:  relation "public.actions_otheraction_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:493: ERROR:  relation "public.actions_otheraction" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:494: ERROR:  relation "public.actions_notificationrule" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:495: ERROR:  relation "public.actions_notificationrule" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:496: ERROR:  relation "public.actions_notification_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:497: ERROR:  relation "public.actions_notification_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:498: ERROR:  relation "public.actions_notification" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:499: ERROR:  relation "public.actions_cullreason" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:500: ERROR:  relation "public.actions_cullmethod" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:501: ERROR:  relation "public.actions_cull" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:502: ERROR:  relation "public.actions_cull" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:503: ERROR:  relation "public.actions_chronicrecording_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:504: ERROR:  relation "public.actions_chronicrecording_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:505: ERROR:  relation "public.actions_chronicrecording" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:506: ERROR:  relation "public.actions_chronicrecording_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:507: ERROR:  relation "public.actions_chronicrecording_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:508: ERROR:  relation "public.subjects_subject_projects" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:509: ERROR:  relation "public.subjects_project_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:510: ERROR:  relation "public.subjects_line_alleles" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:511: ERROR:  relation "public.subjects_allele_sequences" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:512: ERROR:  relation "public.reversion_version" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:513: ERROR:  relation "public.reversion_revision" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:514: ERROR:  relation "public.misc_labmember_user_permissions" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:515: ERROR:  relation "public.misc_labmember_groups" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:516: ERROR:  relation "public.misc_labmember_allowed_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:517: ERROR:  relation "public.misc_lab_repositories" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:518: ERROR:  relation "public.jobs_task_parents" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:519: ERROR:  relation "public.experiments_probeinsertion_datasets" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:520: ERROR:  relation "public.django_migrations" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:521: ERROR:  relation "public.django_content_type" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:522: ERROR:  relation "public.django_admin_log" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:523: ERROR:  relation "public.data_download_projects" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:524: ERROR:  relation "public.data_dataset_tags" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:525: ERROR:  relation "public.auth_permission" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:526: ERROR:  relation "public.auth_group_permissions" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:527: ERROR:  relation "public.auth_group" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:528: ERROR:  relation "public.actions_waterrestriction_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:529: ERROR:  relation "public.actions_waterrestriction_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:530: ERROR:  relation "public.actions_virusinjection_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:531: ERROR:  relation "public.actions_virusinjection_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:532: ERROR:  relation "public.actions_surgery_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:533: ERROR:  relation "public.actions_surgery_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:534: ERROR:  relation "public.actions_session_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:535: ERROR:  relation "public.actions_session_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:536: ERROR:  relation "public.actions_otheraction_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:537: ERROR:  relation "public.actions_otheraction_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:538: ERROR:  relation "public.actions_notification_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:539: ERROR:  relation "public.actions_chronicrecording_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:540: ERROR:  relation "public.actions_chronicrecording_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:541: ERROR:  table "subjects_zygosityrule" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:542: ERROR:  table "subjects_zygosity" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:543: ERROR:  table "subjects_subjectrequest" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:544: ERROR:  sequence "subjects_subject_projects_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:545: ERROR:  table "subjects_subject_projects" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:546: ERROR:  table "subjects_subject" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:547: ERROR:  table "subjects_strain" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:548: ERROR:  table "subjects_species" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:549: ERROR:  table "subjects_source" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:550: ERROR:  table "subjects_sequence" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:551: ERROR:  sequence "subjects_project_users_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:552: ERROR:  table "subjects_project_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:553: ERROR:  table "subjects_project" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:554: ERROR:  table "subjects_litter" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:555: ERROR:  sequence "subjects_line_alleles_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:556: ERROR:  table "subjects_line_alleles" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:557: ERROR:  table "subjects_line" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:558: ERROR:  table "subjects_genotypetest" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:559: ERROR:  table "subjects_breedingpair" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:560: ERROR:  sequence "subjects_allele_sequences_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:561: ERROR:  table "subjects_allele_sequences" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:562: ERROR:  table "subjects_allele" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:563: ERROR:  sequence "reversion_version_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:564: ERROR:  table "reversion_version" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:565: ERROR:  sequence "reversion_revision_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:566: ERROR:  table "reversion_revision" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:567: ERROR:  table "misc_note" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:568: ERROR:  table "misc_labmembership" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:569: ERROR:  sequence "misc_labmember_user_permissions_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:570: ERROR:  table "misc_labmember_user_permissions" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:571: ERROR:  sequence "misc_labmember_groups_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:572: ERROR:  table "misc_labmember_groups" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:573: ERROR:  sequence "misc_labmember_allowed_users_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:574: ERROR:  table "misc_labmember_allowed_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:575: ERROR:  table "misc_labmember" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:576: ERROR:  table "misc_lablocation" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:577: ERROR:  sequence "misc_lab_repositories_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:578: ERROR:  table "misc_lab_repositories" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:579: ERROR:  table "misc_lab" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:580: ERROR:  table "misc_housingsubject" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:581: ERROR:  table "misc_housing" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:582: ERROR:  table "misc_food" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:583: ERROR:  table "misc_enrichment" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:584: ERROR:  table "misc_cagetype" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:585: ERROR:  sequence "jobs_task_parents_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:586: ERROR:  table "jobs_task_parents" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:587: ERROR:  table "jobs_task" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:588: ERROR:  table "experiments_trajectoryestimate" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:589: ERROR:  table "experiments_probemodel" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:590: ERROR:  sequence "experiments_probeinsertion_datasets_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:591: ERROR:  table "experiments_probeinsertion_datasets" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:592: ERROR:  table "experiments_probeinsertion" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:593: ERROR:  table "experiments_coordinatesystem" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:594: ERROR:  table "experiments_channel" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:595: ERROR:  table "experiments_brainregion" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:596: ERROR:  table "django_session" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:597: ERROR:  sequence "django_migrations_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:598: ERROR:  table "django_migrations" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:599: ERROR:  sequence "django_content_type_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:600: ERROR:  table "django_content_type" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:601: ERROR:  sequence "django_admin_log_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:602: ERROR:  table "django_admin_log" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:603: ERROR:  table "data_tag" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:604: ERROR:  table "data_revision" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:605: ERROR:  table "data_filerecord" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:606: ERROR:  sequence "data_download_projects_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:607: ERROR:  table "data_download_projects" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:608: ERROR:  table "data_download" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:609: ERROR:  table "data_datasettype" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:610: ERROR:  sequence "data_dataset_tags_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:611: ERROR:  table "data_dataset_tags" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:612: ERROR:  table "data_dataset" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:613: ERROR:  table "data_datarepositorytype" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:614: ERROR:  table "data_datarepository" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:615: ERROR:  table "data_dataformat" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:616: ERROR:  table "authtoken_token" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:617: ERROR:  sequence "auth_permission_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:618: ERROR:  table "auth_permission" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:619: ERROR:  sequence "auth_group_permissions_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:620: ERROR:  table "auth_group_permissions" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:621: ERROR:  sequence "auth_group_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:622: ERROR:  table "auth_group" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:623: ERROR:  table "actions_weighing" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:624: ERROR:  table "actions_watertype" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:625: ERROR:  sequence "actions_waterrestriction_users_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:626: ERROR:  table "actions_waterrestriction_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:627: ERROR:  sequence "actions_waterrestriction_procedures_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:628: ERROR:  table "actions_waterrestriction_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:629: ERROR:  table "actions_waterrestriction" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:630: ERROR:  table "actions_wateradministration" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:631: ERROR:  sequence "actions_virusinjection_users_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:632: ERROR:  table "actions_virusinjection_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:633: ERROR:  sequence "actions_virusinjection_procedures_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:634: ERROR:  table "actions_virusinjection_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:635: ERROR:  table "actions_virusinjection" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:636: ERROR:  sequence "actions_surgery_users_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:637: ERROR:  table "actions_surgery_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:638: ERROR:  sequence "actions_surgery_procedures_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:639: ERROR:  table "actions_surgery_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:640: ERROR:  table "actions_surgery" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:641: ERROR:  sequence "actions_session_users_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:642: ERROR:  table "actions_session_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:643: ERROR:  sequence "actions_session_procedures_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:644: ERROR:  table "actions_session_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:645: ERROR:  table "actions_session" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:646: ERROR:  table "actions_proceduretype" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:647: ERROR:  sequence "actions_otheraction_users_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:648: ERROR:  table "actions_otheraction_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:649: ERROR:  sequence "actions_otheraction_procedures_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:650: ERROR:  table "actions_otheraction_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:651: ERROR:  table "actions_otheraction" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:652: ERROR:  table "actions_notificationrule" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:653: ERROR:  sequence "actions_notification_users_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:654: ERROR:  table "actions_notification_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:655: ERROR:  table "actions_notification" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:656: ERROR:  table "actions_cullreason" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:657: ERROR:  table "actions_cullmethod" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:658: ERROR:  table "actions_cull" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:659: ERROR:  sequence "actions_chronicrecording_users_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:660: ERROR:  table "actions_chronicrecording_users" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:661: ERROR:  sequence "actions_chronicrecording_procedures_id_seq" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:662: ERROR:  table "actions_chronicrecording_procedures" does not exist
+psql:/home/julia/openalyx_wd/openalyx.sql:663: ERROR:  table "actions_chronicrecording" does not exist
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+ 461882
+(1 row)
+
+ setval 
+--------
+     92
+(1 row)
+
+ setval 
+--------
+     84
+(1 row)
+
+ setval 
+--------
+  50805
+(1 row)
+
+ setval 
+--------
+ 102924
+(1 row)
+
+ setval 
+--------
+   4176
+(1 row)
+
+ setval 
+--------
+   3248
+(1 row)
+
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+     18
+(1 row)
+
+ setval 
+--------
+   2909
+(1 row)
+
+ setval 
+--------
+      2
+(1 row)
+
+ setval 
+--------
+    785
+(1 row)
+
+ setval 
+--------
+    280
+(1 row)
+
+ setval 
+--------
+ 119405
+(1 row)
+
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+ 126783
+(1 row)
+
+ setval 
+--------
+     70
+(1 row)
+
+ setval 
+--------
+     87
+(1 row)
+
+ setval  
+---------
+ 3453465
+(1 row)
+
+ setval 
+--------
+ 322689
+(1 row)
+
+ setval 
+--------
+     32
+(1 row)
+
+ setval 
+--------
+     29
+(1 row)
+
+ setval 
+--------
+    565
+(1 row)
+
+ setval 
+--------
+   1385
+(1 row)
+
+ setval 
+--------
+  33863
+(1 row)
+
+ setval  
+---------
+ 3343979
+(1 row)
+
+ setval 
+--------
+     98
+(1 row)
+
+ setval 
+--------
+     99
+(1 row)
+
+ setval 
+--------
+    102
+(1 row)
+
+ setval 
+--------
+   1908
+(1 row)
+
+2022-04-25 18:02:28 Finished uploading database to openalyx RDS
