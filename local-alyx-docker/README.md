@@ -253,15 +253,16 @@ Functions: standalone operations
 --------------------------------
 
 create_db ......... Create a new, empty postgres database if it does not already exist.
-                    It will be named from the env variable PGDATABASE='alyxdb'.
+                    It will be named from the env variable PGDATABASE='alyxlocal'.
 config_settings ... Configure Alyx/Django settings. Some environment variables like
                     PGUSER, PGHOST, PGDATABASE, and PGPASSWORD are required.
 config_apache ..... Configure Apache server settings.
 update_alyx ....... Make migrations, migrate, load fixtures, set permissions.
 fetch_dump ........ Download Alyx database dump from the date set from the env variable
                     BACKUP_DATE or from the option '--dump-url'.
-load_db ........... Load data from the sql dump into the postgres 'alyxdb'
-                    database if file '/var/www/alyx-local/db_loaded' does not already exist.
+load_db ........... Load data from the sql dump into the postgres 'alyxlocal'
+                    database if file '/var/www/alyx-local/shared/local/db_loaded.out'
+                    does not already exist.
 dump_json ......... Send command to perform a JSON dump of the current database.
                     Database stored at '/var/www/alyx-local/cache/dumps/json'
 dump_sql .......... Send command to perform a SQL dump of the current database.
@@ -270,7 +271,7 @@ clean_sql_dumps.... Clean up existing SQL dumps in the dump folder.
                     Use with option '--exp-days'.
 clean_dls ......... Clean up downloads from cache folder.
                     Use with option '--exp-days'.
-reset_alyx ........ Reset 'alyxdb' to empty. Won't reload database.
+reset_alyx ........ Reset 'alyxlocal' to empty. Won't reload database.
 start_server ...... Start Alyx web server using port '8000'.
 check_server ...... Check if Alyx web server is up and running.
 stop_server ....... Stop apache2 server if it is running.
@@ -280,12 +281,12 @@ Routines: run several functions in a sequence
 ---------------------------------------------
 
 init_db ............... Routine that performs all initialization steps to bring up the
-                        database 'alyxdb' by running: create_db,
+                        database 'alyxlocal' by running: create_db,
                         config_settings, config_apache, update_alyx, create_su.
 fetch_and_load_db ..... Routine that inserts the latest sql dump into the postgres
-                        database 'alyxdb' by running: fetch_dump, load_db.
+                        database 'alyxlocal' by running: fetch_dump, load_db.
 fetch_and_reload_db ... Routine that inserts the latest sql dump and resets database
-                        'alyxdb' by running: fetch_dump, load_db --reset.
+                        'alyxlocal' by running: fetch_dump, load_db --reset.
 www ................... Routine that initializes environment and runs the web server
                         by running: init_db, fetch_and_load_db, start_server
 www_no_load ........... Routine that initializes environment and runs the web server
@@ -310,32 +311,32 @@ Options: --option=value | --option
                               using the function 'clean_dls'.
                               Default is 6 days.
 --force-load ................ Forces deletion of the database loaded file:
-                              '/var/www/alyx-local/db_loaded'
+                              '/var/www/alyx-local/shared/local/db_loaded.out'
                               Useful for loading the database keeping existing data.
 
 ========================================================================================
 
 Default Environment Variables (also available if script is sourced):
 
-  PGDATABASE=alyxdb
+  PGDATABASE=alyxlocal
   PGHOST=alyx-postgres
   PGUSER=ibl_dev
   PGPASSWORD=******
-  APACHE_CTL_EXISTS=true
+  APACHE_CTL_EXISTS=false
   ALYX_INSTANCE=local
   ALYX_SRC_PATH=/var/www/alyx-local
   ALYX_CACHE_DIR=/var/www/alyx-local/cache
   ALYX_DUMP_DIR=/var/www/alyx-local/cache/dumps
   ALYX_PORT=8000
   ALYX_NETWORK=alyx-apache
-  BACKUP_DATE=2022-05-20
-  SQL_FILE_PATH=/var/www/alyx-local/cache/dumps/sql/2022-05-20_alyxfull.sql.gz
+  BACKUP_DATE=2022-05-19
+  SQL_FILE_PATH=/var/www/alyx-local/cache/dumps/sql/2022-05-19_alyxfull.sql.gz
 
 File Status:
 
   db_loaded: NO
-  alyx_server_start_file: YES
-  su_token_fixture: YES
+  alyx_server_start_file: NO
+  su_token_fixture: NO
   alyx_lock_file: NO
 
 

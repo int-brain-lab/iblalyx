@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export alyx_server_start_file="${ALYX_SRC_PATH}/alyx_start_server.out"
+export alyx_server_start_file=${alyx_server_start_file:-${ALYX_SRC_PATH}/shared/local/alyx_start_server.out}
 export ALYX_ENTRY_ARGS=()
 
 parse_entrypoint_args() {

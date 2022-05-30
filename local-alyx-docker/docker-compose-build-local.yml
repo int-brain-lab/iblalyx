@@ -54,7 +54,7 @@ services:
     tty: true
     user: ubuntu:docker
     volumes:
-      - alyx-source:/var/www/alyx-local:ro
+      - alyx-shared:/var/www/alyx-local/shared/remote:ro
       - vscode-ext:/home/ubuntu/.vscode-server/extensions
       - ./build/scripts:/home/ubuntu/alyx/scripts
       - ./test:/home/ubuntu/alyx/test

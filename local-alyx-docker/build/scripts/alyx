@@ -77,9 +77,9 @@ EXPIRES_AFTER=6
 # paths of alyx files used during db setup/interaction steps
 alyx_manager=${ALYX_SRC_PATH}/alyx/manage.py
 alyx_settings_file=${ALYX_SRC_PATH}/alyx/alyx/settings.py
-alyx_server_start_file=${alyx_server_start_file:-${ALYX_SRC_PATH}/alyx_start_server.out}
-su_token_fixture=${ALYX_SRC_PATH}/data/su_authtoken.json
-db_loaded_file=${ALYX_SRC_PATH}/db_loaded
+su_token_fixture=${su_token_fixture:-${ALYX_SRC_PATH}/shared/local/su_authtoken.json}
+alyx_server_start_file=${alyx_server_start_file:-${ALYX_SRC_PATH}/shared/local/alyx_start_server.out}
+db_loaded_file=${db_loaded_file:-${ALYX_SRC_PATH}/shared/local/db_loaded.out}
 
 # help documentation
 # ------------------
@@ -102,7 +102,8 @@ update_alyx ....... Make migrations, migrate, load fixtures, set permissions.
 fetch_dump ........ Download Alyx database dump from the date set from the env variable
                     BACKUP_DATE or from the option '--dump-url'.
 load_db ........... Load data from the sql dump into the postgres '${PGDATABASE:-?}'
-                    database if file '${db_loaded_file}' does not already exist.
+                    database if file '${db_loaded_file}'
+                    does not already exist.
 dump_json ......... Send command to perform a JSON dump of the current database.
                     Database stored at '${ALYX_DUMP_JSON}'
 dump_sql .......... Send command to perform a SQL dump of the current database.

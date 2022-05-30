@@ -182,7 +182,8 @@ RUN <<-EOF
 
 	# make settings template files and folders -----------------------------------------
 	mkdir -p \
-		./shared ./cache/downloads ./cache/dumps/sql ./cache/dumps/json \
+		./shared/local ./shared/remote \
+		./cache/downloads ./cache/dumps/sql ./cache/dumps/json \
 		/backups/uploaded /backups/tables
 	rm -f ./alyx/alyx/settings.py
 	cp -f /tmp/settings/*.py ./alyx/alyx
@@ -293,7 +294,7 @@ ENV PYTHONPATH=/var/www/alyx-${ALYX_INST_TYPE}/alyx
 
 # postgres
 ENV PGPASSWORD=
-ENV PGDATABASE=alyxdb
+ENV PGDATABASE=alyxlocal
 ENV PGHOST=alyx-postgres
 ENV PGUSER=ibl_dev
 ENV PGREADONLY=off
@@ -351,7 +352,7 @@ ENV PYTHONPATH=/var/www/alyx-${ALYX_INST_TYPE}/alyx
 
 # postgres
 ENV PGPASSWORD=
-ENV PGDATABASE=alyxdb
+ENV PGDATABASE=alyxlocal
 ENV PGHOST=alyx-postgres
 ENV PGUSER=ibl_dev
 ENV PGREADONLY=off
