@@ -205,3 +205,7 @@ OVERVIEW_PROBE_PLOTS = [('raw_ephys_bad_channels_destripe', True),
 OVERVIEW_SESSION_PLOTS = [('psychometric_curve', True),
                           ('reaction_time_with_trials', True),
                           ('dlc_qc_plot', False)]
+
+OVERVIEW_SUBJECT_PLOTS = [('subj_trial_count_session_duration', True),
+                          ('subj_performance_easy_reaction_time', True),
+                          ('subj_performance_heatmap', True)]

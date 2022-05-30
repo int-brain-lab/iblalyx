@@ -11,6 +11,7 @@ df_types = pd.DataFrame.from_records(dtypes.values())
 df_types['size'] = df_types['size'] / 1024 ** 3
 df_types.to_csv(Path.home().joinpath('dataset_types.csv'))
 
+
 tot = dtypes.aggregate(siz=Sum('size'))['siz'] / 1024 ** 4
 
 s = {
