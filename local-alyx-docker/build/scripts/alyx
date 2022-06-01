@@ -557,8 +557,8 @@ config_settings() {
 			-e DJANGO_SECRET_KEY="${DJANGO_SECRET_KEY:-0xdeadbeef}" \
 			-e ALYX_INSTANCE="${ALYX_INSTANCE}" \
 			-e ALYX_NETWORK="${ALYX_NETWORK}" \
-			-e ALYX_LOG_FILE="${ALYX_LOG_FILE}" \
-			-e ALYX_JSON_LOG_FILE="${ALYX_JSON_LOG_FILE}" \
+			-e ALYX_LOG_FILE=/var/log/alyx.log \
+			-e ALYX_JSON_LOG_FILE=/var/log/alyx_json.log \
 			-e PGPASSWORD="${PGPASSWORD}" \
 			-e PGDATABASE="${PGDATABASE}" \
 			-e PGHOST="${PGHOST}" \
