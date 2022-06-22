@@ -469,6 +469,8 @@ class GalleryPlotsOverview(LoginRequiredMixin, ListView):
         qs = qs.annotate(session_qc=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__qc'),
                                                Session.objects.filter(id=OuterRef('object_id')).values('qc')))
 
+        qs = qs.annotate(probe_qc=ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('json__qc'))
+
         qs = qs.annotate(destripe_qc=ProbeInsertion.objects.filter(
             id=OuterRef('object_id')).values('json__extended_qc__experimenter_raw_destripe'))
 
@@ -506,7 +508,7 @@ class GalleryFilter(django_filters.FilterSet):
     lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')
     project = django_filters.ModelChoiceFilter(queryset=Project.objects.all(), label='Project', method='filter_project')
     repeated = django_filters.ChoiceFilter(choices=REPEATEDSITE, label='Location', method='filter_repeated')
-    session_qc = django_filters.MultipleChoiceFilter(choices=Session.QC_CHOICES, label='Session QC', method='filter_session_qc')
+    session_qc = django_filters.MultipleChoiceFilter(choices=Session.QC_CHOICES, label='QC', method='filter_session_qc')
     destripe_qc = django_filters.ChoiceFilter(choices=DESTRIPE_QC, label='Destripe QC', method='filter_destripe_qc')
 
     class Meta:
@@ -518,7 +520,10 @@ class GalleryFilter(django_filters.FilterSet):
         super(GalleryFilter, self).__init__(*args, **kwargs)
 
     def filter_session_qc(self, queryset, name, value):
-        queryset = queryset.filter(session_qc__in=value)
+
+        qcs = [qc_check.QC_DICT[val] for val in value]
+        queryset = queryset.filter(Q(probe_qc__in=qcs) | Q(session_qc__in=value))
+        
         return queryset
 
     def filter_destripe_qc(self, queryset, name, value):
