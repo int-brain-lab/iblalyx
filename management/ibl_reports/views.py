@@ -428,6 +428,20 @@ class GalleryOverviewView(LoginRequiredMixin, ListView):
         return qs
 
 
+def add_plot_qc(request):
+    pid = request.POST.get('pid')
+    value = request.POST.get('value')
+
+    probe = ProbeInsertion.objects.get(id=pid)
+    plot_qc = probe.json.get('extended_qc', {}).get('experimenter_raw_destripe', None)
+    if plot_qc != 'pass':
+        probe.json['extended_qc'].update(experimenter_raw_destripe=value)
+
+    probe.save()
+
+    return JsonResponse({'Success': 'json field updates'})
+
+
 class GalleryPlotsOverview(LoginRequiredMixin, ListView):
     login_url = LOGIN_URL
     template_name = 'ibl_reports/gallery_plots_overview.html'
@@ -455,6 +469,11 @@ class GalleryPlotsOverview(LoginRequiredMixin, ListView):
         qs = qs.annotate(session_qc=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__qc'),
                                                Session.objects.filter(id=OuterRef('object_id')).values('qc')))
 
+        qs = qs.annotate(destripe_qc=ProbeInsertion.objects.filter(
+            id=OuterRef('object_id')).values('json__extended_qc__experimenter_raw_destripe'))
+
+        qs = qs.annotate(plot_type=Note.objects.filter(id=OuterRef('id')).values('json__name'))
+
         self.f = GalleryFilter(self.request.GET, queryset=qs.order_by('-session_time'))
 
         return self.f.qs
@@ -476,12 +495,19 @@ class GalleryFilter(django_filters.FilterSet):
         (1, 'Repeated Site')
     )
 
+    DESTRIPE_QC = (
+        (0, 'Not Set'),
+        (1, 'Check'),
+        (2, 'Pass')
+    )
+
     id = django_filters.CharFilter(label='Experiment ID/ Probe ID', method='filter_id', lookup_expr='startswith')
     plot = django_filters.ChoiceFilter(choices=PLOT_OPTIONS, label='Plot Type', method='filter_plot')
-    lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')  # here
+    lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')
     project = django_filters.ModelChoiceFilter(queryset=Project.objects.all(), label='Project', method='filter_project')
     repeated = django_filters.ChoiceFilter(choices=REPEATEDSITE, label='Location', method='filter_repeated')
-    session_qc = django_filters.MultipleChoiceFilter(choices=Session.QC_CHOICES, label='Session QC', method='filter_qc')
+    session_qc = django_filters.MultipleChoiceFilter(choices=Session.QC_CHOICES, label='Session QC', method='filter_session_qc')
+    destripe_qc = django_filters.ChoiceFilter(choices=DESTRIPE_QC, label='Destripe QC', method='filter_destripe_qc')
 
     class Meta:
         model = Note
@@ -491,8 +517,19 @@ class GalleryFilter(django_filters.FilterSet):
     def __init__(self, *args, **kwargs):
         super(GalleryFilter, self).__init__(*args, **kwargs)
 
-    def filter_qc(self, queryset, name, value):
+    def filter_session_qc(self, queryset, name, value):
         queryset = queryset.filter(session_qc__in=value)
+        return queryset
+
+    def filter_destripe_qc(self, queryset, name, value):
+
+        if value == '0':
+            queryset = queryset.filter(destripe_qc__isnull=True)
+        elif value == '1':
+            queryset = queryset.filter(destripe_qc='check')
+        elif value == '2':
+            queryset = queryset.filter(destripe_qc='pass')
+
         return queryset
 
     def filter_project(self, queryset, name, value):
