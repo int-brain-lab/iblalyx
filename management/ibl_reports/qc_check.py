@@ -3,6 +3,15 @@ PASS_COLOUR = "#79AEC8"
 IMPORTANT_BORDER = "#000000"
 NORMAL_BORDER = "#417690"
 
+QC_DICT = {
+    '50': 'CRITICAL',
+    '40': 'FAIL',
+    '30': 'WARNING',
+    '0' :'NOT_SET',
+    '10': 'PASS',
+}
+
+
 def get_task_qc_colours(task_qc_data):
     colour = []
     border = []
