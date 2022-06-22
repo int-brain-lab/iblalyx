@@ -21,6 +21,19 @@
     <div class="gallery">
         {% for note in object_list %}
             <div class="responsive">
+                {% if note.plot_type == 'raw_ephys_bad_channels_destripe' %}
+                    {% if note.destripe_qc == 'pass' %}
+                        <button class="btn btn-success btn-sm" style="margin-bottom: 10px"> SET TO PASS </button>
+                    {% elif note.destripe_qc == 'check' %}
+                        <button class="btn btn-outline-secondary btn-sm" style="margin-bottom: 10px" id="pass_{{ forloop.counter0 }}" onclick="changeColor('pass', {{ forloop.counter0 }}, '{{ note.object_id }}')" name="pass"> SET TO PASS </button>
+                        <button class="btn btn-warning btn-sm" style="margin-bottom: 10px" id="check_{{ forloop.counter0 }}"> SET TO CHECK </button>
+
+                    {% else %}
+                        <button class="btn btn-outline-secondary btn-sm" style="margin-bottom: 10px" id="pass_{{ forloop.counter0 }}" onclick="changeColor('pass', {{ forloop.counter0 }}, '{{ note.object_id }}')" name="pass"> SET TO PASS </button>
+                        <button class="btn btn-outline-secondary btn-sm" style="margin-bottom: 10px" id="check_{{ forloop.counter0 }}" onclick="changeColor('check', {{ forloop.counter0 }}, '{{ note.object_id }}')" name="check"> SET TO CHECK </button>
+
+                    {% endif %}
+                {% endif %}
                 <div class="imagecard">
                     <a href="{{ MEDIA_ROOT }}{{ note.image.url }}">
                     <img class="card-img-top" src="{{ MEDIA_ROOT }}{{ note.image.url }}" title="{{ note.content_object }} {{ note.text }}">
@@ -40,6 +53,37 @@
     </div>
     <script>
         var gallery = new SimpleLightbox('.gallery .imagecard a', {'captionPosition': 'outside'});
+
+        function changeColor(button, id, pid) {
+            let pass_button = 'pass_' + id
+            let check_button = 'check_' + id
+
+            if (button.toString() == 'pass') {
+                document.getElementById(pass_button).className = "btn btn-success btn-sm";
+                document.getElementById(pass_button).style.marginBottom = "10px";
+                if (document.getElementById(check_button))
+                    document.getElementById(check_button).remove()
+            } else if (button.toString() == 'check') {
+                document.getElementById(check_button).className = "btn btn-warning btn-sm";
+                document.getElementById(check_button).style.marginBottom = "10px";
+            }
+            console.log(`/ibl_reports/plot_qc`)
+            $.ajax({
+               type: "POST",
+               url: `/ibl_reports/plot_qc`,
+               data: {
+                   'csrfmiddlewaretoken': '{{csrf_token}}',
+                   'value': button,
+                   'pid': pid,
+               },
+                success: function () {
+                    console.log('Success')
+                }
+             });
+        return false;
+        }
+
+
     </script>
 
 
