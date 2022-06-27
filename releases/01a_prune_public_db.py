@@ -189,10 +189,24 @@ for p in probeinsertions:
             pdict['extended_qc']['alignment_stored'] = datestr + 'xxx'
         ProbeInsertion.objects.using('public').filter(pk=p.id).update(json=pdict)
 
-# Keep only ephys aligned histology track that have probe insertion in public db now
+# Delete all trajectories that are not associated with the probe insertions
+TrajectoryEstimate.objects.using('public').exclude(probe_insertion__in=probeinsertions).delete()
+# Remove identifying information from ephys aligned trajectory json
 trajectories = TrajectoryEstimate.objects.using('public').filter(
     probe_insertion__in=probeinsertions).filter(provenance=70).distinct()
-TrajectoryEstimate.objects.using('public').exclude(pk__in=trajectories.values_list('pk', flat=True)).delete()
+for t in trajectories:
+    tdict = t.json
+    tdict_anon = {}
+    if tdict:
+        for key, val in tdict.items():
+            datestr = key[:20]
+            exp_str = key[20:]
+            if exp_str in anon_dict.keys():
+                anon_key = datestr + anon_dict[exp_str]
+            else:
+                anon_key = datestr + 'xxx'
+            tdict_anon[anon_key] = val
+        TrajectoryEstimate.objects.using('public').filter(pk=t.id).update(json=tdict_anon)
 
 # Remove unused Probe models, coordinate systems, channels and Brain Regions
 ProbeModel.objects.using('public').exclude(pk__in=probeinsertions.values_list('model', flat=True).distinct()).delete()
@@ -249,5 +263,3 @@ GenotypeTest.objects.using('public').all().delete()
 # jobs
 Task.objects.using('public').all().delete()
 print("Finished pruning database\n")
-
-

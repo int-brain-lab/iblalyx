@@ -39,7 +39,7 @@ class Command(BaseCommand):
     python ./manage.py ibl task_started_stalled_reset
         Resets to waiting tasks that have been Started for more than 6 days
 
-    python ./manage.py ibl cleanup_old_sessions --lab angelakilab --date 2020-06-01  --n 500 [--dry]
+    python ./manage.py ibl cleanup_old_sessions --lab angelakilab --date 2020-06-01  --n 500
         Resets to waiting tasks that have been Started for more than 6 days
     """
     def add_arguments(self, parser):

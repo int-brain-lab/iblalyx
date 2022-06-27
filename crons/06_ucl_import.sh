@@ -24,3 +24,6 @@ echo "Load pruned cortexlab data into ibl"
 
 # set the cortex lab json field health report and set reverse fk probeinsertion --> dataset
 ./manage.py shell < ../scripts/sync_ucl/ucl_post_json_import.py
+
+# sync the uploaded folder on cortexlab alyx to alyx-uploaded s3 bucket
+ssh -i ~/.ssh/sdsc_alyx.pem ubuntu@ec2-18-132-246-163.eu-west-2.compute.amazonaws.com "aws s3 sync /var/www/alyx-main/uploaded s3://alyx-uploaded/uploaded"

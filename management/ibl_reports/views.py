@@ -2,14 +2,14 @@ import django_filters
 from django.http import HttpResponse, JsonResponse
 from django.template import loader
 from django.views.generic.list import ListView
-from django.db.models import Count, Q, F, Max, OuterRef, Exists, UUIDField
+from django.db.models import Q, F, OuterRef, Exists, UUIDField, DateTimeField, Max, Count
 from django.db.models.functions import Coalesce
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 from data.models import Dataset
 from experiments.models import TrajectoryEstimate, ProbeInsertion
 from misc.models import Note, Lab
-from subjects.models import Project
+from subjects.models import Project, Subject
 from actions.models import Session
 
 import numpy as np
@@ -428,6 +428,20 @@ class GalleryOverviewView(LoginRequiredMixin, ListView):
         return qs
 
 
+def add_plot_qc(request):
+    pid = request.POST.get('pid')
+    value = request.POST.get('value')
+
+    probe = ProbeInsertion.objects.get(id=pid)
+    plot_qc = probe.json.get('extended_qc', {}).get('experimenter_raw_destripe', None)
+    if plot_qc != 'pass':
+        probe.json['extended_qc'].update(experimenter_raw_destripe=value)
+
+    probe.save()
+
+    return JsonResponse({'Success': 'json field updates'})
+
+
 class GalleryPlotsOverview(LoginRequiredMixin, ListView):
     login_url = LOGIN_URL
     template_name = 'ibl_reports/gallery_plots_overview.html'
@@ -449,7 +463,20 @@ class GalleryPlotsOverview(LoginRequiredMixin, ListView):
         qs = qs.annotate(session=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session'),
                                           Session.objects.filter(id=OuterRef('object_id')).values('pk'), output_field=UUIDField()))
 
-        self.f = GalleryFilter(self.request.GET, queryset=qs)
+        qs = qs.annotate(session_time=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__start_time'),
+                                               Session.objects.filter(id=OuterRef('object_id')).values('start_time')))
+
+        qs = qs.annotate(session_qc=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__qc'),
+                                             Session.objects.filter(id=OuterRef('object_id')).values('qc')))
+
+        qs = qs.annotate(probe_qc=ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('json__qc'))
+
+        qs = qs.annotate(destripe_qc=ProbeInsertion.objects.filter(
+            id=OuterRef('object_id')).values('json__extended_qc__experimenter_raw_destripe'))
+
+        qs = qs.annotate(plot_type=Note.objects.filter(id=OuterRef('id')).values('json__name'))
+
+        self.f = GalleryFilter(self.request.GET, queryset=qs.order_by('-session_time'))
 
         return self.f.qs
 
@@ -461,17 +488,33 @@ for ip, pl in enumerate(plot_types):
 
 
 class GalleryFilter(django_filters.FilterSet):
-
+    """
+    Class that filters over Notes queryset.
+    Annotations are provided by the list view
+    """
     REPEATEDSITE = (
         (0, 'All'),
         (1, 'Repeated Site')
     )
 
+    DESTRIPE_QC = (
+        (0, 'Not Set'),
+        (1, 'Check'),
+        (2, 'Pass')
+    )
+
+    CRITICAL_QC = (
+        (0, 'Non-critical'),
+        (1, 'Critical'),
+    )
+
     id = django_filters.CharFilter(label='Experiment ID/ Probe ID', method='filter_id', lookup_expr='startswith')
     plot = django_filters.ChoiceFilter(choices=PLOT_OPTIONS, label='Plot Type', method='filter_plot')
-    lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')  # here
+    lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')
     project = django_filters.ModelChoiceFilter(queryset=Project.objects.all(), label='Project', method='filter_project')
     repeated = django_filters.ChoiceFilter(choices=REPEATEDSITE, label='Location', method='filter_repeated')
+    critical_qc = django_filters.ChoiceFilter(choices=CRITICAL_QC, label='QC', method='filter_critical_qc')
+    destripe_qc = django_filters.ChoiceFilter(choices=DESTRIPE_QC, label='Destripe QC', method='filter_destripe_qc')
 
     class Meta:
         model = Note
@@ -481,14 +524,31 @@ class GalleryFilter(django_filters.FilterSet):
     def __init__(self, *args, **kwargs):
         super(GalleryFilter, self).__init__(*args, **kwargs)
 
-    def filter_project(self, queryset, name, value):
+    def filter_critical_qc(self, queryset, name, value):
 
-        queryset = queryset.filter(project=value.name)
+        if value == '0':
+            queryset = queryset.exclude(Q(probe_qc='CRITICAL') | Q(session_qc=50))
+        elif value == '1':
+            queryset = queryset.filter(Q(probe_qc='CRITICAL') | Q(session_qc=50))
 
         return queryset
 
-    def filter_plot(self, queryset, name, value):
+    def filter_destripe_qc(self, queryset, name, value):
 
+        if value == '0':
+            queryset = queryset.filter(destripe_qc__isnull=True)
+        elif value == '1':
+            queryset = queryset.filter(destripe_qc='check')
+        elif value == '2':
+            queryset = queryset.filter(destripe_qc='pass')
+
+        return queryset
+
+    def filter_project(self, queryset, name, value):
+        queryset = queryset.filter(project=value.name)
+        return queryset
+
+    def filter_plot(self, queryset, name, value):
         text = [pl[1] for pl in PLOT_OPTIONS if pl[0] == int(value)][0]
         queryset = queryset.filter(text=text)
         return queryset
@@ -596,3 +656,60 @@ class SessionFilter(django_filters.FilterSet):
                                    Q(probe_insertion__trajectory_estimate__theta=15))
 
 
+class SubjectTrainingPlots(LoginRequiredMixin, ListView):
+    template_name = 'ibl_reports/gallery_subject_overview.html'
+    login_url = LOGIN_URL
+    paginate_by = 20
+
+    def get_context_data(self, **kwargs):
+        # need to figure out which is more efficient
+        context = super(SubjectTrainingPlots, self).get_context_data(**kwargs)
+        context['subjectFilter'] = self.f
+        notes = Note.objects.all().filter(json__tag="## report ##")
+        s, data = self.get_my_data(context['object_list'], notes)
+
+        context['info'] = data
+        context['subjects'] = s
+
+        return context
+
+    def get_my_data(self, subjects, notes):
+        data = []
+        s = []
+        for subj in subjects:
+            info = {}
+            s.append(subj)
+            plot_dict = {}
+            for plot in data_info.OVERVIEW_SUBJECT_PLOTS:
+                note = notes.filter(object_id=subj.id, text=plot[0]).first()
+                if not note and not plot[1]:
+                    continue
+                else:
+                    plot_dict[plot[0]] = note
+            info[''] = plot_dict
+            data.append(info)
+
+        return s, data
+
+    def get_queryset(self):
+        qs = Subject.objects.all().prefetch_related('actions_sessions')
+        qs = qs.annotate(latest_sess=Max('actions_sessions__start_time'), n_sess=Count('actions_sessions'))
+        qs = qs.filter(n_sess__gte=1)
+        qs = qs.order_by('-latest_sess')
+        self.f = SubjectFilter(self.request.GET, queryset=qs)
+
+        return self.f.qs
+
+
+class SubjectFilter(django_filters.FilterSet):
+
+    nickname = django_filters.ModelChoiceFilter(queryset=Subject.objects.all(), label='Nickname')
+    lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')
+
+    class Meta:
+        model = Note
+        fields = ['nickname', 'lab']
+        exclude = ['json']
+
+    def __init__(self, *args, **kwargs):
+        super(SubjectFilter, self).__init__(*args, **kwargs)

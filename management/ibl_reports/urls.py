@@ -12,9 +12,11 @@ urlpatterns = [
     path('video_qc_eid/<uuid:eid>', views.plot_video_qc_eid, name='plot_video_qc_eid'),
     path('dlc_qc_eid/<uuid:eid>', views.plot_dlc_qc_eid, name='plot_dlc_qc_eid'),
     path('spikesorting', views.SpikeSortingTable.as_view(), name='spikesorting table'),
+    path('plot_qc', views.add_plot_qc, name='add_plot_qc'),
 
     path('gallery/plots', views.GalleryPlotsOverview.as_view(), name='plot_overview'),
     path('gallery/sessions', views.SessionImportantPlots.as_view(), name='session_overview'),
+    path('gallery/subjects', views.SubjectTrainingPlots.as_view(), name='subject_overview'),
 
     path('gallery/<uuid:eid>', views.GalleryOverviewView.as_view(), name='session'),
     path('gallery/<uuid:eid>/gallery', views.GallerySessionView.as_view(), name='gallery'),
@@ -25,4 +27,6 @@ urlpatterns = [
     path('gallery/<uuid:eid>/rawephys', views.GallerySubPlotProbeView.as_view(plot_type='rawephys'), name='rawephys'),
     path('gallery/<uuid:eid>/histology', views.GallerySubPlotProbeView.as_view(plot_type='histology'), name='histology'),
     path('gallery/<uuid:eid>/video', views.GallerySubPlotSessionView.as_view(plot_type='video'), name='video'),
+
+    path('gallery/<uuid:pid>/video', views.GallerySubPlotSessionView.as_view(plot_type='video'), name='video'),
 ]
