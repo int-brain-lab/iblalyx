@@ -503,12 +503,17 @@ class GalleryFilter(django_filters.FilterSet):
         (2, 'Pass')
     )
 
+    CRITICAL_QC = (
+        (0, 'Non-critical'),
+        (1, 'Critical'),
+    )
+
     id = django_filters.CharFilter(label='Experiment ID/ Probe ID', method='filter_id', lookup_expr='startswith')
     plot = django_filters.ChoiceFilter(choices=PLOT_OPTIONS, label='Plot Type', method='filter_plot')
     lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')
     project = django_filters.ModelChoiceFilter(queryset=Project.objects.all(), label='Project', method='filter_project')
     repeated = django_filters.ChoiceFilter(choices=REPEATEDSITE, label='Location', method='filter_repeated')
-    session_qc = django_filters.MultipleChoiceFilter(choices=Session.QC_CHOICES, label='QC', method='filter_session_qc')
+    critical_qc = django_filters.ChoiceFilter(choices=CRITICAL_QC, label='QC', method='filter_critical_qc')
     destripe_qc = django_filters.ChoiceFilter(choices=DESTRIPE_QC, label='Destripe QC', method='filter_destripe_qc')
 
     class Meta:
@@ -519,10 +524,12 @@ class GalleryFilter(django_filters.FilterSet):
     def __init__(self, *args, **kwargs):
         super(GalleryFilter, self).__init__(*args, **kwargs)
 
-    def filter_session_qc(self, queryset, name, value):
+    def filter_critical_qc(self, queryset, name, value):
 
-        qcs = [qc_check.QC_DICT[val] for val in value]
-        queryset = queryset.filter(Q(probe_qc__in=qcs) | Q(session_qc__in=value))
+        if value == '0':
+            queryset = queryset.exclude(Q(probe_qc='CRITICAL') | Q(session_qc=50))
+        elif value == '1':
+            queryset = queryset.filter(Q(probe_qc='CRITICAL') | Q(session_qc=50))
 
         return queryset
 
