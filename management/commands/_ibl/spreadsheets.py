@@ -261,7 +261,7 @@ def _populate_sheet(insertions, spreadsheetID, spreadsheetRange):
 
         # If RESOLUTION NEEDED, take alignment qc
         if spreadsheetRange == 'RESOLUTION_MISSING':
-            alignment_qc = insertion.json.extended_qc.alignment_qc
+            alignment_qc = insertion.json['extended_qc']['alignment_qc']
 
         # Check if user assigned did align
         traj = TrajectoryEstimate.objects.filter(provenance=70, probe_insertion=insertion.id)
