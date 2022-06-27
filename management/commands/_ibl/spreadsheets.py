@@ -259,6 +259,10 @@ def _populate_sheet(insertions, spreadsheetID, spreadsheetRange):
         origin_lab_done = False
         assign_lab_done = False
 
+        # If RESOLUTION NEEDED, take alignment qc
+        if spreadsheetRange == 'RESOLUTION_MISSING':
+            alignment_qc = insertion.json.extended_qc.alignment_qc
+
         # Check if user assigned did align
         traj = TrajectoryEstimate.objects.filter(provenance=70, probe_insertion=insertion.id)
 
@@ -307,6 +311,10 @@ def _populate_sheet(insertions, spreadsheetID, spreadsheetRange):
             "n_alignment_done": n_alignment_done,
             "names_alignment": names_alignment
         }
+
+        # If RESOLUTION NEEDED, add alignment qc
+        if spreadsheetRange == 'RESOLUTION_MISSING':
+            dict_ins['alignment_qc'] = alignment_qc
 
         # Check all datasets exist and append
         for str_identifier in LIST_STR_ID:
