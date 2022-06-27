@@ -34,6 +34,12 @@
 
                     {% endif %}
                 {% endif %}
+                <div class="row" style="margin-bottom: 10px">
+                    <div class="col-md-6"><h6><a href={% url 'admin:actions_session_change' note.session%}> Session <i class="fa fa-arrow-circle-right"></i></a></h6></div>
+                    {% if note.content_type.name == 'probe insertion' %}
+                        <div class="col-md-6"><h6><a href={% url 'admin:experiments_probeinsertion_change' note.object_id %}> Insertion <i class="fa fa-arrow-circle-right"></i></a></h6></div>
+                    {% endif %}
+                </div>
                 <div class="imagecard">
                     <a href="{{ MEDIA_ROOT }}{{ note.image.url }}">
                     <img class="card-img-top" src="{{ MEDIA_ROOT }}{{ note.image.url }}" title="{{ note.content_object }} {{ note.text }}">
@@ -44,7 +50,7 @@
                     </a>
                 </div>
             </div>
-            {% if forloop.counter|divisibleby:4 or forloop.last%}
+            {% if forloop.counter|divisibleby:4 or forloop.last %}
                 <div class="clearfix"></div>
             {% endif %}
 

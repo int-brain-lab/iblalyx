@@ -467,7 +467,7 @@ class GalleryPlotsOverview(LoginRequiredMixin, ListView):
                                                Session.objects.filter(id=OuterRef('object_id')).values('start_time')))
 
         qs = qs.annotate(session_qc=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__qc'),
-                                               Session.objects.filter(id=OuterRef('object_id')).values('qc')))
+                                             Session.objects.filter(id=OuterRef('object_id')).values('qc')))
 
         qs = qs.annotate(probe_qc=ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('json__qc'))
 
@@ -523,7 +523,7 @@ class GalleryFilter(django_filters.FilterSet):
 
         qcs = [qc_check.QC_DICT[val] for val in value]
         queryset = queryset.filter(Q(probe_qc__in=qcs) | Q(session_qc__in=value))
-        
+
         return queryset
 
     def filter_destripe_qc(self, queryset, name, value):
