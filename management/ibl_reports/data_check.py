@@ -117,8 +117,11 @@ def raw_behaviour_data_status(datasets, session):
 
 
 def trial_data_status(datasets, session):
-
-    data = get_data_status(datasets, expected_data.TRIALS, 'Trial data')
+    # First check if trials table exists
+    data = get_data_status(datasets,  [('trials.table', 'alf', True)], 'Trials data')
+    # If no, check if individual datasets exist
+    if data['critical'] is True:
+        data = get_data_status(datasets, expected_data.TRIALS, 'Trial data')
     data['tasks'] = get_tasks(expected_data.TRIAL_TASKS, session)
 
     return data
