@@ -68,6 +68,7 @@ TRIALS = [
     ('trials.goCueTrigger_times', 'alf', True),
     ('trials.goCue_times', 'alf', True),
     ('trials.intervals', 'alf', True),
+    ('trials.intervals', 'alf', True),
     ('trials.probabilityLeft', 'alf', True),
     ('trials.response_times', 'alf', True),
     ('trials.rewardVolume', 'alf', True),

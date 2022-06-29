@@ -237,7 +237,8 @@ def get_data_status_qs(probe_insertions):
                    'passive': [],
                    'video': []}
 
-    critical_behav = [dset[0] for dset in expected_data.TRIALS if dset[2]]
+    critical_behav_a = ['trials.table']
+    critical_behav_b = [dset[0] for dset in expected_data.TRIALS if dset[2]]
     critical_spikesort = [dset[0] for dset in expected_data.SPIKE_SORTING if dset[2]]
     critical_passive = [dset[0] for dset in (expected_data.PASSIVE + expected_data.RAW_PASSIVE) if dset[2]]
     critical_video = [dset[0] for dset in (expected_data.VIDEO + expected_data.RAW_VIDEO) if dset[2]]
@@ -245,8 +246,15 @@ def get_data_status_qs(probe_insertions):
     for pr in probe_insertions:
         pr_dsets = pr.session.data_dataset_session_related
         dsets = pr_dsets.filter(collection__in=['alf'],
-                                dataset_type__name__in=critical_behav)
-        data_status['behav'].append(dsets.count() == len(critical_behav))
+                                dataset_type__name__in=critical_behav_a)
+        # if there is no trials table, check that all the other datasets are there
+        if dsets.count() == 1:
+            data_status['behav'].append(True)
+        else:
+            # if there is no trials table, check that if the other datasets are there
+            dsets = pr_dsets.filter(collection__in=['alf'],
+                                    dataset_type__name__in=critical_behav_b)
+            data_status['behav'].append(dsets.count() == len(critical_behav_b))
 
         dsets = pr_dsets.filter(collection__icontains=f'alf/{pr.name}',
                                 dataset_type__name__in=critical_spikesort)
