@@ -75,7 +75,7 @@ def remove_sessions_local_servers(labname, archive_date=None, gc=None, dry_run=F
                     raise e
                 else:  # the directory doesn't exist on the target
                     continue
-            dc.add_item(session_path)
+            dc.add_item(session_path.as_posix())
         else:
             _logger.warning(f"session {ses} doesn't seem to have everything in sdsc")
 
