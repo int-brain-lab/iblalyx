@@ -10,7 +10,7 @@ from one.api import ONE
 from one.alf.files import get_alf_path, add_uuid_string, session_path_parts
 from one.alf.io import iter_sessions
 from one.alf import spec
-from one.alf.cache import _iter_datasets
+from one.alf.cache import iter_datasets
 from iblutil.io.parquet import np2str
 
 import ibllib  # For logger
@@ -59,7 +59,7 @@ if STRICTNESS >= 1:
     log.info('Removing missing ALF datasets')
     n = 0
     for session_path in iter_sessions(SDSC_PUBLIC_PATH):
-        for dataset_path in _iter_datasets(session_path):
+        for dataset_path in iter_datasets(session_path):
             name_parts = Path(dataset_path).name.split('.')
             if not spec.is_uuid_string(name_parts[-2]):
                 det = session_path_parts(session_path, as_dict=True)

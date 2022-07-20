@@ -4,7 +4,7 @@ This script needs to be run on the SDSC server with alyxvenv activated
 '''
 
 from pathlib import Path
-from data.transfers import _add_uuid_to_filename
+from one.alf.files import add_uuid_string
 from data.models import DataRepository, Dataset
 
 datasets = Dataset.objects.using('public').all()
@@ -17,7 +17,7 @@ for dset in datasets:
         print(f"...no file record for dataset with ID: {str(dset.pk)}")
     else:
         rel_path = Path(fr.data_repository.globus_path).joinpath(fr.relative_path).relative_to('/')
-        rel_path = _add_uuid_to_filename(str(rel_path), dset.pk)
+        rel_path = add_uuid_string(str(rel_path), dset.pk)
         source = Path('/mnt/ibl').joinpath(rel_path)
         dest = Path('/mnt/ibl/public').joinpath(rel_path)
         if source.exists():
