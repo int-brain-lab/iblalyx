@@ -36,7 +36,7 @@
                 {% endif %}
                 <div class="row" style="margin-bottom: 10px">
                     <div class="col-md-6"><h6><a href={% url 'admin:actions_session_change' note.session%}> Session <i class="fa fa-arrow-circle-right"></i></a></h6></div>
-                    {% if note.content_type.name == 'probe insertion' %}
+                    {% if note.content_type.name == 'probe insertion' or note.content_type.name == 'probe_model' %}
                         <div class="col-md-6"><h6><a href={% url 'admin:experiments_probeinsertion_change' note.object_id %}> Insertion <i class="fa fa-arrow-circle-right"></i></a></h6></div>
                     {% endif %}
                 </div>
