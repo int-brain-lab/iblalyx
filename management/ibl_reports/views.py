@@ -534,6 +534,15 @@ class GalleryFilter(django_filters.FilterSet):
     def __init__(self, *args, **kwargs):
         super(GalleryFilter, self).__init__(*args, **kwargs)
 
+    def filter_behav_qc(self, queryset, name, value):
+        if value == '0':
+            queryset = queryset.filter(behav_qc=1)
+        elif value == '1':
+            queryset = queryset.filter(behav_qc=0)
+
+        return queryset
+
+
     def filter_critical_qc(self, queryset, name, value):
 
         if value == '0':
