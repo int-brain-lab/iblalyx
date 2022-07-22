@@ -469,6 +469,9 @@ class GalleryPlotsOverview(LoginRequiredMixin, ListView):
         qs = qs.annotate(session_qc=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__qc'),
                                              Session.objects.filter(id=OuterRef('object_id')).values('qc')))
 
+        qs = qs.annotate(behav_qc=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__extended_qc__behavior'),
+                                             Session.objects.filter(id=OuterRef('object_id')).values('extended_qc__behavior')))
+
         qs = qs.annotate(probe_qc=ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('json__qc'))
 
         qs = qs.annotate(destripe_qc=ProbeInsertion.objects.filter(
@@ -508,12 +511,19 @@ class GalleryFilter(django_filters.FilterSet):
         (1, 'Critical'),
     )
 
+    BEHAVIOR_QC = (
+        (0, 'Pass'),
+        (1, 'Fail'),
+    )
+
+
     id = django_filters.CharFilter(label='Experiment ID/ Probe ID', method='filter_id', lookup_expr='startswith')
     plot = django_filters.ChoiceFilter(choices=PLOT_OPTIONS, label='Plot Type', method='filter_plot')
     lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')
     project = django_filters.ModelChoiceFilter(queryset=Project.objects.all(), label='Project', method='filter_project')
     repeated = django_filters.ChoiceFilter(choices=REPEATEDSITE, label='Location', method='filter_repeated')
     critical_qc = django_filters.ChoiceFilter(choices=CRITICAL_QC, label='QC', method='filter_critical_qc')
+    behavior_qc = django_filters.ChoiceFilter(choices=BEHAVIOR_QC, label='Behaviour', method='filter_behav_qc')
     destripe_qc = django_filters.ChoiceFilter(choices=DESTRIPE_QC, label='Destripe QC', method='filter_destripe_qc')
 
     class Meta:
