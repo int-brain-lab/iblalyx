@@ -1,0 +1,5 @@
+bzip2
+ca-certificates
+git
+postgresql-client-13
+wget
