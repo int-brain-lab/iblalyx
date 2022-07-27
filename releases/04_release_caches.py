@@ -13,4 +13,7 @@ assert TABLES_ROOT[-1] != '/'
 for tag in Tag.objects.all().values_list('name', flat=True):
     print(f'Generating cache for release "{tag}"')
     cmd = cache.Command()
-    cmd.handle(tag=tag, compress=True, dst_dir=TABLES_ROOT + '/' + urllib.parse.quote(tag))
+    cmd.handle(
+        tag=tag, compress=True, verbosity=1, tables=('sessions', 'datasets'), int_id=False,
+        destination=TABLES_ROOT + '/' + urllib.parse.quote(tag)
+    )
