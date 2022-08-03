@@ -75,16 +75,16 @@ print(f"\nStarting to prune public database")
 # TECHNICAL DEBT: This is probably not great for the future when we start to have many more datasets public
 print("...pruning datasets")
 datasets_to_del = Dataset.objects.using('public').all()
-for f, tagid in zip(public_ds_files, public_ds_tags):
-    dfds = pd.read_parquet(f)['dataset_id']
-    tag = Tag.objects.using('public').filter(id=tagid)
+for fname, tag_id in zip(public_ds_files, public_ds_tags):
+    dataset_ids = pd.read_parquet(fname)['dataset_id']
+    tag = Tag.objects.using('public').filter(id=tag_id)
     if len(tag) != 0:
-        datasets = Dataset.objects.filter(pk__in=list(dfds))
-        if set(tag[0].datasets.all()) == set(datasets):
-            print(f"{f} mismatched tags !!")
+        datasets = Dataset.objects.filter(pk__in=list(dataset_ids))
+        if set(tag[0].datasets.all()) != set(datasets):
+            print(f"{fname} mismatched tags !")
     else:
-        print(f"{f} missing tag !")
-    datasets_to_del = datasets_to_del.exclude(pk__in=list(dfds))
+        print(f"{fname} missing tag !")
+    datasets_to_del = datasets_to_del.exclude(pk__in=list(dataset_ids))
 datasets_to_del.delete()
 datasets = Dataset.objects.using('public').all()
 
