@@ -85,6 +85,15 @@ for fname, tag_id in zip(public_ds_files, public_ds_tags):
     else:
         print(f"{fname} missing tag !")
     datasets_to_del = datasets_to_del.exclude(pk__in=list(dataset_ids))
+
+# Do not delete ambient sensor data of sessions from which datasets will be released
+datasets_to_keep = Dataset.objects.using('public').exclude(pk__in=datasets_to_del.values_list('pk', flat=True))
+sessions_to_keep = datasets_to_keep.values_list('session_id', flat=True).distinct()
+ambient_sensor = Dataset.objects.using('public').filter(session__in=sessions_to_keep,
+                                                        dataset_type__name='_iblrig_ambientSensorData.raw')
+datasets_to_del.exclude(pk__in=ambient_sensor.values_list('pk', flat=True))
+
+# Now delete datasets
 datasets_to_del.delete()
 datasets = Dataset.objects.using('public').all()
 
