@@ -227,6 +227,14 @@ CageType.objects.using('public').exclude(housing__in=housing).delete()
 Enrichment.objects.using('public').exclude(housing__in=housing).delete()
 Food.objects.using('public').exclude(housing__in=housing).delete()
 
+print("...pruning water admininstration info")
+# Keep WaterAdministration info only from sessions, and only from those in the DB
+sessions = Session.objects.using('public').all()
+WaterAdministration.objects.using('public').exclude(session__in=sessions, session__isnull=False).delete()
+# Delete WaterTypes that no longer have an associated WaterAdministrtaion
+watertypes = WaterAdministration.objects.using('public').all().values_list('water_type', flat=True).distinct()
+WaterType.objects.using('public').exclude(id__in=watertypes).delete()
+
 """
 Deleting some tables altogether
 """
@@ -239,8 +247,6 @@ Note.objects.using('public').all().delete()
 # actions
 ProcedureType.objects.using('public').all().delete()
 Weighing.objects.using('public').all().delete()
-WaterType.objects.using('public').all().delete()
-WaterAdministration.objects.using('public').all().delete()
 VirusInjection.objects.using('public').all().delete()
 ChronicRecording.objects.using('public').all().delete()
 Surgery.objects.using('public').all().delete()
