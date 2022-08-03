@@ -214,6 +214,19 @@ CoordinateSystem.objects.using('public').exclude(
     pk__in=trajectories.values_list('coordinate_system', flat=True)).delete()
 Channel.objects.using('public').exclude(trajectory_estimate__in=trajectories).delete()
 
+print("...pruning food and cage info")
+# From the HousinSubject through table, remove all entries that are not related to a subject in the new public DB
+subjects = Subject.objects.using('public').all()
+HousingSubject.objects.using('public').exclude(subject__in=subjects).delete()
+housingsubject = HousingSubject.objects.using('public').all()
+# Remove all Housing entries that no longer have an entry in HousingSubject
+Housing.objects.using('public').exclude(id__in=housingsubject.values_list('housing', flat=True)).delete()
+housing = Housing.objects.using('public').all()
+# Remove all CageType, Enrichment and Food entries that are not related to a Housing in the new public DB
+CageType.objects.using('public').exclude(housing__in=housing).delete()
+Enrichment.objects.using('public').exclude(housing__in=housing).delete()
+Food.objects.using('public').exclude(housing__in=housing).delete()
+
 """
 Deleting some tables altogether
 """
@@ -221,12 +234,7 @@ print("...deleting some tables")
 # misc
 LabMembership.objects.using('public').all().delete()
 LabLocation.objects.using('public').all().delete()
-Housing.objects.using('public').all().delete()
-HousingSubject.objects.using('public').all().delete()
 Note.objects.using('public').all().delete()
-CageType.objects.using('public').all().delete()
-Enrichment.objects.using('public').all().delete()
-Food.objects.using('public').all().delete()
 
 # actions
 ProcedureType.objects.using('public').all().delete()
