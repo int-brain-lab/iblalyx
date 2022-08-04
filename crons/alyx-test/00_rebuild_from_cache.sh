@@ -16,4 +16,3 @@ cd /var/www/alyx-test/alyx
 # permissions
 ./manage.py set_db_permissions
 ./manage.py set_user_permissions
-
