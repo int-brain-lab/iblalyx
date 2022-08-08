@@ -13,7 +13,6 @@ set -e
 # * Adjust the variables below according to your setup (any changes here should also be made in 02_upload_public_db.sh)
 
 # Variables
-MBOX_USER_HOST=ubuntu@18.171.16.87
 TMP_DIR="$HOME"/openalyx_wd  # This will be recreated and later destroyed, make sure you have write access
 SSH_STR=(mbox)  # have to use ssh config file for all the commands below to work
 # whoami ? Julia
@@ -31,7 +30,7 @@ echo "... creating working directory $TMP_DIR"
 mkdir -p "$TMP_DIR"
 # Copying and unzipping the most recent alyx backup into it, SSH_STR needs to be setup correctly above
 echo "... copying latest backup of production database"
-scp "${SSH_STR[@]}":/backups/alyx-backups/$(date +%Y-%m-%d)/alyx_full.sql.gz "$TMP_DIR"/alyxfull.sql.gz
+scp "${SSH_STR[*]}":/backups/alyx-backups/$(date +%Y-%m-%d)/alyx_full.sql.gz "$TMP_DIR"/alyxfull.sql.gz
 gunzip -f -c "$TMP_DIR"/alyxfull.sql.gz > "$TMP_DIR"/alyxfull.sql
 
 # Destroy local public database and load production database into it
@@ -52,5 +51,5 @@ echo "... creating sql dump of local public database"
 gzip -f -k "$TMP_DIR"/openalyx.sql
 ## Copy sql as backup to mbox
 echo "... copying sql dump to mbox as backup"
-scp "$TMP_DIR"/openalyx.sql.gz "${SSH_STR[@]}":/backups/openalyx-backups/$(date +%Y-%m-%d)_openalyx.sql.gz
+scp "$TMP_DIR"/openalyx.sql.gz "${SSH_STR[*]}":/backups/openalyx-backups/$(date +%Y-%m-%d)_openalyx.sql.gz
 echo "$(date '+%Y-%m-%d %H:%M:%S') Finished creating local version of public database"

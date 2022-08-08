@@ -87,11 +87,11 @@ for fname, tag_id in zip(public_ds_files, public_ds_tags):
     datasets_to_del = datasets_to_del.exclude(pk__in=list(dataset_ids))
 
 # Do not delete ambient sensor data of sessions from which datasets will be released
-datasets_to_keep = Dataset.objects.using('public').exclude(pk__in=datasets_to_del.values_list('pk', flat=True))
-sessions_to_keep = datasets_to_keep.values_list('session_id', flat=True).distinct()
+sessions_to_keep = Session.objects.using('public').exclude(
+    pk__in=datasets_to_del.values_list('session__pk', flat=True)).distinct()
 ambient_sensor = Dataset.objects.using('public').filter(session__in=sessions_to_keep,
                                                         dataset_type__name='_iblrig_ambientSensorData.raw')
-datasets_to_del.exclude(pk__in=ambient_sensor.values_list('pk', flat=True))
+datasets_to_del = datasets_to_del.exclude(pk__in=ambient_sensor.values_list('pk', flat=True))
 
 # Now delete datasets
 datasets_to_del.delete()
@@ -223,9 +223,16 @@ CoordinateSystem.objects.using('public').exclude(
     pk__in=trajectories.values_list('coordinate_system', flat=True)).delete()
 Channel.objects.using('public').exclude(trajectory_estimate__in=trajectories).delete()
 
-print("...pruning food and cage info")
-# From the HousinSubject through table, remove all entries that are not related to a subject in the new public DB
+print("...pruning cage, weight, water and food info")
+# Get subjects and sessions in new open database
 subjects = Subject.objects.using('public').all()
+sessions = Session.objects.using('public').all()
+# Keep Weighing and WaterRestriction only from those subjects
+Weighing.objects.using('public').exclude(subject__in=subjects).delete()
+WaterRestriction.objects.using('public').exclude(subject__in=subjects).delete()
+# Keep WaterAdministration only from those sessions
+WaterAdministration.objects.using('public').exclude(session__in=sessions, session__isnull=False).delete()
+# From the HousinSubject through table, remove all entries that are not related to a subject
 HousingSubject.objects.using('public').exclude(subject__in=subjects).delete()
 housingsubject = HousingSubject.objects.using('public').all()
 # Remove all Housing entries that no longer have an entry in HousingSubject
@@ -236,13 +243,6 @@ CageType.objects.using('public').exclude(housing__in=housing).delete()
 Enrichment.objects.using('public').exclude(housing__in=housing).delete()
 Food.objects.using('public').exclude(housing__in=housing).delete()
 
-print("...pruning water admininstration info")
-# Keep WaterAdministration info only from sessions, and only from those in the DB
-sessions = Session.objects.using('public').all()
-WaterAdministration.objects.using('public').exclude(session__in=sessions, session__isnull=False).delete()
-# Delete WaterTypes that no longer have an associated WaterAdministrtaion
-watertypes = WaterAdministration.objects.using('public').all().values_list('water_type', flat=True).distinct()
-WaterType.objects.using('public').exclude(id__in=watertypes).delete()
 
 """
 Deleting some tables altogether
@@ -255,11 +255,9 @@ Note.objects.using('public').all().delete()
 
 # actions
 ProcedureType.objects.using('public').all().delete()
-Weighing.objects.using('public').all().delete()
 VirusInjection.objects.using('public').all().delete()
 ChronicRecording.objects.using('public').all().delete()
 Surgery.objects.using('public').all().delete()
-WaterRestriction.objects.using('public').all().delete()
 Notification.objects.using('public').all().delete()
 NotificationRule.objects.using('public').all().delete()
 CullReason.objects.using('public').all().delete()
