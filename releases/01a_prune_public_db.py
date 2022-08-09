@@ -81,7 +81,7 @@ for fname, tag_id in zip(public_ds_files, public_ds_tags):
     dataset_ids = pd.read_parquet(fname)['dataset_id']
     tag = Tag.objects.using('public').filter(id=tag_id)
     if len(tag) != 0:
-        datasets = Dataset.objects.filter(pk__in=list(dataset_ids))
+        datasets = Dataset.objects.using('public').filter(pk__in=list(dataset_ids))
         if set(tag[0].datasets.all()) != set(datasets):
             print(f"{fname} mismatched tags !")
     else:

@@ -9,10 +9,9 @@ datasets = Dataset.objects.filter(session__pk__in=eids, dataset_type__name='_ibl
 print(len(eids))
 print(datasets.count())
 
-df = pd.DataFrame(columns=['dataset_id'])
-df['dataset_id'] = [str(x) for x in datasets.values_list('pk', flat=True)]
-df.to_parquet('2022_Q3_IBL_et_al_DAWG_datasets.pqt')
-
 tag, _ = Tag.objects.get_or_create(name="2022_Q3_IBL_et_al_DAWG", protected=True, public=True)
 tag.datasets.set(datasets)
 
+df = pd.DataFrame(columns=['dataset_id'])
+df['dataset_id'] = [str(x) for x in datasets.values_list('pk', flat=True)]
+df.to_parquet('2022_Q3_IBL_et_al_DAWG_datasets.pqt')
