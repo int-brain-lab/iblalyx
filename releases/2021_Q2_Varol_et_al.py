@@ -18,8 +18,7 @@ assert all([dtype in dtypes for dtype in dsets.values_list('dataset_type__name',
 
 # Tagging of datasets in the production database
 tag, _ = Tag.objects.get_or_create(name="2021_Q2_Varol_et_al", protected=True, public=True)
-for dset in dsets:
-    dset.tags.add(tag)
+tag.datasets.set(dsets)
 
 # Saving dataset IDs for release in the public database
 dset_ids = [str(eid) for eid in dsets.values_list('pk', flat=True)]

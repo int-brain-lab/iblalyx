@@ -24,8 +24,7 @@ for ins in probe_insertions:
 
 # Tagging in production database
 tag, _ = Tag.objects.get_or_create(name="2021_Q2_PreRelease", protected=True, public=True)
-for dset in datasets:
-    dset.tags.add(tag)
+tag.datasets.set(datasets)
 
 # Save dataset IDs for release in public database
 dset_ids = [str(eid) for eid in datasets.values_list('pk', flat=True)]

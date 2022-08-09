@@ -14,6 +14,5 @@ df['dataset_id'] = [str(x) for x in datasets.values_list('pk', flat=True)]
 df.to_parquet('2022_Q3_IBL_et_al_DAWG_datasets.pqt')
 
 tag, _ = Tag.objects.get_or_create(name="2022_Q3_IBL_et_al_DAWG", protected=True, public=True)
-for dset in datasets:
-    dset.tags.add(tag)
+tag.datasets.set(datasets)
 

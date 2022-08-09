@@ -35,8 +35,7 @@ dsets = tables_ds | indv_ds | repnum_ds
 
 # Tagging in production database
 tag, _ = Tag.objects.get_or_create(name="2021_Q1_IBL_et_al_Behaviour", protected=True, public=True)
-for dset in dsets:
-    dset.tags.add(tag)
+tag.datasets.set(dsets)
 
 # Saving dataset IDs for release in the public database
 dset_ids = [str(eid) for eid in dsets.values_list('pk', flat=True)]

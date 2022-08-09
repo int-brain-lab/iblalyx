@@ -43,7 +43,7 @@ public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2021_Q3_Whiteway_et_al_datasets.pqt',
                    '2021_Q2_PreRelease_datasets.pqt',
                    '2022_Q2_IBL_et_al_RepeatedSite_datasets.pqt',
-                   '2022_Q3_IBL_et_al_DAWG'
+                   '2022_Q3_IBL_et_al_DAWG_datasets.pqt'
                    ]
 public_ds_tags = [
     "cfc4906a-316e-4150-8222-fe7e7f13bdac",  # "Behaviour Paper", "2021_Q1_IBL_et_al_Behaviour"

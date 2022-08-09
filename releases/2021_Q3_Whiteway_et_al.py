@@ -18,8 +18,7 @@ dsets = (Dataset.objects.filter(session=eid_1, dataset_type__name=dtype_1) |
 
 # Tagging in production database
 tag, _ = Tag.objects.get_or_create(name="2021_Q3_Whiteway_et_al", protected=True, public=True)
-for dset in dsets:
-    dset.tags.add(tag)
+tag.datasets.set(dsets)
 
 # Save dataset IDs for release in public database
 dset_ids = [str(eid) for eid in dsets.values_list('pk', flat=True)]
