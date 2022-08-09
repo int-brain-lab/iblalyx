@@ -14,6 +14,7 @@ public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2021_Q3_Whiteway_et_al_datasets.pqt',
                    '2021_Q2_PreRelease_datasets.pqt',
                    '2022_Q2_IBL_et_al_RepeatedSite_datasets.pqt',
+                    '2022_Q3_IBL_et_al_DAWG'
                    ]
 public_ds_tags = [
     "cfc4906a-316e-4150-8222-fe7e7f13bdac",  # "Behaviour Paper", "2021_Q1_IBL_et_al_Behaviour"
@@ -21,6 +22,7 @@ public_ds_tags = [
     "c8f0892a-a95b-4181-b8e6-d5d31cb97449",  # "Matt's paper", "2021_Q3_Whiteway_et_al"
     "dcd8b2e5-3a32-41b4-ac15-085a208a4466",  # "May 2021 pre-release", "2021_Q2_PreRelease"
     "05fbaa4e-681d-41c5-ae53-072cb96f4c0a",  # 2022_Q2_IBL_et_al_RepeatedSite_datasets
+    "1f2c5034-b31b-4c23-be93-c4a66c8c9eb1",  # 2022_Q3_IBL_et_al_DAWG
     ]
 
 
