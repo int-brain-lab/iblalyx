@@ -13,9 +13,15 @@ if [ -z "$1" ]; then
 else
   if [ "${1}" == "alyx-dev" ]; then
     ALYX_URL="dev.alyx.internationalbrainlab.org"
+  elif [ "${1}" == "alyx-prod" ]; then
+    ALYX_URL="alyx.internationalbrainlab.org"
+  elif [ "${1}" == "openalyx" ]; then
+    ALYX_URL="openalyx.internationalbrainlab.org"
   else
-    ALYX_URL="${1}.internationalbrainlab.org"
+    echo "Incorrect argument passed to script, exiting..."
+    exit 1
   fi
+  echo "ALYX_URL set to ${ALYX_URL}"
 fi
 
 echo "Retrieving instance-id from local metadata..."
