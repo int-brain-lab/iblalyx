@@ -1,7 +1,7 @@
 #!/bin/bash
-
+# ./06_ucl_import.sh 2022-08-19
 ALYX_PATH="/var/www/alyx-main/"
-DATE=$(date +%Y-%m-%d)
+DATE="${1:-$(date +%Y-%m-%d)}"
 
 set -e
 echo "Downloading the cortexlab database backup"
