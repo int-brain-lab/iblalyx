@@ -49,21 +49,26 @@
                 // Extract data from the response
                 var bla = key
                 response = jsonResponse[bla]
-                console.log(bla)
-                  console.log(response)
+
                 const title = response.title;
                 const labels = response.data.labels;
                 const datasets = response.data.datasets;
+                const thresholds = response.thresholds;
+                const outcomes = response.outcomes;
 
                 // Reset the current chart
                 chart.data.datasets = [];
                 chart.data.labels = [];
+                chart.data.thresholds = [];
+                chart.data.outcomes = []
 
                 // Load new data into the chart
                 chart.data.labels = labels;
                 datasets.forEach(dataset => {
                   chart.data.datasets.push(dataset);
                 });
+                chart.data.thresholds = thresholds;
+                chart.data.outcomes = outcomes;
                 chart.update();
                 status.innerHTML = title
               },
@@ -72,11 +77,34 @@
           }
 
         function loadAllCharts(eid) {
-          loadChart(taskqc_chart, taskqc_header, `/ibl_reports/task_qc_eid/${eid}`);
-          loadChart(videoBodyqc_chart, videoBodyqc_header, `/ibl_reports/video_qc_eid/${eid}`, key='Body');
-          loadChart(videoLeftqc_chart, videoLeftqc_header, `/ibl_reports/video_qc_eid/${eid}`, key='Left');
-          loadChart(videoRightqc_chart, videoRightqc_header, `/ibl_reports/video_qc_eid/${eid}`, key='Right');
+            loadChart(taskqc_chart, taskqc_header, `/ibl_reports/task_qc_eid/${eid}`);
+            loadChart(videoBodyqc_chart, videoBodyqc_header, `/ibl_reports/video_qc_eid/${eid}`, key = 'Body');
+            loadChart(videoLeftqc_chart, videoLeftqc_header, `/ibl_reports/video_qc_eid/${eid}`, key = 'Left');
+            loadChart(videoRightqc_chart, videoRightqc_header, `/ibl_reports/video_qc_eid/${eid}`, key = 'Right');
+
         }
+
+        function footer_function(item, data) {
+              let index = item[0].index;
+              let threshold = data.thresholds[index]
+
+            let qcs = '\n'
+            for (const [key, value] of Object.entries(threshold)) {
+                qcs += key + ' >= ' + value + '\n'
+              }
+
+            return qcs;
+        };
+
+        function label_function(item, data) {
+             let index = item.index;
+             let val = data.datasets[0].data[index]
+             let outcome = data.outcomes[index]
+
+             return 'OUTCOME:' + outcome + ' VAL: ' + val
+
+        };
+
     </script>
     <div class="row">
         <div class="col-lg-6 pad2">
@@ -128,6 +156,10 @@
 
 
     <div class="col-lg-6 pad2">
+        <h4> QC Definitions </h4>
+        <li><a href="https://int-brain-lab.github.io/iblenv/_autosummary/ibllib.qc.task_metrics.html#module-ibllib.qc.task_metrics"> Definition of task qc metrics <i class="fa fa-arrow-circle-right"></i></a></li>
+        <li><a href="https://int-brain-lab.github.io/iblenv/_autosummary/ibllib.qc.camera.html"> Definition of video qc metrics <i class="fa fa-arrow-circle-right"></i></a></li>
+           
         <h2 id="taskqc_header">Task QC: </h2>
         <canvas id="taskqc_chart" width="100" height="50"></canvas>
         <h2 id="videoBodyqc_header">Video QC: </h2>
@@ -149,6 +181,16 @@
               legend: {
                     display: false
               },
+              tooltips: {
+                  displayColors: false,
+                  titleMarginBottom: 16,
+                  footerFont: {'weight': 'normal'},
+                  callbacks: {
+                      label: label_function,
+                      footer: footer_function,
+                  },
+              }
+
           }
         });
 
@@ -174,6 +216,13 @@
                             min: -1,
                         }
                     }]
+                },
+                tooltips: {
+                    displayColors: false,
+                    titleMarginBottom: 16,
+                    callbacks: {
+                          label: label_function,
+                      },
                 }
             }
           });
@@ -199,6 +248,13 @@
                             min: -1,
                         }
                     }]
+                },
+                tooltips: {
+                    displayColors: false,
+                    titleMarginBottom: 16,
+                    callbacks: {
+                          label: label_function,
+                      },
                 }
             }
           });
@@ -224,6 +280,13 @@
                             min: -1,
                         }
                     }]
+                },
+                tooltips: {
+                    displayColors: false,
+                    titleMarginBottom: 16,
+                    callbacks: {
+                          label: label_function,
+                      },
                 }
             }
           });

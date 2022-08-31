@@ -32,17 +32,19 @@ def plot_task_qc_eid(request, eid):
     extended_qc = Session.objects.get(id=eid).extended_qc
     # TODO fix error when the extended qc is None
     task = {key: val for key, val in extended_qc.items() if '_task_' in key}
-    col, bord = qc_check.get_task_qc_colours(task)
+    col, bord, thres, outcome, labels, vals = qc_check.get_task_qc_colours(task)
 
     task_dict = {}
     task_dict[''] = {'title': f'Task QC: {extended_qc.get("task", "Not computed")}',
+                     'thresholds': thres,
+                     'outcomes': outcome,
                      'data': {
-                         'labels': list(task.keys()),
+                         'labels': list(labels),
                          'datasets': [{
                              'backgroundColor': col,
                              'borderColor': bord,
                              'borderWidth': 3,
-                             'data': list(task.values()),
+                             'data': vals,
                          }]
                      },
                      }
@@ -57,10 +59,12 @@ def plot_video_qc_eid(request, eid):
     for cam in ['Body', 'Left', 'Right']:
         video = {key: val for key, val in extended_qc.items() if f'_video{cam}' in key}
         # TODO if null set to 0
-        video_data = qc_check.process_video_qc(video)
+        video_data, outcome = qc_check.process_video_qc(video)
 
         video_dict[cam] = {
                         'title': f'Video {cam} QC: {extended_qc.get(f"video{cam}", "Not computed")}',
+                        'thresholds': [],
+                        'outcomes': outcome,
                         'data': {
                             'labels': video_data['label'],
                             'datasets': [{
@@ -80,10 +84,12 @@ def plot_dlc_qc_eid(request, eid):
     for cam in ['Body', 'Left', 'Right']:
         dlc = {key: val for key, val in extended_qc.items() if f'_dlc{cam}' in key}
         # TODO if null set to 0
-        dlc_data = qc_check.process_video_qc(dlc)
+        dlc_data, outcome = qc_check.process_video_qc(dlc)
 
         dlc_dict[cam] = {
                         'title': f'DLC {cam} QC: {extended_qc.get(f"dlc{cam}", "Not computed")}',
+                        'thresholds': [],
+                        'outcomes': outcome,
                         'data': {
                             'labels': dlc_data['label'],
                             'datasets': [{
