@@ -706,7 +706,7 @@ class SubjectTrainingPlots(LoginRequiredMixin, ListView):
             s.append(subj)
             plot_dict = {}
             for plot in data_info.OVERVIEW_SUBJECT_PLOTS:
-                note = notes.filter(object_id=subj.id, text=plot[0]).first()
+                note = notes.filter(object_id=subj.id, text=plot[0]).order_by('-date_time').first()
                 if not note and not plot[1]:
                     continue
                 else:
