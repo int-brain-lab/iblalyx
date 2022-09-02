@@ -82,10 +82,7 @@ def get_probe_type(datasets, probe):
         # in this case try and figure out from data structure, 3A probes have no data in
         # raw_ephys_data collection
         dsets = datasets.filter(collection='raw_ephys_data').count()
-        if dsets == 0:
-            probe_type = 'Neuropixel 3A'
-        else:
-            probe_type = 'Neuropixel 3B2'
+        probe_type = 'Neuropixel 3A' if dsets == 0 else 'Neuropixel 3B2'
     else:
         probe_type = probe_model.name
 
@@ -140,7 +137,7 @@ def raw_ephys_data_status(datasets, session, probes):
     for ip, probe in enumerate(probes):
         probe_type = get_probe_type(datasets, probe)
 
-        if probe_type == 'Neuropixel 3B2':
+        if probe_type in ('Neuropixel 3B2', 'Neuropixel 2.0 four shank', 'Neuropixel 2.0 single shank'):
             expected_dsets = deepcopy(expected_data.RAW_EPHYS) + deepcopy(expected_data.RAW_EPHYS_EXTRA)
             if ip == 0:
                 expected_dsets += deepcopy(expected_data.RAW_EPHYS_NIDAQ)
@@ -149,6 +146,8 @@ def raw_ephys_data_status(datasets, session, probes):
                 expected_dsets = deepcopy(expected_data.RAW_EPHYS) + deepcopy(expected_data.RAW_EPHYS_EXTRA)
             else:
                 expected_dsets = deepcopy(expected_data.RAW_EPHYS)
+        else:
+            raise ValueError(f'Unknown probe type "{probe_type}" for insertion {probe.pk}')
 
         for dset in expected_dsets:
             if len(dset[1].split('/')) == 2:
