@@ -11,6 +11,14 @@
 {% block content %}
     <div class="row my-2">
         <div class="col-lg-10 col-md-12">
+            <div class="row">
+                <div class="card mb-10 no-border">
+                    <h4> QC Definitions </h4>
+                    <li><a href="https://int-brain-lab.github.io/iblenv/_autosummary/ibllib.qc.task_metrics.html#module-ibllib.qc.task_metrics"> Definition of task qc metrics <i class="fa fa-arrow-circle-right"></i></a></li>
+                    <li><a href="https://int-brain-lab.github.io/iblenv/_autosummary/ibllib.qc.camera.html"> Definition of video qc metrics <i class="fa fa-arrow-circle-right"></i></a></li>
+                    <li><a href="https://int-brain-lab.github.io/iblenv/_autosummary/ibllib.qc.dlc.html"> Definition of dlc qc metrics <i class="fa fa-arrow-circle-right"></i></a></li>
+                </div>
+            </div>
             <div class="card my-2 no-border">
                 <h4 id="taskqc_header">Task QC: </h4>
                 <canvas id="taskqc_chart"></canvas>
@@ -79,21 +87,25 @@
                 // Extract data from the response
                 var bla = key
                 response = jsonResponse[bla]
-                console.log(bla)
-                  console.log(response)
                 const title = response.title;
                 const labels = response.data.labels;
                 const datasets = response.data.datasets;
+                const thresholds = response.thresholds;
+                const outcomes = response.outcomes;
 
                 // Reset the current chart
                 chart.data.datasets = [];
                 chart.data.labels = [];
+                chart.data.thresholds = [];
+                chart.data.outcomes = []
 
                 // Load new data into the chart
                 chart.data.labels = labels;
                 datasets.forEach(dataset => {
                   chart.data.datasets.push(dataset);
                 });
+                chart.data.thresholds = thresholds;
+                chart.data.outcomes = outcomes;
                 chart.update();
                 status.innerHTML = title
               },
@@ -111,9 +123,99 @@
             loadChart(dlcRightqc_chart, dlcRightqc_header, `/ibl_reports/dlc_qc_eid/${eid}`, key='Right');
           }
 
+          function footer_function(item, data) {
+              let index = item[0].index;
+              let threshold = data.thresholds[index]
+
+            let qcs = '\n'
+            for (const [key, value] of Object.entries(threshold)) {
+                qcs += key + ' >= ' + value + '\n'
+              }
+
+            return qcs;
+          };
+
+          function label_function(item, data) {
+             let index = item.index;
+             let val = data.datasets[0].data[index]
+             let outcome = data.outcomes[index]
+
+             return 'OUTCOME:' + outcome + ' VAL: ' + val
+
+          };
+
 
           let ctx_taskqc = document.getElementById("taskqc_chart").getContext("2d");
           let taskqc_chart = new Chart(ctx_taskqc, {
+              type: "bar",
+
+              options: {
+                  responsive: true,
+                  legend: {
+                      display: false
+                  },
+                  scales: {
+                      xAxes: [{
+                          display: true,
+                      }],
+                      yAxes: [{
+                          display: true,
+                          ticks: {
+                              max: 1,
+                              min: 0,
+                          }
+                      }]
+                  },
+                  tooltips: {
+                      displayColors: false,
+                      titleMarginBottom: 16,
+                      footerFont: {'weight': 'normal'},
+                      callbacks: {
+                          label: label_function,
+                          footer: footer_function,
+                      },
+                  }
+              }
+
+          });
+
+          let taskqc_header = document.getElementById("taskqc_header")
+
+          let ctx_videoBodyqc = document.getElementById("videoBodyqc_chart").getContext("2d");
+          let videoBodyqc_chart = new Chart(ctx_videoBodyqc, {
+            type: "bar",
+            options: {
+                responsive: true,
+                legend: {
+                    display: false
+                },
+                scales: {
+                    xAxes: [{
+                        display: true,
+                    }],
+                    yAxes: [{
+                        display: true,
+                        ticks: {
+                            max: 1,
+                            min: -1,
+                        }
+                    }]
+                },
+                tooltips: {
+                    displayColors: false,
+                    titleMarginBottom: 16,
+                    callbacks: {
+                          label: label_function,
+                      },
+                }
+
+            }
+          });
+
+          let videoBodyqc_header = document.getElementById("videoBodyqc_header")
+
+          let ctx_videoLeftqc = document.getElementById("videoLeftqc_chart").getContext("2d");
+          let videoLeftqc_chart = new Chart(ctx_videoLeftqc, {
             type: "bar",
 
             options: {
@@ -129,59 +231,16 @@
                         display: true,
                         ticks: {
                             max: 1,
-                            min: 0,
-                        }
-                    }]
-                }
-            }
-          });
-          let taskqc_header = document.getElementById("taskqc_header")
-
-          let ctx_videoBodyqc = document.getElementById("videoBodyqc_chart").getContext("2d");
-          let videoBodyqc_chart = new Chart(ctx_videoBodyqc, {
-            type: "bar",
-
-            options: {
-                responsive: true,
-                legend: {
-                      display: false
-                },
-                scales: {
-                    xAxes: [{
-                        display: true,
-                    }],
-                    yAxes: [{
-                        display: true,
-                        ticks: {
-                            max: 1,
                             min: -1,
                         }
                     }]
-                }
-            }
-          });
-          let videoBodyqc_header = document.getElementById("videoBodyqc_header")
-
-          let ctx_videoLeftqc = document.getElementById("videoLeftqc_chart").getContext("2d");
-          let videoLeftqc_chart = new Chart(ctx_videoLeftqc, {
-            type: "bar",
-
-            options: {
-                responsive: true,
-                legend: {
-                      display: false
                 },
-                scales: {
-                    xAxes: [{
-                        display: true,
-                    }],
-                    yAxes: [{
-                        display: true,
-                        ticks: {
-                            max: 1,
-                            min: -1,
-                        }
-                    }]
+                tooltips: {
+                    displayColors: false,
+                    titleMarginBottom: 16,
+                    callbacks: {
+                          label: label_function,
+                      },
                 }
             }
           });
@@ -207,6 +266,13 @@
                             min: -1,
                         }
                     }]
+                },
+                tooltips: {
+                    displayColors: false,
+                    titleMarginBottom: 16,
+                    callbacks: {
+                          label: label_function,
+                      },
                 }
             }
           });
@@ -232,6 +298,13 @@
                             min: -1,
                         }
                     }]
+                },
+                tooltips: {
+                    displayColors: false,
+                    titleMarginBottom: 16,
+                    callbacks: {
+                          label: label_function,
+                      },
                 }
             }
           });
@@ -257,6 +330,13 @@
                             min: -1,
                         }
                     }]
+                },
+                tooltips: {
+                    displayColors: false,
+                    titleMarginBottom: 16,
+                    callbacks: {
+                          label: label_function,
+                      },
                 }
             }
           });
@@ -282,6 +362,13 @@
                             min: -1,
                         }
                     }]
+                },
+                tooltips: {
+                    displayColors: false,
+                    titleMarginBottom: 16,
+                    callbacks: {
+                          label: label_function,
+                      },
                 }
             }
           });
