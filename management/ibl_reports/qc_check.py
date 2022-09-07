@@ -1,7 +1,16 @@
 FAIL_COLOUR = "#FF6384"
-PASS_COLOUR = "#79AEC8"
+PASS_COLOUR = "#4BAD6C"
+WARNING_COLOUR = "#79AEC8"
+NOT_SET_COLOUR = "#B1B3C5"
 IMPORTANT_BORDER = "#000000"
 NORMAL_BORDER = "#417690"
+
+COLOURS = {
+    'PASS': "#4BAD6C",
+    'WARNING': "#79AEC8",
+    'FAIL': "#FF6384",
+    'NOT_SET': "#B1B3C5"
+}
 
 QC_DICT = {
     '50': 'CRITICAL',
@@ -11,46 +20,98 @@ QC_DICT = {
     '10': 'PASS',
 }
 
+task_criteria = dict()
+task_criteria['default'] = {"PASS": 0.99, "WARNING": 0.90, "FAIL": 0}  # Note: WARNING was 0.95 prior to Aug 2022
+task_criteria['_task_stimOff_itiIn_delays'] = {"PASS": 0.99, "WARNING": 0}
+task_criteria['_task_positive_feedback_stimOff_delays'] = {"PASS": 0.99, "WARNING": 0}
+task_criteria['_task_negative_feedback_stimOff_delays'] = {"PASS": 0.99, "WARNING": 0}
+task_criteria['_task_wheel_move_during_closed_loop'] = {"PASS": 0.99, "WARNING": 0}
+task_criteria['_task_response_stimFreeze_delays'] = {"PASS": 0.99, "WARNING": 0}
+task_criteria['_task_detected_wheel_moves'] = {"PASS": 0.99, "WARNING": 0}
+task_criteria['_task_trial_length'] = {"PASS": 0.99, "WARNING": 0}
+task_criteria['_task_goCue_delays'] = {"PASS": 0.99, "WARNING": 0}
+task_criteria['_task_errorCue_delays'] = {"PASS": 0.99, "WARNING": 0}
+task_criteria['_task_stimOn_delays'] = {"PASS": 0.99, "WARNING": 0}
+task_criteria['_task_stimOff_delays'] = {"PASS": 0.99, "WARNING": 0}
+task_criteria['_task_stimFreeze_delays'] = {"PASS": 0.99, "WARNING": 0}
+task_criteria['_task_iti_delays'] = {"NOT_SET": 0}
+task_criteria['_task_passed_trial_checks'] = {"NOT_SET": 0}
+
+
+def threshold(thresholds, qc_value):
+
+    if 'PASS' in thresholds.keys() and qc_value >= thresholds['PASS']:
+        return 'PASS'
+    if 'WARNING' in thresholds.keys() and qc_value >= thresholds['WARNING']:
+        return 'WARNING'
+    if 'FAIL' in thresholds and qc_value >= thresholds['FAIL']:
+        return 'FAIL'
+    if 'NOT_SET' in thresholds and qc_value >= thresholds['NOT_SET']:
+        return 'NOT_SET'
+    # if None of this applies, return 'NOT_SET'
+    return 'NOT_SET'
+
 
 def get_task_qc_colours(task_qc_data):
     colour = []
     border = []
-
-    critical_keys = [
-        '_task_stimOn_goCue_delays',
-        '_task_response_feedback_delays',
-        '_task_wheel_move_before_feedback',
-        '_task_wheel_freeze_during_quiescence',
-        '_task_error_trial_event_sequence',
-        '_task_correct_trial_event_sequence',
-        '_task_reward_volumes',
-        '_task_reward_volume_set',
-        '_task_stimulus_move_before_goCue',
-        '_task_audio_pre_trial',
-        '_task_n_trial_events'
-    ]
+    thresholds = []
+    outcomes = []
+    labels = []
+    vals = []
 
     for key, val in task_qc_data.items():
-        if val < 0.9:
-            col = FAIL_COLOUR
-        else:
-            col = PASS_COLOUR
+        if key in task_criteria.keys():
+            continue
 
-        if key in critical_keys:
+        crit = task_criteria['default']
+        default = True
+
+        qc_status = threshold(crit, val)
+        col = COLOURS[qc_status]
+
+        if default:
             bord = IMPORTANT_BORDER
         else:
             bord = col
 
         colour.append(col)
         border.append(bord)
+        thresholds.append(crit)
+        outcomes.append(qc_status)
+        labels.append(key)
+        vals.append(val)
 
-    return colour, border
+    for key, val in task_qc_data.items():
+        if key not in task_criteria.keys():
+            continue
+
+        crit = task_criteria[key]
+        default = False
+
+        qc_status = threshold(crit, val)
+        col = COLOURS[qc_status]
+
+        if default:
+            bord = IMPORTANT_BORDER
+        else:
+            bord = col
+
+        colour.append(col)
+        border.append(bord)
+        thresholds.append(crit)
+        outcomes.append(qc_status)
+        labels.append(key)
+        vals.append(val)
+
+    return colour, border, thresholds, outcomes, labels, vals
 
 
 def process_video_qc(video_qc_data):
     data_dict = {'data': [],
                  'label': [],
                  'colour': []}
+    outcomes = []
 
     for key, value in video_qc_data.items():
 
@@ -60,15 +121,18 @@ def process_video_qc(video_qc_data):
         data_dict['label'].append(key)
         if value is None:
             data_dict['data'].append(0)
-            data_dict['colour'].append(PASS_COLOUR)
+            data_dict['colour'].append(NOT_SET_COLOUR)
+            outcomes.append('NOT_SET')
         elif value:
             data_dict['data'].append(1)
             data_dict['colour'].append(PASS_COLOUR)
+            outcomes.append('PASS')
         else:
             data_dict['data'].append(-1)
             data_dict['colour'].append(FAIL_COLOUR)
+            outcomes.append('FAIL')
 
-    return data_dict
+    return data_dict, outcomes
 
 
 def behav_summary(qc_data):
@@ -110,10 +174,18 @@ def qc_summary(qc_data):
     for key, value in qc_data.items():
         if '_task_' in key:
             data_dict['Task QC'][3] += 1
-            if value >= 0.9:
+
+            if key in task_criteria.keys():
+                crit = task_criteria[key]
+            else:
+                crit = task_criteria['default']
+
+            qc_status = threshold(crit, value)
+            if qc_status != 'FAIL':
                 data_dict['Task QC'][1] += 1
             else:
                 data_dict['Task QC'][2] += 1
+
         if '_video' in key or '_dlc' in key:
 
             if '_video' in key:
