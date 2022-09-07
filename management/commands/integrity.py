@@ -72,12 +72,14 @@ class Command(BaseCommand):
                     logger.debug('Updating file_size field')
                     dset.file_size = path.stat().st_size
                     assert dset.file_size is not None
-                    self.update_json(dset, {'file_size_updated': now})
+                    if not options['dry']:
+                        self.update_json(dset, {'file_size_updated': now})
                     updated = True
                 if dset.hash is None:
                     logger.debug('Updating hash field')
                     dset.hash = hashfile.md5(path)
-                    self.update_json(dset, {'hash_updated': now})
+                    if not options['dry']:
+                        self.update_json(dset, {'hash_updated': now})
                     updated = True
             except FileNotFoundError:
                 logger.error('File not found: %s', path)
@@ -113,7 +115,6 @@ class Command(BaseCommand):
                 logger.debug('Updating file_size field')
                 dset.file_size = path.stat().st_size
                 assert dset.file_size is not None
-                self.update_json(dset, {'confirmed_empty' if dset.file_size == 0 else 'file_size_updated': now})
                 updated = True
             except FileNotFoundError:
                 logger.error('File not found: %s', path)
@@ -124,6 +125,7 @@ class Command(BaseCommand):
                 if options['dry']:
                     logger.info('Dataset %s file_size: %f', dset.pk, dset.file_size)
                 else:
+                    self.update_json(dset, {'confirmed_empty' if dset.file_size == 0 else 'file_size_updated': now})
                     dset.save()
 
     @staticmethod
