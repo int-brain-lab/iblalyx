@@ -403,9 +403,10 @@ def _histology_assign():
             # mrsicflogellab == hoferlab
 
             if lab.name == 'churchlandlab_ucla':
-                insertions_lab_done = all_insertions.filter(session__lab__name__icontains='churchlandlab')
+                len_lab_done = len(all_insertions.filter(session__lab__name=lab.name)) + \
+                               len(all_insertions.filter(session__lab__name='churchlandlab'))
                 insertions_lab_assigned = all_insertions.filter(json__todo_alignment__icontains='churchlandlab')
-                len_ins_total_lab = len(insertions_lab_done) + len(insertions_lab_assigned)
+                len_ins_total_lab = len_lab_done + len(insertions_lab_assigned)
 
             elif lab.name == 'mrsicflogellab':
                 len_lab_done = len(all_insertions.filter(session__lab__name=lab.name)) + \
