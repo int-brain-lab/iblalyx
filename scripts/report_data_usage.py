@@ -11,7 +11,6 @@ df_types = pd.DataFrame.from_records(dtypes.values())
 df_types['size'] = df_types['size'] / 1024 ** 3
 df_types.to_csv(Path.home().joinpath('dataset_types.csv'))
 
-
 tot = dtypes.aggregate(siz=Sum('size'))['siz'] / 1024 ** 4
 
 s = {
@@ -42,3 +41,19 @@ plt.pie(data, colors = colors, autopct='%.0f%%', explode=explode)
 plt.legend(labels=labels)
 
 plt.show()
+total = dtypes.aggregate(siz=Sum('size'))['siz'] / 1024 ** 4
+
+ephys = dtypes.filter(name__istartswith='ephysData').aggregate(siz=Sum('size'))['siz'] / 1024 ** 4
+
+vid = dtypes.filter(name__icontains='camera').aggregate(siz=Sum('size'))['siz'] / 1024 ** 4
+
+
+trains = dtypes.filter(name__icontains='spikes.').aggregate(siz=Sum('size'))['siz'] / 1024 ** 3
+trains += dtypes.filter(name__icontains='clusters.').aggregate(siz=Sum('size'))['siz'] / 1024 ** 3
+trains += dtypes.filter(name__icontains='channels.').aggregate(siz=Sum('size'))['siz'] / 1024 ** 3
+
+
+print(f'total {total} Tb')
+print(f'ephys {ephys} Tb')
+print(f'vid {vid} Tb')
+print(f'trains {trains} Tb')
