@@ -51,6 +51,8 @@ fi
 
 echo "Attempting to renew certs..."
 certbot --apache --noninteractive --agree-tos --email admin@internationalbrainlab.org -d $ALYX_URL
+echo "Restarting apache"
+/etc/init.d/apache2 restart
 
 echo "Copying newly generated certs to AWS S3 bucket..."
 aws s3 cp /etc/letsencrypt/archive/$ALYX_URL/fullchain1.pem s3://alyx-docker/fullchain.pem-$1
