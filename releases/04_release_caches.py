@@ -15,5 +15,5 @@ for tag in Tag.objects.all().values_list('name', flat=True):
     cmd = cache.Command()
     cmd.handle(
         tag=tag, compress=True, verbosity=1, tables=('sessions', 'datasets'), int_id=False,
-        destination=TABLES_ROOT + '/' + urllib.parse.quote(tag)
+        destination=TABLES_ROOT + '/' + urllib.parse.quote(tag), export_qc=True
     )
