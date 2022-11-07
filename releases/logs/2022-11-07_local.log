@@ -1,0 +1,385 @@
+2022-11-07 16:06:35 Beginning to create local version of public database
+... creating working directory /home/julia/openalyx_wd
+... copying latest backup of production database
+... destroying local public database
+... rebuilding local public database from production
+ set_config 
+------------
+ 
+(1 row)
+
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+ 465071
+(1 row)
+
+ setval 
+--------
+    126
+(1 row)
+
+ setval 
+--------
+    117
+(1 row)
+
+ setval 
+--------
+  57943
+(1 row)
+
+ setval 
+--------
+  50113
+(1 row)
+
+ setval 
+--------
+ 124460
+(1 row)
+
+ setval 
+--------
+   4309
+(1 row)
+
+ setval 
+--------
+   3358
+(1 row)
+
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+     18
+(1 row)
+
+ setval 
+--------
+   3022
+(1 row)
+
+ setval 
+--------
+      2
+(1 row)
+
+ setval 
+--------
+    785
+(1 row)
+
+ setval 
+--------
+    280
+(1 row)
+
+ setval 
+--------
+ 163510
+(1 row)
+
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+ 143073
+(1 row)
+
+ setval 
+--------
+     70
+(1 row)
+
+ setval 
+--------
+     92
+(1 row)
+
+ setval  
+---------
+ 6280270
+(1 row)
+
+ setval 
+--------
+ 566503
+(1 row)
+
+ setval 
+--------
+     33
+(1 row)
+
+ setval 
+--------
+     32
+(1 row)
+
+ setval 
+--------
+    579
+(1 row)
+
+ setval 
+--------
+   1388
+(1 row)
+
+ setval 
+--------
+  36278
+(1 row)
+
+ setval  
+---------
+ 3670485
+(1 row)
+
+ setval 
+--------
+    104
+(1 row)
+
+ setval 
+--------
+    106
+(1 row)
+
+ setval 
+--------
+    125
+(1 row)
+
+ setval 
+--------
+   2037
+(1 row)
+
+No changes detected
+Operations to perform:
+  Apply all migrations: actions, admin, auth, authtoken, contenttypes, data, experiments, jobs, misc, reversion, sessions, subjects
+Running migrations:
+  No migrations to apply.
+... pruning local public database
+Dataset IDs from files: ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt', '2021_Q2_Varol_et_al_datasets.pqt', '2021_Q3_Whiteway_et_al_datasets.pqt', '2021_Q2_PreRelease_datasets.pqt', '2022_Q2_IBL_et_al_RepeatedSite_datasets.pqt', '2022_Q3_IBL_et_al_DAWG_datasets.pqt', '2022_Q4_IBL_et_al_BWM_datasets.pqt']
+Tags to keep: ['cfc4906a-316e-4150-8222-fe7e7f13bdac', '9dec1de8-389d-40f6-b00b-763e4fda6552', 'c8f0892a-a95b-4181-b8e6-d5d31cb97449', 'dcd8b2e5-3a32-41b4-ac15-085a208a4466', '05fbaa4e-681d-41c5-ae53-072cb96f4c0a', '1f2c5034-b31b-4c23-be93-c4a66c8c9eb1', '4df91a7a-faac-4894-800e-b306cafe9a8c']
+
+
+Starting to prune public database
+...pruning datasets
+...pruning sessions
+...pruning subjects
+...pruning projects
+...pruning labs and labmembers, anonymizing lab members
+...pruning probe insertions
+...pruning cage, weight, water and food info
+...deleting some tables
+Finished pruning database
+
+... creating sql dump of local public database
+... copying sql dump to mbox as backup
+2022-11-07 16:32:19 Finished creating local version of public database
+2022-11-07 16:59:03 Beginning to upload database to openalyx RDS
+... destroying the openalyx database
+DROP SCHEMA
+CREATE SCHEMA
+... loading pruned database to openalyx
+ set_config 
+------------
+ 
+(1 row)
+
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+ 465071
+(1 row)
+
+ setval 
+--------
+    126
+(1 row)
+
+ setval 
+--------
+    117
+(1 row)
+
+ setval 
+--------
+  57943
+(1 row)
+
+ setval 
+--------
+  50113
+(1 row)
+
+ setval 
+--------
+ 124460
+(1 row)
+
+ setval 
+--------
+   4309
+(1 row)
+
+ setval 
+--------
+   3358
+(1 row)
+
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+     18
+(1 row)
+
+ setval 
+--------
+   3022
+(1 row)
+
+ setval 
+--------
+      2
+(1 row)
+
+ setval 
+--------
+    785
+(1 row)
+
+ setval 
+--------
+    280
+(1 row)
+
+ setval 
+--------
+ 163510
+(1 row)
+
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+ 143073
+(1 row)
+
+ setval 
+--------
+     70
+(1 row)
+
+ setval 
+--------
+     92
+(1 row)
+
+ setval  
+---------
+ 6280270
+(1 row)
+
+ setval 
+--------
+ 566503
+(1 row)
+
+ setval 
+--------
+     33
+(1 row)
+
+ setval 
+--------
+     32
+(1 row)
+
+ setval 
+--------
+    580
+(1 row)
+
+ setval 
+--------
+   1388
+(1 row)
+
+ setval 
+--------
+  36278
+(1 row)
+
+ setval  
+---------
+ 3670485
+(1 row)
+
+ setval 
+--------
+    104
+(1 row)
+
+ setval 
+--------
+    106
+(1 row)
+
+ setval 
+--------
+    125
+(1 row)
+
+ setval 
+--------
+   2037
+(1 row)
+
+2022-11-07 17:14:00 Finished uploading database to openalyx RDS
