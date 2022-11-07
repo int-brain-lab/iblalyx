@@ -1,6 +1,5 @@
 import pandas as pd
 from data.models import Tag, Dataset
-from experiments.models import ProbeInsertion
 
 df = pd.read_csv('2022_Q4_IBL_et_al_BWM_eids_pids.csv', index_col=0)
 eids = df['eid'].unique()
@@ -28,23 +27,23 @@ video_exclude = [
 
 # Trials data
 trials_dtypes = ['trials.goCueTrigger_times', 'trials.stimOff_times', 'trials.table']
-trials_dsets = Dataset.objects.filter(session__in=eids, collection='alf', dataset_types__in=trials_dtypes)
+trials_dsets = Dataset.objects.filter(session__in=eids, collection='alf', dataset_type__name__in=trials_dtypes)
 
 # Wheel data
 wheel_dtypes = ['wheelMoves.intervals', 'wheelMoves.peakAmplitude', 'wheel.position', 'wheel.timestamps']
-wheel_dsets = Dataset.objects.filter(session__in=eids, collection='alf', dataset_types__in=wheel_dtypes)
+wheel_dsets = Dataset.objects.filter(session__in=eids, collection='alf', dataset_type__name__in=wheel_dtypes)
 
 # Video data (some sessions excluded)
 video_eids = [eid for eid in eids if eid not in video_exclude]
 video_dtypes = ['camera.times', 'camera.dlc', 'camera.features', 'licks.times',
                 'ROIMotionEnergy.position', 'camera.ROIMotionEnergy']
-alf_video_dsets = Dataset.objects.filter(session__in=video_eids, collection='alf', dataset_types__in=video_dtypes)
+alf_video_dsets = Dataset.objects.filter(session__in=video_eids, collection='alf', dataset_type__name__in=video_dtypes)
 raw_video_dsets = Dataset.objects.filter(session__in=video_eids, collection='raw_video_data', name__icontains='mp4')
 
-probe_descr_dsets = Dataset.objects.filter(session__in=eids, collection='alf', dataset_type='probes.description')
+probe_descr_dsets = Dataset.objects.filter(session__in=eids, collection='alf', dataset_type__name='probes.description')
 
 # Probe related data
-all_probes_dsets = []
+all_probes_dset_ids = []
 for eid, probe_name in zip(df['eid'], df['probe_name']):
 
     collection = f'alf/{probe_name}'
@@ -59,18 +58,21 @@ for eid, probe_name in zip(df['eid'], df['probe_name']):
     probe_dsets = probe_dsets | Dataset.objects.filter(session=eid, collection=collection)
 
     collection = f'raw_ephys_data/{probe_name}'
-    probe_dsets = probe_dsets | Dataset.objects.filter(session=eid, collection=collection)
+    probe_dsets = probe_dsets | Dataset.objects.filter(session=eid,
+                                                       collection=collection).exclude(name__icontains='ephysTimeRmsAP')
 
-    all_probes_dsets.append(probe_dsets)
+    probe_dset_ids = probe_dsets.values_list('id', flat=True)
+    all_probes_dset_ids.extend(probe_dset_ids)
 
 # Combine all and tag
-dsets = trials_dsets | wheel_dsets | alf_video_dsets | raw_video_dsets | probe_descr_dsets
-for p in all_probes_dsets:
-    dsets = dsets | p
+all_probes_dsets = Dataset.objects.filter(id__in=all_probes_dset_ids)
+dsets = trials_dsets | wheel_dsets | alf_video_dsets | raw_video_dsets | probe_descr_dsets | all_probes_dsets
+dsets = dsets.distinct()
+
 tag, _ = Tag.objects.get_or_create(name="2022_Q4_IBL_et_al_BWM", protected=True, public=True)
 tag.datasets.set(dsets)
 
 # Save dataset IDs
-dset_ids = [d.id for d in dsets]
+dset_ids = [str(d.id) for d in dsets]
 df = pd.DataFrame(dset_ids, columns=['dataset_id'])
 df.to_parquet('./2022_Q4_IBL_et_al_BWM_datasets.pqt')
