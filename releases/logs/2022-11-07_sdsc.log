@@ -1,0 +1,11 @@
+2022-11-07 16:32:58 Beginning copy data
+Starting to create 55666 symlinks
+...no file record for dataset with ID: 6b0afe07-b258-41c3-87f9-43cbfc726aad
+...source does not exist: /mnt/ibl/churchlandlab/Subjects/CSHL051/2020-02-05/001/raw_ephys_data/probe01/_iblqc_ephysTimeRmsLF.timestamps.e8c7c135-bd2f-4cae-b8d0-1fbf9494d0ef.npy
+...source does not exist: /mnt/ibl/churchlandlab/Subjects/CSHL051/2020-02-05/001/raw_ephys_data/probe01/_iblqc_ephysChannels.labels.6db17f1a-cf54-4fb6-899f-65705adc990f.npy
+creating symlinks 20000/55666
+creating symlinks 40000/55666
+...source does not exist: /mnt/ibl/cortexlab/Subjects/KS014/2019-12-07/001/raw_ephys_data/probe00/_iblqc_ephysTimeRmsLF.timestamps.f412beac-eeea-47f9-844b-a8319b253bc4.npy
+Finished creating symlinks
+
+Syncing to public S3 bucket
