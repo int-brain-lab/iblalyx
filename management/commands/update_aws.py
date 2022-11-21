@@ -60,6 +60,8 @@ class Command(BaseCommand):
         verbosity = options.pop('verbosity')
         if verbosity < 1:
             logger.setLevel(logging.WARNING)
+        elif verbosity == 1:
+            logger.setLevel(logging.INFO)
         elif verbosity > 1:
             logger.setLevel(logging.DEBUG)
         required = ('hours', 'from_date', 'session', 'dataset')
@@ -221,5 +223,9 @@ def sync_changed():
     # xor_ds = ds.alias(mismatch=Count(F('exists_aws')) + Count(F('exists_flatiron'))).filter(mismatch=1)
     fr = fr.filter(exists=True, data_repository__globus_is_personal=False, dataset__in=xor_ds)
     # This isn't going to work :(
-    on_server = FileRecord.objects.select_related('data_repository').filter(dataset=OuterRef('pk'), exists=True, data_repository__globus_is_personal=False).values_list('pk', flat=True)
+    on_server = (FileRecord
+                 .objects
+                 .select_related('data_repository')
+                 .filter(dataset=OuterRef('pk'), exists=True, data_repository__globus_is_personal=False)
+                 .values_list('pk', flat=True))
     ds = Dataset.objects.select_related('file_record').alias(mismatch=Count(on_server)).filter(mismatch=1)
