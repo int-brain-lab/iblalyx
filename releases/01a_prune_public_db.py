@@ -99,6 +99,7 @@ Tag.objects.using('public').exclude(pk__in=public_ds_tags).delete()
 
 # Delete personal data repositories and associated file records
 DataRepository.objects.using('public').exclude(globus_is_personal=False).delete()
+DataRepository.objects.using('public').filter(name='ibl-brain-wide-map-private').delete()
 # Replace some information in the data repositories
 for dr in DataRepository.objects.using('public').all():
     if 'flatiron' in dr.hostname:
