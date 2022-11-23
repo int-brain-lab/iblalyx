@@ -7,6 +7,8 @@ from dateutil.relativedelta import relativedelta as rd
 from subprocess import Popen, PIPE, STDOUT
 import logging
 import uuid
+from pathlib import Path
+from functools import partial
 
 from one.alf.files import folder_parts, get_session_path, get_alf_path, add_uuid_string
 import pandas as pd
@@ -17,6 +19,7 @@ from django.core.management import BaseCommand
 from data.models import DataRepository, Dataset, FileRecord
 
 logger = logging.getLogger('data.transfers').getChild('aws')
+sync_times_file = Path.home().joinpath('Documents', '.aws_sync.csv')
 
 
 def log_subprocess_output(pipe, log_function=logger.info):
@@ -35,6 +38,7 @@ class Command(BaseCommand):
     """Update AWS with recently changed datasets that exist locally (on FlatIron)"""
     help = "Update AWS S3"
     limit = None
+    sync_times = None
     _query = None
 
     def add_arguments(self, parser):
@@ -46,6 +50,8 @@ class Command(BaseCommand):
                             help='Sync datasets modified within this many hours')
         parser.add_argument('--from-date', type=datetime.datetime.fromisoformat,
                             help='Sync datasets added/modified after this date')
+        parser.add_argument('--since-last', action='store_true',
+                            help='Sync datasets added/modified since the last sync')
         parser.add_argument('--session', action='extend', nargs='+', type=uuid.UUID,
                             help='A session uuid to sync')
         parser.add_argument('-d', '--dataset', action='extend', nargs='+', type=uuid.UUID,
@@ -64,14 +70,23 @@ class Command(BaseCommand):
             logger.setLevel(logging.INFO)
         elif verbosity > 1:
             logger.setLevel(logging.DEBUG)
-        required = ('hours', 'from_date', 'session', 'dataset')
-        assert any(map(options.get, required)), \
-            'At least one of the following options must be passed: "%s"' % '", "'.join(required)
+        required = ('hours', 'from_date', 'session', 'dataset', 'since_last')
+        if not any(passed := list(map(options.get, required))):
+            options['since_last'] = True
         dry = options.pop('dryrun')
         t0 = time.time()
         query_paginated = self.build_query(**options)
-        self.sync(query_paginated, dry=dry)
+        self.sync(query_paginated, dry=dry, save_sync_times=options.get('since_last', False))
         logger.debug('Entire sync and update took ' + format_seconds(time.time() - t0))
+
+    @staticmethod
+    def last_sync(filepath=None):
+        """Load sync times history"""
+        sync_times = filepath or sync_times_file
+        loader = partial(pd.read_csv, parse_dates=[0, 1], infer_datetime_format=True)
+        if not sync_times.exists() or (syncs := loader(sync_times)).empty:
+            syncs = pd.DataFrame(columns=('start', 'end'))
+        return syncs
 
     @staticmethod
     def build_query(**options) -> Paginator:
@@ -94,6 +109,13 @@ class Command(BaseCommand):
                 query.add(Q(dataset__auto_datetime__gt=nuo), Q.OR)
             elif k == 'from_date':
                 query.add(Q(dataset__auto_datetime__gt=v), Q.OR)
+            elif k == 'since_last':
+                sync_times = Command.last_sync()
+                if sync_times.empty:
+                    last_sync = pd.Timestamp.now() - pd.Timedelta(weeks=2)
+                else:
+                    last_sync, = sync_times.loc[~sync_times.end.isna(), 'start']
+                query.add(Q(dataset__auto_datetime__gt=last_sync), Q.OR)
             else:
                 raise ValueError(f'Unknown kwarg "{k}"')
         # relevant fields to select
@@ -114,14 +136,19 @@ class Command(BaseCommand):
         return Paginator(qs, batch_size)
 
     @staticmethod
-    def sync(paginated_query, dry=False):
-
+    def sync(paginated_query, dry=False, save_sync_times=False):
         # S3 credential information
         r = DataRepository.objects.filter(name__startswith='aws').first()
         assert r
         bucket_name = r.json['bucket_name']
         if not bucket_name.startswith('s3:'):
             bucket_name = 's3://' + bucket_name
+
+        # Sync times
+        sync_times = Command.last_sync()
+        sync_times.loc[len(sync_times)] = [started := pd.Timestamp.now(), pd.NaT]
+        if save_sync_times and not dry:
+            sync_times.to_csv(sync_times_file, index=False)
 
         # Ugly hack because globus_path doesn't actually contain the correct absolute path
         ROOT = '/mnt/ibl'  # This should be in the globus_path but isn't
@@ -198,6 +225,10 @@ class Command(BaseCommand):
                         fr.save()
         logger.info('{total:,} files over {sessions:,} sessions sync\'d; '
                     '{added:,} records added, {modified:,} modified'.format(**counts))
+        if save_sync_times and not dry:  # set end time
+            sync_times = Command.last_sync()
+            sync_times.loc[sync_times.start == started, 'end'] = pd.Timestamp.now()
+            sync_times.to_csv(sync_times_file, index=False)
 
 
 def sync_changed():
