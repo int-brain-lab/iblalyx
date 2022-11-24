@@ -114,8 +114,8 @@ class Command(BaseCommand):
                 if sync_times.empty:
                     last_sync = pd.Timestamp.now() - pd.Timedelta(weeks=2)
                 else:
-                    last_sync, = sync_times.loc[~sync_times.end.isna(), 'start']
-                query.add(Q(dataset__auto_datetime__gt=last_sync), Q.OR)
+                    last_sync = sync_times.loc[~sync_times.end.isna(), 'start'].iloc[-1]
+                query.add(Q(dataset__auto_datetime__gt=last_sync.floor(freq='T')), Q.OR)
             else:
                 raise ValueError(f'Unknown kwarg "{k}"')
         # relevant fields to select
@@ -231,32 +231,32 @@ class Command(BaseCommand):
             sync_times.to_csv(sync_times_file, index=False)
 
 
-def sync_changed():
-    """Sync all sessions where file records on flatiron don't match those on AWS.
-
-    Note: The next version of Django has an XOR Q filter, until then, this method is too slow.
-    """
-    from django.db.models import Exists, F, Count
-    fr = FileRecord.objects.select_related('data_repository')
-    # File records on Flatiron
-    on_flatiron = fr.filter(dataset=OuterRef('pk'),
-                            exists=True,
-                            data_repository__name__startswith='flatiron').values_list('pk', flat=True)
-    # File records on AWS
-    on_aws = fr.filter(dataset=OuterRef('pk'),
-                       exists=True,
-                       data_repository__name__startswith='aws').values_list('pk', flat=True)
-    # Filter out datasets that do not exist on either repository
-    ds = Dataset.objects.alias(exists_flatiron=Exists(on_flatiron), exists_aws=Exists(on_aws))
-    on_aws = Q(exists_aws=True)
-    on_flatiron = Q(exists_flatiron=True)
-    xor_ds = ds.filter((on_aws & ~on_flatiron) | (~on_aws & on_flatiron)).distinct().values_list('pk', flat=True)  # 47416
-    # xor_ds = ds.alias(mismatch=Count(F('exists_aws')) + Count(F('exists_flatiron'))).filter(mismatch=1)
-    fr = fr.filter(exists=True, data_repository__globus_is_personal=False, dataset__in=xor_ds)
-    # This isn't going to work :(
-    on_server = (FileRecord
-                 .objects
-                 .select_related('data_repository')
-                 .filter(dataset=OuterRef('pk'), exists=True, data_repository__globus_is_personal=False)
-                 .values_list('pk', flat=True))
-    ds = Dataset.objects.select_related('file_record').alias(mismatch=Count(on_server)).filter(mismatch=1)
+# def sync_changed():
+#     """Sync all sessions where file records on flatiron don't match those on AWS.
+#
+#     Note: The next version of Django has an XOR Q filter, until then, this method is too slow.
+#     """
+#     from django.db.models import Exists, F, Count
+#     fr = FileRecord.objects.select_related('data_repository')
+#     # File records on Flatiron
+#     on_flatiron = fr.filter(dataset=OuterRef('pk'),
+#                             exists=True,
+#                             data_repository__name__startswith='flatiron').values_list('pk', flat=True)
+#     # File records on AWS
+#     on_aws = fr.filter(dataset=OuterRef('pk'),
+#                        exists=True,
+#                        data_repository__name__startswith='aws').values_list('pk', flat=True)
+#     # Filter out datasets that do not exist on either repository
+#     ds = Dataset.objects.alias(exists_flatiron=Exists(on_flatiron), exists_aws=Exists(on_aws))
+#     on_aws = Q(exists_aws=True)
+#     on_flatiron = Q(exists_flatiron=True)
+#     xor_ds = ds.filter((on_aws & ~on_flatiron) | (~on_aws & on_flatiron)).distinct().values_list('pk', flat=True)  # 47416
+#     # xor_ds = ds.alias(mismatch=Count(F('exists_aws')) + Count(F('exists_flatiron'))).filter(mismatch=1)
+#     fr = fr.filter(exists=True, data_repository__globus_is_personal=False, dataset__in=xor_ds)
+#     # This isn't going to work :(
+#     on_server = (FileRecord
+#                  .objects
+#                  .select_related('data_repository')
+#                  .filter(dataset=OuterRef('pk'), exists=True, data_repository__globus_is_personal=False)
+#                  .values_list('pk', flat=True))
+#     ds = Dataset.objects.select_related('file_record').alias(mismatch=Count(on_server)).filter(mismatch=1)
