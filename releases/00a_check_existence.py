@@ -106,11 +106,13 @@ TO RUN ON MBOX
 # Once syncing on SDSC has finished, rerun the block above checking that all expected file records exist
 # Finally check that these file records are not just set to exist, but the files indeed exist on AWS on SDSC
 # (for SDSC see below, you can do these two in parallel)
+aws_repo = DataRepository.objects.filter(name__startswith='aws').first()
 session = boto3.Session()
 s3 = boto3.resource('s3',
-                    aws_access_key_id="",
-                    aws_secret_access_key="")
-bucket = s3.Bucket(name="")
+                    region_name=aws_repo.json['region_name'],
+                    aws_access_key_id=aws_repo.json['Access key ID'],
+                    aws_secret_access_key=aws_repo.json['Secret access key'])
+bucket = s3.Bucket(name='ibl-brain-wide-map-private')
 
 # Make sure you are still looking at the correct release
 i = 0
