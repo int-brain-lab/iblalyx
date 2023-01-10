@@ -427,6 +427,8 @@ def _histology_assign():
         # Change JSON field of insertions
         for pi in insertions_tochange:
             d = pi.json
+            if d is None:  # Todo remove for debug
+                print(pi)
             d['todo_alignment'] = lab_assigned
             pi.json = d
             pi.save()
