@@ -27,9 +27,7 @@ root_path = Path('/mnt/ibl')
 bucket_name = 's3://ibl-brain-wide-map-private'
 alyx_user = 'julia.huntenburg'
 # Sessions for which to try
-eids = [
-
-]
+eids = list(pd.read_csv(root_path.joinpath('aggregates', 'trials', 'no_trials_table.csv'), index_col=0)['eid'])
 # Trials attributes that need to exist to create the trials table
 attributes = [
     'intervals',
@@ -83,8 +81,10 @@ def login_auto(globus_client_id, str_app='globus/default'):
 gtc = login_auto('525cc517-8ccb-4d11-8036-af332da5eafd')
 
 sessions = Session.objects.filter(id__in=eids)
-for ses in sessions:
-    logger.info(f'Processing session {ses.id}')
+for i, ses in enumerate(sessions):
+    f1.write(str(ses.id))
+    f1.flush()
+    logger.info(f'Processing session {ses.id}, {i}/{sessions.count()}')
     alf_path = root_path.joinpath(
         ses.subject.lab.name,
         'Subjects',
@@ -93,6 +93,9 @@ for ses in sessions:
         f'{ses.number:03d}',
         'alf'
     )
+    if not alf_path.exists():
+        logger.error(f"Alf path doesn't exist for {ses.id}")
+        continue
     try:
         trials = alfio.load_object(alf_path, 'trials', attribute=attr, timescale=None, wildcards=False, short_keys=True)
     except ALFObjectNotFound:
@@ -120,7 +123,7 @@ for ses in sessions:
         dataset_record = Bunch({'data': {}})
         dataset_record.data = {
             'name': f'flatiron_{ses.lab}',
-            'path': '/'.join(ses.subject.nickname, ses.start_time.strftime('%Y-%m-%d'), f'{ses.number:03d}'),
+            'path': '/'.join([ses.subject.nickname, ses.start_time.strftime('%Y-%m-%d'), f'{ses.number:03d}']),
             'labs': f'{ses.lab}',
             'hashes': hashfile.md5(fullfile),
             'filesizes': str(fullfile.stat().st_size),
@@ -186,4 +189,8 @@ for ses in sessions:
         with process.stdout:
             log_subprocess_output(process.stdout, logger.info)
     except AssertionError as ex:
-        logger.error(f'ERROR for {eid}: {ex}')
+        logger.error(f'ERROR for {ses.id}: {ex}')
+    f1.truncate(0)
+    f1.seek(0)
+f1.close()
+incomplete.unlink()

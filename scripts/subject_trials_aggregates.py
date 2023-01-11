@@ -93,5 +93,17 @@ for i, sub in enumerate(subjects):
         logger.info(f"...Exported {out_file}")
     except Exception as e:
         logger.error(f"...Error for subject {sub.nickname}: {e}")
-        other_errors.append(str(sub.id))
+        other_errors.append(str(sub.nickname))
         continue
+
+if len(no_trials_table) > 0:
+    pd.DataFrame(columns=['eid'], data=no_trials_table).to_csv(output_path.joinpath('no_trials_table.csv'))
+    logger.info(f'Wrote list of sessions with no trials table to {output_path.joinpath("no_trials_table.csv")}')
+
+if len(no_path) > 0:
+    pd.DataFrame(columns=['eid'], data=no_path).to_csv(output_path.joinpath('no_path.csv'))
+    logger.info(f'Wrote list of sessions with no alf path to {output_path.joinpath("no_path.csv")}')
+
+if len(other_errors) > 0:
+    pd.DataFrame(columns=['eid'], data=other_errors).to_csv(output_path.joinpath('other_errors.csv'))
+    logger.info(f'Wrote list of subjects with other errors to {output_path.joinpath("other_errors.csv")}')
