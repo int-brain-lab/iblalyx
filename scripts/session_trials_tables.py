@@ -24,10 +24,12 @@ from iblutil.io import hashfile, params
 
 # Variables
 root_path = Path('/mnt/ibl')
+log_path = root_path.joinpath('aggregates', 'trials')
+
 bucket_name = 's3://ibl-brain-wide-map-private'
 alyx_user = 'julia.huntenburg'
 # Sessions for which to try
-eids = list(pd.read_csv(root_path.joinpath('aggregates', 'trials', 'no_trials_table.csv'), index_col=0)['eid'])
+eids = list(pd.read_csv(log_path.joinpath('no_trials_table.csv'), index_col=0)['eid'])
 # Trials attributes that need to exist to create the trials table
 attributes = [
     'intervals',
@@ -81,6 +83,20 @@ def login_auto(globus_client_id, str_app='globus/default'):
 gtc = login_auto('525cc517-8ccb-4d11-8036-af332da5eafd')
 
 sessions = Session.objects.filter(id__in=eids)
+# First remove the sessions that have no trials data at all
+no_trials = []
+for ses in sessions:
+    # Check if the session has any trials data
+    if ses.data_dataset_session_related.filter(name__icontains='_ibl_trials').count() == 0:
+        eids.remove(str(ses.id))
+        no_trials.append(str(ses.id))
+# Save the sessions that have no trials data to file
+pd.DataFrame({'eid': no_trials}).to_csv(log_path.joinpath('no_trials_data.csv'))
+
+# No try to make trials table for remaining sessions
+sessions = Session.objects.filter(id__in=eids)
+success = []
+failure = []
 for i, ses in enumerate(sessions):
     f1.write(str(ses.id))
     f1.flush()
@@ -94,12 +110,14 @@ for i, ses in enumerate(sessions):
         'alf'
     )
     if not alf_path.exists():
-        logger.error(f"Alf path doesn't exist for {ses.id}")
+        logger.error(f"...alf path doesn't exist for {ses.id}")
+        failure.append(str(ses.id))
         continue
     try:
         trials = alfio.load_object(alf_path, 'trials', attribute=attr, timescale=None, wildcards=False, short_keys=True)
     except ALFObjectNotFound:
-        logger.error(f'Could not load trials objects for session {ses.id}')
+        logger.error(f'...could not load trials objects for session {ses.id}')
+        failure.append(str(ses.id))
         continue
     try:
         # Check dimensions of trials object
@@ -188,9 +206,17 @@ for i, ses in enumerate(sessions):
         process = Popen(cmd, stdout=PIPE, stderr=STDOUT)
         with process.stdout:
             log_subprocess_output(process.stdout, logger.info)
+        success.append(str(ses.id))
     except AssertionError as ex:
-        logger.error(f'ERROR for {ses.id}: {ex}')
+        logger.error(f'...ERROR for {ses.id}: {ex}')
+        failure.append(str(ses.id))
     f1.truncate(0)
     f1.seek(0)
+
+# Save failure and success lists to file using pandas
+pd.DataFrame({'success': success}).to_csv(log_path.joinpath('trials_table_success.csv'))
+pd.DataFrame({'failure': failure}).to_csv(log_path.joinpath('trials_table_failure.csv'))
+
+# Remove incomplete log
 f1.close()
 incomplete.unlink()
