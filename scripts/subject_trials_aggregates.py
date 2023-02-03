@@ -6,30 +6,34 @@
 Generate per subject trials aggregate files for all culled subjects that have at least one session with an ibl project
 and ibl task protocol.
 1. Check if all sessions have trials tables. For those that don't, try to generate them.
-Log if it's not possible and skip those sessions.
-2. Generate the aggregate file of available sessions for each subject.
-3. Check if the aggregate file is different from the existing one.
-    If no, do nothing.
-    If yes, and original file is not protected, overwrite it.
-    If yes, and original file is protected, create a new revision.
-4. Register the aggregate file in Alyx.
-5. Sync to AWS.
+   Log if it's not possible and skip those sessions.
+2. Check for which subjects trial aggregate files need to be generated or updated
+   (using hash of individual dataset uuids and hashes)
+   a. If file exists and does not need updating, do nothing.
+   b. If this is the first version of the file, generate and register dataset, create file records, sync to AWS
+   c. If original file is protected, create and register new revision of dataset.
+   d. If original file is not protected, overwrite it, update hash and file size of dataset.
+3. Sync to AWS.
 """
 
 '''
+===========
 SETTING UP
+===========
 '''
 
 from django.db.models import Count, Q
 from actions.models import Session
 from subjects.models import Subject
 from data.views import RegisterFileViewSet
-from data.models import Dataset, DatasetType, DataFormat, DataRepository, FileRecord
+from data.models import Dataset, DatasetType, DataFormat, DataRepository, FileRecord, Revision
 from misc.models import LabMember
 
 import logging
 import datetime
+import time
 import hashlib
+import traceback
 from pathlib import Path
 from subprocess import Popen, PIPE, STDOUT
 
@@ -43,14 +47,17 @@ from iblutil.util import Bunch
 from iblutil.io import hashfile, params
 
 # Settings
-alyx_user = 'julia.huntenburg'
 root_path = Path('/mnt/ibl')
-output_path = Path('/mnt/ibl/aggregates/trials')
-output_path.mkdir(exist_ok=True, parents=True)
+output_path = Path('/mnt/ibl/aggregates/')
+collection = 'Subjects'
+file_name = '_ibl_subjectTrials.table.pqt'
+alyx_user = 'julia.huntenburg'
 version = 1.0
-dry = False
-# Todo: implement dry run
-
+dry = False  # Todo: implement dry run for second part
+# Set up
+output_path.mkdir(exist_ok=True, parents=True)
+alyx_user = LabMember.objects.get(username=alyx_user)
+today_revision = datetime.datetime.today().strftime('%Y-%m-%d')
 
 # Attributes required for trials table
 attributes = [
@@ -69,17 +76,11 @@ attributes = [
 ]
 attr = [f'^{x}$' for x in attributes]
 
-# Get some things set up
-dataset_format = DataFormat.objects.get(name='parquet')
-dataset_type = DatasetType.objects.get(name='subjectTrials.table')
-alyx_user = LabMember.objects.get(username='julia.huntenburg')
-today_revision = datetime.datetime.today().strftime('%Y-%m-%d')
-
 # Prepare logger
 today = datetime.datetime.today().strftime('%Y%m%d')
 logger = logging.getLogger('ibllib')
 logger.setLevel(logging.INFO)
-handler = logging.handlers.RotatingFileHandler(output_path.joinpath(f'trials_export_{today}.log'),
+handler = logging.handlers.RotatingFileHandler(output_path.joinpath(f'subjectTrials_{today}.log'),
                                                maxBytes=(1024 * 1024 * 256), )
 logger.addHandler(handler)
 
@@ -110,9 +111,8 @@ status_agg = {}
 SESSION TRIALS TABLES
 =====================
 """
-# Find sessions that don't have trials tables, but have other trials data, and try to create them
-sessions = Session.objects.filter(project__name__icontains='ibl', task_protocol__icontains='ibl')
-sessions = sessions.exclude(subject__nickname__icontains='test')
+# Find sessions with ibl task protocol that don't have trials tables, but have other trials data, and try to create them
+sessions = Session.objects.filter(task_protocol__icontains='ibl').exclude(subject__nickname__icontains='test')
 sessions = sessions.annotate(
     trials_table_count=Count('data_dataset_session_related',
                              filter=Q(data_dataset_session_related__name='_ibl_trials.table.pqt')),
@@ -121,16 +121,19 @@ sessions = sessions.annotate(
 to_create = sessions.filter(trials_table_count=0).exclude(trials_count=0)
 
 if to_create.count() > 0:
-    logger.info(f'CREATING TRIALS TABLES FOR {to_create.count()} SESSIONS')
+    if dry:
+        logger.info(f'DRY RUN: WOULD CREATE TRIALS TABLES FOR {to_create.count()} SESSIONS')
+    else:
+        logger.info(f'CREATING TRIALS TABLES FOR {to_create.count()} SESSIONS')
     gtc = login_auto('525cc517-8ccb-4d11-8036-af332da5eafd')
     for session in to_create:
         logger.info(f'Session {session.id}')
-        alf_path = root_path.joinpath(session.subject.lab.name, 'Subjects', session.subject.nickname,
+        alf_path = root_path.joinpath(session.subject.lab.name, "Subjects", session.subject.nickname,
                                       session.start_time.strftime('%Y-%m-%d'), f'{session.number:03d}', 'alf')
         # Check if alf folder exists
         if not alf_path.exists():
             logger.error(f"...ERROR: Alf path doesn't exist")
-            status[f'{session.id}'] = 'Alf path does not exist'
+            status[f'{session.id}'] = 'ERROR: Alf path does not exist'
             continue
         try:
             # Try to load the required attributes
@@ -138,8 +141,14 @@ if to_create.count() > 0:
                                        wildcards=False, short_keys=True)
         except ALFObjectNotFound:
             logger.error(f'...ERROR: Could not load all attributes')
-            status[f'{session.id}'] = 'Could not load all trials attributes'
+            status[f'{session.id}'] = 'ERROR: Could not load all trials attributes'
             continue
+        except AssertionError as e:
+            str_err = traceback.format_exc()
+            if "multiple object trials with the same attribute" in str_err:
+                logger.error("...ERROR: Mulitple object trials with the same attribute")
+                status[f'{session.id}'] = 'ERROR: Mulitple object trials with the same attribute'
+                continue
         try:
             # Check dimensions of trials object
             assert alfio.check_dimensions(trials) == 0, 'Dimensions mismatch trials attributes'
@@ -154,6 +163,11 @@ if to_create.count() > 0:
             trials_df.index.name = 'trial_#'
             filename = spec.to_alf(object='trials', namespace='ibl', attribute='table', extension='pqt')
             fullfile = alf_path.joinpath(filename)
+            if dry:
+                logger.info(f'...DRY RUN: not saving {fullfile}')
+                status[f'{session.id}'] = 'DRY RUN: would create trials table'
+                continue
+
             trials_df.to_parquet(fullfile)
             assert fullfile.exists(), f'Failed to save to {fullfile}'
             assert not pd.read_parquet(fullfile).empty, f'Failed to read {fullfile}'
@@ -183,14 +197,14 @@ if to_create.count() > 0:
             record = {
                 'dataset': Dataset.objects.get(id=did),
                 'data_repository': DataRepository.objects.get(name=f'aws_{session.lab}'),
-                'relative_path': alfiles.get_alf_path(fullfile).replace(f'{session.lab}/Subjects', '').strip('/'),
-                'exists': True
+                'relative_path': alfiles.get_alf_path(fullfile).replace(f'{session.lab}/Subjects}', '').strip('/'),
+                'exists': False
             }
             try:
                 _ = FileRecord.objects.get_or_create(**record)
             except BaseException as e:
                 logger.error(f'...ERROR: Failed to create AWS file record: {e}')
-                status[f'{session.id}'] = 'Failed to create AWS file record trials.table.pqt'
+                status[f'{session.id}'] = 'ERROR: Failed to create AWS file record trials.table.pqt'
                 continue
 
             # De-register individual attributes files
@@ -239,12 +253,12 @@ if to_create.count() > 0:
             process.wait()
             if process.returncode != 0:
                 logger.error(f'...ERROR: Failed to delete files from AWS')
-                status[f'{session.id}'] = 'Failed to delete trials files from AWS'
+                status[f'{session.id}'] = 'ERROR: Failed to delete trials files from AWS'
                 continue
-            status[f'{session.id}'] = 'SUCCESS creating trials table'
+            status[f'{session.id}'] = 'SUCCESS: created trials table'
         except BaseException as ex:
             logger.error(f'...ERROR: {ex}')
-            status[f'{session.id}'] = f'{ex}'
+            status[f'{session.id}'] = f'ERROR: {ex}'
 
 # Save information about trials table creation as csv
 status = pd.DataFrame.from_dict(status, orient='index', columns=['status'])
@@ -257,15 +271,23 @@ status.to_csv(output_path.joinpath('trials_table_status.csv'), index=False)
 SUBJECT AGGREGATE TABLES
 ========================
 """
-# Now find all culled subjects with at least one session in an ibl project that has a trials table
-sessions = Session.objects.filter(project__name__icontains='ibl', task_protocol__icontains='ibl')
+# Now find all culled subjects with at least one session in an ibl project
+sessions = Session.objects.filter(project__name__icontains='ibl')
+subjects = Subject.objects.filter(id__in=sessions.values_list('subject'), cull__isnull=False
+                                  ).exclude(nickname__icontains='test')
+# Also make sure to only keep subjects that have at least one session with ibl task protocol and a trials table
+sessions = Session.objects.filter(subject__in=subjects, task_protocol__icontains='ibl')
 sessions = sessions.annotate(
     trials_table_count=Count('data_dataset_session_related',
                              filter=Q(data_dataset_session_related__name='_ibl_trials.table.pqt')))
 sessions = sessions.exclude(trials_table_count=0)
-subjects = sessions.values_list('subject').distinct()
-subjects = Subject.objects.filter(id__in=subjects, cull__isnull=False)
-subjects = subjects.exclude(nickname__icontains='test')
+subjects = Subject.objects.filter(id__in=sessions.values_list('subject'))
+
+# dataset format, type and repos
+dataset_format = DataFormat.objects.get(name='parquet')
+dataset_type = DatasetType.objects.get(name='subjectTrials.table')
+aws_repo = DataRepository.objects.get(name='aws_aggregates')
+fi_repo = DataRepository.objects.get(name='flatiron_aggregates')
 
 # Go through subjects and check if aggregate needs to be (re)created
 logger.info('\n')
@@ -274,7 +296,6 @@ for i, sub in enumerate(subjects):
     try:
         print(f'{i}/{subjects.count()} {sub.nickname}')
         logger.info(f'Subject {sub.nickname} {sub.id}')
-        out_file = output_path.joinpath(f"{sub.lab.name}", f"{sub.nickname}", "subjectTrials.table.pqt")
         # Find all sessions of this subject
         sub_sess = Session.objects.filter(subject=sub, task_protocol__icontains='ibl')
         # First create hash and check if aggregate needs to be (re)created
@@ -285,7 +306,8 @@ for i, sub in enumerate(subjects):
         new_hash = hashlib.md5(hash_str).hexdigest()
         revision = None  # Only set if making a new revision is required
         # Check if this dataset exists
-        ds = Dataset.objects.filter(session__subject=sub, name=out_file.name, default_dataset=True)
+        # Todo: This will only work once generic foreign key is added and datasets are linked to subjects
+        ds = Dataset.objects.filter(session__subject=sub, name=file_name, default_dataset=True)
         # If there is more than one default dataset, something is wrong
         if ds.count() > 1:
             logger.error(f'...ERROR: more than one default dataset')
@@ -293,6 +315,10 @@ for i, sub in enumerate(subjects):
             continue
         # If there is exactly one default dataset, check if it needs updating
         elif ds.count() == 1:
+            if ds.first().revision is None:
+                out_file = output_path.joinpath(collection, sub.lab.name, sub.nickname, file_name)
+            else:
+                out_file = output_path.joinpath(collection, sub.lab.name, sub.nickname, ds.first().revision, file_name)
             # See if the file exists on disk (we are on SDSC so need to check with uuid in name)
             # If yes, create the expected hash and try to compare to the hash of the existing file
             if alfiles.add_uuid_string(out_file, ds.first().pk).exists():
@@ -312,7 +338,7 @@ for i, sub in enumerate(subjects):
                         logger.info(f'...aggregate already exists but is protected, hash mismatch, creating revision')
                         status_agg[f'{sub.id}'] = 'REVISION: aggregate exists protected, hash mismatch'
                         # Make revision other than None and add revision to file path
-                        revision = today_revision
+                        revision, _ = Revision.objects.get_or_create(name=today_revision)
                         if ds.first().revision is None:
                             out_file = out_file.parent.joinpath(f"#{today_revision}#", out_file.name)
                         else:
@@ -331,6 +357,7 @@ for i, sub in enumerate(subjects):
                 out_file = alfiles.add_uuid_string(out_file, ds.first().pk)
         # If no dataset exists yet, create it
         elif ds.count() == 0:
+            out_file = output_path.joinpath(collection, sub.lab.name, sub.nickname, file_name)
             logger.info(f'...aggregate does not yet exist, creating.')
             status_agg[f'{sub.id}'] = 'CREATE: aggregate does not exist'
 
@@ -351,8 +378,9 @@ for i, sub in enumerate(subjects):
             trials['task_protocol'] = t.session.task_protocol
             all_trials.append(trials)
 
-        # Concatenate trials from all sessions for subject
+        # Concatenate trials from all sessions for subject and save
         df_trials = pd.concat(all_trials, ignore_index=True)
+        out_file.parent.mkdir(parents=True, exist_ok=True)
         df_trials.to_parquet(out_file)
         assert out_file.exists(), f'Failed to save to {out_file}'
         assert not pd.read_parquet(out_file).empty, f'Failed to read {out_file}'
@@ -360,73 +388,53 @@ for i, sub in enumerate(subjects):
 
         # Get file size and hash which we need in any case
         file_hash = hashfile.md5(out_file)
-        file_size = str(out_file.stat().st_size)
+        file_size = out_file.stat().st_size
         # If we overwrote an existing file, update hash and size in the dataset entry
         if ds.count() == 1 and revision is None:
             ds.update(hash=file_hash, file_size=file_size)
             logger.info(f"...Updated hash and size of existing dataset entry {ds.first().pk}")
         # If we made a new file or revision, create new dataset entry and file records
         else:
-            # Create dataset entry
-            ds = Dataset.objects.create(
-                name=out_file.name,
+            # Create dataset entry (make default)
+            new_ds = Dataset.objects.create(
+                name=file_name,
                 hash=file_hash,
                 file_size=file_size,
                 json={'aggregate_hash': new_hash},
-                revision=revision,  # TODO: possibly create and pass revision object
-                collection='aggregates/Subjects',
+                revision=revision,
+                collection=collection,
                 default_dataset=True,
                 dataset_type=dataset_type,
                 data_format=dataset_format,
-                subject=sub,
                 created_by=alyx_user,
                 version=version,
             )
-
-            logger.info(f"...Created new dataset entry {ds.pk} and file records")
-            # Remove previous default dataset
-
+            # Validate dataset
+            new_ds.full_clean()
+            new_ds.save()
+            # Make previous default dataset not default anymore (if there was one)
+            if ds.count() == 1:
+                _ = ds.update(default_dataset=False)
             # Change name on disk to include dataset id
+            new_out_file = out_file.rename(alfiles.add_uuid_string(out_file, new_ds.pk))
+            assert new_out_file.exists(), f"Failed to save renamed file {new_out_file}"
+            logger.info(f"...Renamed file to {new_out_file}")
+            # Create one file record per repository
+            for repo in [aws_repo, fi_repo]:
+                record = {
+                    'dataset': new_ds,
+                    'data_repository': repo,
+                    'relative_path': str(out_file.relative_to(output_path)),
+                    'exists': False if repo.name.startswith('aws') else True
+                }
+                try:
+                    _ = FileRecord.objects.get_or_create(**record)
+                except BaseException as e:
+                    logger.error(f'...ERROR: Failed to create file record on {repo.name}: {e}')
+                    status[f'{session.id}'] = f'ERROR: Failed to create file record on {repo.name}: {e}'
+                    continue
 
-            # Create file records (FI AND AWS)
-        # # Create file record
-        # fr = ac.rest('files', 'create', data={
-        #     'dataset': dset['url'],
-        #     'data_repository': rpo['name'],
-        #     'exists': True,
-        #     'relative_path': 'subjects_trials/' + dataset
-        # })
-        # dataset_record.data = {
-        #     'name': f'flatiron_{session.lab}',
-        #     'path': '/'.join([session.subject.nickname, session.start_time.strftime('%Y-%m-%d'),
-        #                       f'{session.number:03d}']),
-        #     'labs': f'{session.lab}',
-        #     'hashes': hashfile.md5(fullfile),
-        #     'filesizes': str(fullfile.stat().st_size),
-        #     'server_only': True,
-        #     'filenames': f'alf/{filename}',
-        #     'created_by': alyx_user
-        # }
-        # r = False().create(dataset_record)
-        # assert r.status_code == 201, f'Failed to register {fullfile}'
-        # assert len(r.data) == 1, f'Failed to register {fullfile}'
-        # # Rename file: add UUID
-        # did = r.data[0]['id']
-        # newfile = fullfile.rename(alfiles.add_uuid_string(fullfile, did))
-        # assert newfile.exists(), f"Failed to save renamed file {newfile}"
-        # # Create new file record for AWS
-        # record = {
-        #     'dataset': Dataset.objects.get(id=did),
-        #     'data_repository': DataRepository.objects.get(name=f'aws_{session.lab}'),
-        #     'relative_path': alfiles.get_alf_path(fullfile).replace(f'{session.lab}/Subjects', '').strip('/'),
-        #     'exists': True
-        # }
-        # try:
-        #     _ = FileRecord.objects.get_or_create(**record)
-        # except BaseException as e:
-        #     logger.error(f'...ERROR: Failed to create AWS file record: {e}')
-        #     status[f'{session.id}'] = 'Failed to create AWS file record trials.table.pqt'
-        #     continue
+            logger.info(f"...Created new dataset entry {new_ds.pk} and file records")
 
     except Exception as e:
         logger.error(f"...Error for subject {sub.nickname}: {e}")
@@ -438,3 +446,16 @@ status_agg = pd.DataFrame.from_dict(status_agg, orient='index', columns=['status
 status_agg.insert(0, 'subject_id', status_agg.index)
 status_agg.reset_index(drop=True, inplace=True)
 status_agg.to_csv(root_path.joinpath('subjects_trials_status.csv'))
+
+# Sync whole collection folder to AWS (for now)
+src_dir = str(output_path.joinpath(collection))
+dst_dir = f's3://ibl-brain-wide-map-private/aggregates/{collection}'
+cmd = ['aws', 's3', 'sync', src_dir, dst_dir, '--delete', '--profile', 'ibladmin', '--no-progress']
+logger.info(f"Syncing {src_dir} to AWS: " + " ".join(cmd))
+t0 = time.time()
+process = Popen(cmd, stdout=PIPE, stderr=STDOUT)
+with process.stdout:
+    log_subprocess_output(process.stdout, logger.info)
+assert process.wait() == 0
+logger.debug(f'Session sync took {(time.time() - t0)} seconds')
+# TODO setting file records to True after this
