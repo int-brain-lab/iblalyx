@@ -53,7 +53,8 @@ collection = 'Subjects'
 file_name = '_ibl_subjectTrials.table.pqt'
 alyx_user = 'julia.huntenburg'
 version = 1.0
-dry = False  # Todo: implement dry run for second part
+dry = False
+
 # Set up
 output_path.mkdir(exist_ok=True, parents=True)
 alyx_user = LabMember.objects.get(username=alyx_user)
@@ -300,7 +301,6 @@ for i, sub in enumerate(subjects):
         sub_sess = Session.objects.filter(subject=sub, task_protocol__icontains='ibl')
         # First create hash and check if aggregate needs to be (re)created
         trials_ds = Dataset.objects.filter(session__in=sub_sess, name='_ibl_trials.table.pqt', default_dataset=True)
-        # Todo: do we ever need to check if there are sessions that have a trials.table but none that is marked default?
         trials_ds = trials_ds.order_by('hash')
         hash_str = ''.join([str(item) for pair in trials_ds.values_list('hash', 'id') for item in pair]).encode('utf-8')
         new_hash = hashlib.md5(hash_str).hexdigest()
@@ -361,6 +361,10 @@ for i, sub in enumerate(subjects):
             logger.info(f'...aggregate does not yet exist, creating.')
             status_agg[f'{sub.id}'] = 'CREATE: aggregate does not exist'
 
+        # If dry run, stop here
+        if dry:
+            logger.info(f'...DRY RUN would create {out_file}')
+            continue
         # Create aggregate dataset and save to disk
         all_trials = []
         for t in trials_ds:
@@ -389,9 +393,9 @@ for i, sub in enumerate(subjects):
         # Get file size and hash which we need in any case
         file_hash = hashfile.md5(out_file)
         file_size = out_file.stat().st_size
-        # If we overwrote an existing file, update hash and size in the dataset entry
+        # If we overwrote an existing file, update hashes and size in the dataset entry
         if ds.count() == 1 and revision is None:
-            ds.update(hash=file_hash, file_size=file_size)
+            ds.update(hash=file_hash, file_size=file_size, json={'aggregate_hash': new_hash})
             logger.info(f"...Updated hash and size of existing dataset entry {ds.first().pk}")
         # If we made a new file or revision, create new dataset entry and file records
         else:
@@ -447,15 +451,20 @@ status_agg.insert(0, 'subject_id', status_agg.index)
 status_agg.reset_index(drop=True, inplace=True)
 status_agg.to_csv(root_path.joinpath('subjects_trials_status.csv'))
 
-# Sync whole collection folder to AWS (for now)
-src_dir = str(output_path.joinpath(collection))
-dst_dir = f's3://ibl-brain-wide-map-private/aggregates/{collection}'
-cmd = ['aws', 's3', 'sync', src_dir, dst_dir, '--delete', '--profile', 'ibladmin', '--no-progress']
-logger.info(f"Syncing {src_dir} to AWS: " + " ".join(cmd))
-t0 = time.time()
-process = Popen(cmd, stdout=PIPE, stderr=STDOUT)
-with process.stdout:
-    log_subprocess_output(process.stdout, logger.info)
-assert process.wait() == 0
-logger.debug(f'Session sync took {(time.time() - t0)} seconds')
-# TODO setting file records to True after this
+if not dry:
+    # Sync whole collection folder to AWS (for now)
+    src_dir = str(output_path.joinpath(collection))
+    dst_dir = f's3://ibl-brain-wide-map-private/aggregates/{collection}'
+    cmd = ['aws', 's3', 'sync', src_dir, dst_dir, '--delete', '--profile', 'ibladmin', '--no-progress']
+    logger.info(f"Syncing {src_dir} to AWS: " + " ".join(cmd))
+    t0 = time.time()
+    process = Popen(cmd, stdout=PIPE, stderr=STDOUT)
+    with process.stdout:
+        log_subprocess_output(process.stdout, logger.info)
+    assert process.wait() == 0
+    logger.debug(f'Session sync took {(time.time() - t0)} seconds')
+    # Assume that everyting that existed in that folder on FI was synced and set file records to exist
+    fi_frs = FileRecord.objects.filter(data_repository=fi_repo, relative_path__startswith=collection, exists=True)
+    aws_frs = FileRecord.objects.filter(data_repository=aws_repo, dataset__in=fi_frs.values_list('dataset', flat=True))
+    logger.info(f"Setting {aws_frs.count()} AWS file records to exists=True")
+    aws_frs.update(exists=True)
