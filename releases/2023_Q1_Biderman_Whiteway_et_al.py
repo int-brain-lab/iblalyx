@@ -31,8 +31,11 @@ vid_right = Dataset.objects.filter(session_id__in=df[df['right_video'] == True][
 trials = Dataset.objects.filter(session_id__in=df['eid'].unique(),
                                 name='_ibl_trials.table.pqt', default_dataset=True)
 
+# Manual labels
+labels = Dataset.objects.filter(name__icontains='_ibl_videoTracking.trainingData')
 
-datasets = spikes | vid_left | vid_right | trials
+# Combine and tag
+datasets = spikes | vid_left | vid_right | trials | labels
 tag, _ = Tag.objects.get_or_create(name="2023_Q1_Biderman_Whiteway_et_al", protected=True, public=True)
 tag.datasets.set(datasets)
 
