@@ -412,6 +412,7 @@ for i, sub in enumerate(subjects):
                 data_format=dataset_format,
                 created_by=alyx_user,
                 version=version,
+                content_object=sub,
             )
             # Validate dataset
             new_ds.full_clean()
