@@ -58,12 +58,6 @@ public_ds_tags = [
     "9cba03f8-f491-43b2-9686-45309aee8657",  # 2023_Q1_Mohammadi_et_al
     ]
 
-# Get public aws information from local file to avoid storing this on github,
-# This should be stored in the home directory of the user
-aws_info_file = Path.home().joinpath('aws_public_info.json')
-with open(aws_info_file) as f:
-    aws_info = json.load(f)
-
 # Check that files exist
 for f in public_ds_files:
     assert Path.cwd().joinpath(f).exists()
@@ -103,13 +97,14 @@ Tag.objects.using('public').exclude(pk__in=public_ds_tags).delete()
 DataRepository.objects.using('public').exclude(globus_is_personal=False).delete()
 DataRepository.objects.using('public').filter(name='ibl-brain-wide-map-private').delete()
 # Replace some information in the data repositories
+exclude = ('Secret access key', 'Access key ID')
 for dr in DataRepository.objects.using('public').all():
     if 'flatiron' in dr.hostname:
         dr.data_url = dr.data_url.replace('.org/', '.org/public/')
         dr.json = {}
         dr.save()
     elif 'aws' in dr.hostname:
-        dr.json = aws_info
+        dr.json = {k: v for k, v in (dr.json or {}).items() if k not in exclude}
         dr.data_url = dr.data_url.replace('ibl-brain-wide-map-private', 'ibl-brain-wide-map-public')
         dr.save()
 
