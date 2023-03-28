@@ -401,7 +401,7 @@ def _histology_assign():
             # Note:
             # churchlandlab == churchlandlab_ucla
             # mrsicflogellab == hoferlab
-            # zadorlab skipped in assignment
+            # zadorlab skipped in assignment from 28-03-2023
             if lab.name == 'zadorlab':
                 continue
 
