@@ -401,6 +401,9 @@ def _histology_assign():
             # Note:
             # churchlandlab == churchlandlab_ucla
             # mrsicflogellab == hoferlab
+            # zadorlab skipped in assignment
+            if lab.name == 'zadorlab':
+                continue
 
             if lab.name == 'churchlandlab_ucla':
                 len_lab_done = len(all_insertions.filter(session__lab__name=lab.name)) + \
