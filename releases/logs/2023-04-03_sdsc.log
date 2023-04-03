@@ -1,0 +1,9 @@
+2023-04-03 15:46:50 Beginning copy data
+Starting to create 55981 symlinks
+creating symlinks 20000/55981
+creating symlinks 40000/55981
+Finished creating symlinks
+
+Syncing to public S3 bucket data/
+Syncing to public S3 bucket aggregates/
+2023-04-03 19:29:45 Finished copying data
