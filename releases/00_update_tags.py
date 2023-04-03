@@ -17,6 +17,7 @@ public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2022_Q3_IBL_et_al_DAWG_datasets.pqt',
                    '2022_Q4_IBL_et_al_BWM_datasets.pqt',
                    '2023_Q1_Mohammadi_et_al_datasets.pqt',
+                   '2023_Q1_Biderman_Whiteway_et_al_datasets.pqt',
                    ]
 public_ds_tags = [
     "cfc4906a-316e-4150-8222-fe7e7f13bdac",  # "Behaviour Paper", "2021_Q1_IBL_et_al_Behaviour"
@@ -26,7 +27,8 @@ public_ds_tags = [
     "05fbaa4e-681d-41c5-ae53-072cb96f4c0a",  # 2022_Q2_IBL_et_al_RepeatedSite_datasets
     "1f2c5034-b31b-4c23-be93-c4a66c8c9eb1",  # 2022_Q3_IBL_et_al_DAWG
     "4df91a7a-faac-4894-800e-b306cafe9a8c",  # 2022_Q4_IBL_et_al_BWM
-    "9cba03f8-f491-43b2-9686-45309aee8657"   # 2023_Q1_Mohammadi_et_al
+    "9cba03f8-f491-43b2-9686-45309aee8657",  # 2023_Q1_Mohammadi_et_al
+    "4984ea79-b162-49cc-8660-0dc6bbb7a5ff",  # 2023_Q1_Biderman_Whiteway_et_al
     ]
 
 
