@@ -14,7 +14,6 @@ all datasets in the new public database. This public folder will then be synchro
 """
 
 
-import json
 import pandas as pd
 from datetime import datetime
 from pathlib import Path
@@ -107,6 +106,7 @@ for dr in DataRepository.objects.using('public').all():
         dr.save()
     elif 'aws' in dr.hostname:
         dr.json = {k: v for k, v in (dr.json or {}).items() if k not in exclude}
+        dr.json['bucket_name'] = 'ibl-brain-wide-map-public'
         dr.data_url = dr.data_url.replace('ibl-brain-wide-map-private', 'ibl-brain-wide-map-public')
         dr.save()
 

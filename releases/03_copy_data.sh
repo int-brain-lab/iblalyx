@@ -17,6 +17,6 @@ python $ALYX_DIR/manage.py shell < 03a_symlinks.py
 echo "Syncing to public S3 bucket data/"
 aws s3 sync "/mnt/ibl/public" s3://ibl-brain-wide-map-public/data --exclude "aggregates/*" --exclude "*.zip" --exclude ".*" --profile ibladmin --follow-symlinks --delete --no-progress --only-show-errors
 echo "Syncing to public S3 bucket aggregates/"
-aws s3 sync "/mnt/ibl/public/aggregates" s3://ibl-brain-wide-map-public/aggregates --exclude "*.zip" --exclude ".*" --profile ibladmin --follow-symlinks --delete --no-progress --only-show-errors
+aws s3 sync "/mnt/ibl/public/aggregates" s3://ibl-brain-wide-map-public/aggregates --exclude ".*" --profile ibladmin --follow-symlinks --delete --no-progress --only-show-errors
 echo "$(date '+%Y-%m-%d %H:%M:%S') Finished copying data"
 
