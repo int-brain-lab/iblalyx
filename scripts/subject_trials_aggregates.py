@@ -45,6 +45,7 @@ from one.alf import spec, io as alfio, files as alfiles
 from one.alf.exceptions import ALFObjectNotFound
 from iblutil.util import Bunch
 from iblutil.io import hashfile, params
+from ibllib.io.extractors.training_trials import PhasePosQuiescence, StimOnTriggerTimes
 
 # Settings
 root_path = Path('/mnt/ibl')
@@ -53,7 +54,8 @@ collection = 'Subjects'
 file_name = '_ibl_subjectTrials.table.pqt'
 alyx_user = 'julia.huntenburg'
 version = 1.0
-dry = False
+dry = True
+force_overwrite = False  # Use mindfully, this will overwrite even protected datasets (remove option after this patch)
 
 # Set up
 output_path.mkdir(exist_ok=True, parents=True)
@@ -319,9 +321,15 @@ for i, sub in enumerate(subjects):
                 out_file = output_path.joinpath(collection, sub.lab.name, sub.nickname, file_name)
             else:
                 out_file = output_path.joinpath(collection, sub.lab.name, sub.nickname, ds.first().revision, file_name)
+            # If force overwrite, we will overwrite the existing file without any checks
+            if force_overwrite:
+                logger.info(f'...force overwrite')
+                status_agg[f'{sub.id}'] = 'FORCE: force overwrite'
+                # Add the uuid to the out file to overwrite the current file
+                out_file = alfiles.add_uuid_string(out_file, ds.first().pk)
             # See if the file exists on disk (we are on SDSC so need to check with uuid in name)
             # If yes, create the expected hash and try to compare to the hash of the existing file
-            if alfiles.add_uuid_string(out_file, ds.first().pk).exists():
+            elif alfiles.add_uuid_string(out_file, ds.first().pk).exists():
                 try:
                     old_hash = ds.first().json['aggregate_hash']
                 except TypeError:
@@ -380,6 +388,13 @@ for i, sub in enumerate(subjects):
             trials['session_start_time'] = t.session.start_time
             trials['session_number'] = t.session.number
             trials['task_protocol'] = t.session.task_protocol
+
+            # Load quiescence and stimOn_trigger and add to the table
+            (*_, quiescence), _ = PhasePosQuiescence(alf_path.parent).extract(save=False)
+            stimon_trigger, _ = StimOnTriggerTimes(alf_path.parent).extract(save=False)
+            trials['quiescence'] = quiescence
+            trials['stimOnTrigger_times'] = stimon_trigger
+            # Add to list of trials for subject
             all_trials.append(trials)
 
         # Concatenate trials from all sessions for subject and save
