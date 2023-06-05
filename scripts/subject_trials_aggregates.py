@@ -25,7 +25,6 @@ SETTING UP
 from django.db.models import Count, Q
 from actions.models import Session
 from subjects.models import Subject
-from data.views import RegisterFileViewSet
 from data.models import Dataset, DatasetType, DataFormat, DataRepository, FileRecord, Revision
 from misc.models import LabMember
 
@@ -33,17 +32,13 @@ import logging
 import datetime
 import time
 import hashlib
-import traceback
 from pathlib import Path
 from subprocess import Popen, PIPE, STDOUT
 
 import pandas as pd
-import numpy as np
 import globus_sdk as globus
 
-from one.alf import spec, io as alfio, files as alfiles
-from one.alf.exceptions import ALFObjectNotFound
-from iblutil.util import Bunch
+from one.alf import io as alfio, files as alfiles
 from iblutil.io import hashfile, params
 from ibllib.io.extractors.training_trials import PhasePosQuiescence, StimOnTriggerTimes
 
@@ -54,30 +49,13 @@ collection = 'Subjects'
 file_name = '_ibl_subjectTrials.table.pqt'
 alyx_user = 'julia.huntenburg'
 version = 1.0
-dry = True
-force_overwrite = False  # Use mindfully, this will overwrite even protected datasets (remove option after this patch)
+dry = False
+force_overwrite =  True
 
 # Set up
 output_path.mkdir(exist_ok=True, parents=True)
 alyx_user = LabMember.objects.get(username=alyx_user)
 today_revision = datetime.datetime.today().strftime('%Y-%m-%d')
-
-# Attributes required for trials table
-attributes = [
-    'intervals',
-    'goCue_times',
-    'response_times',
-    'choice',
-    'stimOn_times',
-    'contrastLeft',
-    'contrastRight',
-    'feedback_times',
-    'feedbackType',
-    'rewardVolume',
-    'probabilityLeft',
-    'firstMovement_times'
-]
-attr = [f'^{x}$' for x in attributes]
 
 # Prepare logger
 today = datetime.datetime.today().strftime('%Y%m%d')
@@ -106,168 +84,7 @@ def login_auto(globus_client_id, str_app='globus/default'):
 
 
 # Set up dictionaries to catch errors or other logs
-status = {}
 status_agg = {}
-
-"""
-=====================
-SESSION TRIALS TABLES
-=====================
-"""
-# Find sessions with ibl task protocol that don't have trials tables, but have other trials data, and try to create them
-sessions = Session.objects.filter(task_protocol__icontains='ibl').exclude(subject__nickname__icontains='test')
-sessions = sessions.annotate(
-    trials_table_count=Count('data_dataset_session_related',
-                             filter=Q(data_dataset_session_related__name='_ibl_trials.table.pqt')),
-    trials_count=Count('data_dataset_session_related',
-                       filter=Q(data_dataset_session_related__name__icontains='_ibl_trials')))
-to_create = sessions.filter(trials_table_count=0).exclude(trials_count=0)
-
-if to_create.count() > 0:
-    if dry:
-        logger.info(f'DRY RUN: WOULD CREATE TRIALS TABLES FOR {to_create.count()} SESSIONS')
-    else:
-        logger.info(f'CREATING TRIALS TABLES FOR {to_create.count()} SESSIONS')
-    gtc = login_auto('525cc517-8ccb-4d11-8036-af332da5eafd')
-    for session in to_create:
-        logger.info(f'Session {session.id}')
-        alf_path = root_path.joinpath(session.subject.lab.name, "Subjects", session.subject.nickname,
-                                      session.start_time.strftime('%Y-%m-%d'), f'{session.number:03d}', 'alf')
-        # Check if alf folder exists
-        if not alf_path.exists():
-            logger.error(f"...ERROR: Alf path doesn't exist")
-            status[f'{session.id}'] = 'ERROR: Alf path does not exist'
-            continue
-        try:
-            # Try to load the required attributes
-            trials = alfio.load_object(alf_path, 'trials', attribute=attr, timescale=None,
-                                       wildcards=False, short_keys=True)
-        except ALFObjectNotFound:
-            logger.error(f'...ERROR: Could not load all attributes')
-            status[f'{session.id}'] = 'ERROR: Could not load all trials attributes'
-            continue
-        except AssertionError as e:
-            str_err = traceback.format_exc()
-            if "multiple object trials with the same attribute" in str_err:
-                logger.error("...ERROR: Mulitple object trials with the same attribute")
-                status[f'{session.id}'] = 'ERROR: Mulitple object trials with the same attribute'
-                continue
-        try:
-            # Check dimensions of trials object
-            assert alfio.check_dimensions(trials) == 0, 'Dimensions mismatch trials attributes'
-            # Check if all expected keys are present
-            assert sorted(trials.keys()) == sorted(attributes), 'Missing trials attributes'
-            # Check all columns are numpy arrays and not zero length
-            assert all(
-                isinstance(x, np.ndarray) and x.size > 0
-                for x in trials.values()), 'Not all trials attributes are arrays'
-            # Create and save table
-            trials_df = trials.to_df()
-            trials_df.index.name = 'trial_#'
-            filename = spec.to_alf(object='trials', namespace='ibl', attribute='table', extension='pqt')
-            fullfile = alf_path.joinpath(filename)
-            if dry:
-                logger.info(f'...DRY RUN: not saving {fullfile}')
-                status[f'{session.id}'] = 'DRY RUN: would create trials table'
-                continue
-
-            trials_df.to_parquet(fullfile)
-            assert fullfile.exists(), f'Failed to save to {fullfile}'
-            assert not pd.read_parquet(fullfile).empty, f'Failed to read {fullfile}'
-
-            # Register file in database
-            logger.info(f'...registering {fullfile}')
-            dataset_record = Bunch({'data': {}})
-            dataset_record.data = {
-                'name': f'flatiron_{session.lab}',
-                'path': '/'.join([session.subject.nickname, session.start_time.strftime('%Y-%m-%d'),
-                                  f'{session.number:03d}']),
-                'labs': f'{session.lab}',
-                'hashes': hashfile.md5(fullfile),
-                'filesizes': str(fullfile.stat().st_size),
-                'server_only': True,
-                'filenames': f'alf/{filename}',
-                'created_by': alyx_user.username
-            }
-            r = RegisterFileViewSet().create(dataset_record)
-            assert r.status_code == 201, f'Failed to register {fullfile}'
-            assert len(r.data) == 1, f'Failed to register {fullfile}'
-            # Rename file: add UUID
-            did = r.data[0]['id']
-            newfile = fullfile.rename(alfiles.add_uuid_string(fullfile, did))
-            assert newfile.exists(), f"Failed to save renamed file {newfile}"
-            # Create new file record for AWS
-            record = {
-                'dataset': Dataset.objects.get(id=did),
-                'data_repository': DataRepository.objects.get(name=f'aws_{session.lab}'),
-                'relative_path': alfiles.get_alf_path(fullfile).replace(f'{session.lab}/Subjects}', '').strip('/'),
-                'exists': False
-            }
-            try:
-                _ = FileRecord.objects.get_or_create(**record)
-            except BaseException as e:
-                logger.error(f'...ERROR: Failed to create AWS file record: {e}')
-                status[f'{session.id}'] = 'ERROR: Failed to create AWS file record trials.table.pqt'
-                continue
-
-            # De-register individual attributes files
-            datasets = Dataset.objects.filter(session=session, name__startswith='_ibl_trials')
-            ddata = None
-            logger.info('...de-registering datasets')
-            for dataset in datasets:
-                if dataset.tags.filter(protected=True).count():
-                    logger.warning(f'...skipping protected dataset {dataset.name}')
-                    continue
-                if not any(x == dataset.name.split('.')[1] for x in attributes):
-                    continue  # Not in trials table
-                for fr in dataset.file_records.all():
-                    if fr.data_repository.name.endswith('SR'):
-                        if not ddata:
-                            ddata = globus.DeleteData(gtc, fr.data_repository.globus_endpoint_id, recursive=False)
-                        if fr.exists:
-                            logger.info(f'...DELETE: {fr.data_repository.globus_path}{fr.relative_path}')
-                            ddata.add_item(fr.data_repository.globus_path + fr.relative_path)
-                        fr.exists = False
-                    elif fr.data_repository.name.startswith('flatiron'):
-                        local_path = root_path.joinpath(fr.data_repository.globus_path.strip('/'), fr.relative_path)
-                        local_path = alfiles.add_uuid_string(local_path, dataset.pk)
-                        logger.info(f'...DELETE: {local_path}')
-                        local_path.unlink()
-                    elif fr.data_repository.name.startswith('aws'):
-                        bucket_name = fr.data_repository.json['bucket_name']
-                        if not bucket_name.startswith('s3:'):
-                            bucket_name = 's3://' + bucket_name
-                    else:
-                        fr.exists = False
-                    fr.save()
-                dataset.delete()
-            # Deleting files on local servers via globus
-            if ddata and ddata.get('DATA', False):
-                logger.info('...submitting delete on local server via globus')
-                delete_result = gtc.submit_delete(ddata)
-            # Deleting files from AWS
-            logger.info('...syncing delete with AWS')
-            dst_dir = bucket_name.strip('/') + '/data/' + alfiles.get_alf_path(alf_path)
-            cmd = ['aws', 's3', 'sync', alf_path.as_posix(), dst_dir, '--delete', '--profile', 'ibladmin',
-                   '--no-progress']
-            process = Popen(cmd, stdout=PIPE, stderr=STDOUT)
-            with process.stdout:
-                log_subprocess_output(process.stdout, logger.info)
-            process.wait()
-            if process.returncode != 0:
-                logger.error(f'...ERROR: Failed to delete files from AWS')
-                status[f'{session.id}'] = 'ERROR: Failed to delete trials files from AWS'
-                continue
-            status[f'{session.id}'] = 'SUCCESS: created trials table'
-        except BaseException as ex:
-            logger.error(f'...ERROR: {ex}')
-            status[f'{session.id}'] = f'ERROR: {ex}'
-
-# Save information about trials table creation as csv
-status = pd.DataFrame.from_dict(status, orient='index', columns=['status'])
-status.insert(0, 'eid', status.index)
-status.reset_index(drop=True, inplace=True)
-status.to_csv(output_path.joinpath('trials_table_status.csv'), index=False)
 
 """"
 ========================
@@ -295,6 +112,9 @@ fi_repo = DataRepository.objects.get(name='flatiron_aggregates')
 # Go through subjects and check if aggregate needs to be (re)created
 logger.info('\n')
 logger.info(f' {subjects.count()} SUBJECTS')
+# existing files with this file name
+all_ds = Dataset.objects.filter(name=file_name, default_dataset=True)
+
 for i, sub in enumerate(subjects):
     try:
         print(f'{i}/{subjects.count()} {sub.nickname}')
@@ -304,19 +124,26 @@ for i, sub in enumerate(subjects):
         # First create hash and check if aggregate needs to be (re)created
         trials_ds = Dataset.objects.filter(session__in=sub_sess, name='_ibl_trials.table.pqt', default_dataset=True)
         trials_ds = trials_ds.order_by('hash')
-        hash_str = ''.join([str(item) for pair in trials_ds.values_list('hash', 'id') for item in pair]).encode('utf-8')
+        # For sessions that have a trials table, add the task data files
+        task_ds = Dataset.objects.filter(session__in=trials_ds.values_list('session', flat=True),
+                                         name__in=['_iblrig_taskSettings.raw.json', '_iblrig_taskData.raw.jsonable'],
+                                         default_dataset=True)
+        # If we don't have task data for each session, we that's a problem
+        if task_ds.count() / 2 < trials_ds.count():
+            logger.info(f'...not all sessions have raw task data')
+            status_agg[f'{sub.id}'] = 'ERROR: not all sessions have raw task data'
+            continue
+        else:
+            hash_ds = trials_ds | task_ds
+            hash_ds = hash_ds.order_by('hash')
+        hash_str = ''.join([str(item) for pair in hash_ds.values_list('hash', 'id') for item in pair]).encode('utf-8')
         new_hash = hashlib.md5(hash_str).hexdigest()
         revision = None  # Only set if making a new revision is required
         # Check if this dataset exists
-        # Todo: This will only work once generic foreign key is added and datasets are linked to subjects
-        ds = Dataset.objects.filter(session__subject=sub, name=file_name, default_dataset=True)
-        # If there is more than one default dataset, something is wrong
-        if ds.count() > 1:
-            logger.error(f'...ERROR: more than one default dataset')
-            status_agg[f'{sub.id}'] = 'ERROR: more than one default dataset'
-            continue
+        ds_id = next((d.id for d in all_ds if d.content_object == sub), None)
+        ds = Dataset.objects.filter(id=ds_id)
         # If there is exactly one default dataset, check if it needs updating
-        elif ds.count() == 1:
+        if ds.count() == 1:
             if ds.first().revision is None:
                 out_file = output_path.joinpath(collection, sub.lab.name, sub.nickname, file_name)
             else:
@@ -342,7 +169,7 @@ for i, sub in enumerate(subjects):
                     continue
                 else:
                     # Otherwise check if the file is protected, if yes, create a revision, otherwise overwrite
-                    if ds.first().protected:
+                    if ds.first().is_protected:
                         logger.info(f'...aggregate already exists but is protected, hash mismatch, creating revision')
                         status_agg[f'{sub.id}'] = 'REVISION: aggregate exists protected, hash mismatch'
                         # Make revision other than None and add revision to file path
@@ -451,7 +278,7 @@ for i, sub in enumerate(subjects):
                     _ = FileRecord.objects.get_or_create(**record)
                 except BaseException as e:
                     logger.error(f'...ERROR: Failed to create file record on {repo.name}: {e}')
-                    status[f'{session.id}'] = f'ERROR: Failed to create file record on {repo.name}: {e}'
+                    status_agg[f'{sub.id}'] = f'ERROR: Failed to create file record on {repo.name}: {e}'
                     continue
 
             logger.info(f"...Created new dataset entry {new_ds.pk} and file records")
@@ -484,3 +311,29 @@ if not dry:
     aws_frs = FileRecord.objects.filter(data_repository=aws_repo, dataset__in=fi_frs.values_list('dataset', flat=True))
     logger.info(f"Setting {aws_frs.count()} AWS file records to exists=True")
     aws_frs.update(exists=True)
+
+
+
+
+157  c5dbd8a2-c0c9-4170-8845-b0e4d5bef961  OVERWRITE: aggregate exists not protected, has...
+166  3ce5f63a-35b6-4f99-9b57-65cf464004af  OVERWRITE: aggregate exists not protected, has...
+167  a139eac5-c21a-405b-9d5b-e5a1cef18f6d  OVERWRITE: aggregate exists not protected, has...
+189  441ce657-3f91-46fb-b556-1490dd721f7e  OVERWRITE: aggregate exists not protected, has...
+190  b5e826b1-afb5-4c60-8793-882b76bfa064  OVERWRITE: aggregate exists not protected, has...
+204  1e287343-192b-4c4f-8737-e6eda82a41ac  OVERWRITE: aggregate exists not protected, has...
+211  8efdd4c5-6e62-402a-b281-12173d0c3fc9  OVERWRITE: aggregate exists not protected, has...
+212  9ebfa752-af72-4a77-819a-cc65ab23333a  OVERWRITE: aggregate exists not protected, has...
+213  6ddb28e1-d663-4190-9796-708fe83efacb                   CREATE: aggregate does not exist
+214  7f6d4bfe-c751-4ff5-89a9-ac201bb3ce6c                   CREATE: aggregate does not exist
+215  17a44e6c-7831-4fbe-9c3d-d796982e2262                   CREATE: aggregate does not exist
+216  81f860db-d7d0-4093-be86-7238008e89d7                   CREATE: aggregate does not exist
+270  98d7b8e0-fba7-4bc7-a972-aa68dcc10658  OVERWRITE: aggregate exists not protected, has...
+271  4d1edd1c-bcb0-4f99-99fd-ae7ea7d87d6d                   CREATE: aggregate does not exist
+272  fe45957f-e466-4c63-b1d2-b0ee42f2a5ce                   CREATE: aggregate does not exist
+273  cfa3cd6b-6730-4666-a79e-04d1d9b8a9d0                   CREATE: aggregate does not exist
+286  79dc7d34-79cd-4bd1-9d7f-cbd0fc8d8f90  OVERWRITE: aggregate exists not protected, has...
+366  db4552fe-a686-4823-bbdf-ad859efd8012  OVERWRITE: aggregate exists not protected, has...
+377  1b0633a8-d168-44db-9275-3136ef75fec5  OVERWRITE: aggregate exists not protected, has...
+391  5ba2d94a-1782-409b-947c-4d764544f604  OVERWRITE: aggregate exists not protected, has...
+392  d5d7f730-08fc-429b-97c7-e9d556f92fef                   CREATE: aggregate does not exist
+393  5b30991e-3140-4049-b000-34a7219072f0                   CREATE: aggregate does not exist
