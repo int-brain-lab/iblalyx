@@ -5,6 +5,7 @@ mkdir -p "$backup_dir"
 cd "$backup_dir"
 # Full django JSON dump.
 source /var/www/alyx-main/venv/bin/activate
+# Dump the database
 python /var/www/alyx-main/alyx/manage.py dumpdata \
     -e contenttypes -e auth.permission \
     -e reversion.version -e reversion.revision -e admin.logentry \
