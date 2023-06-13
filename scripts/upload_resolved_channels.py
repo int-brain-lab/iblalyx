@@ -114,7 +114,7 @@ ins = ins.filter(n_chns__lt=1)
 
 logger.info(f'Uploading channels for {ins.count()} insertions')
 
-for pr in ins[0]:
+for pr in ins:
     try:
         traj = list(pr.trajectory_estimate.order_by('-provenance').all()[0].json.keys())
         traj.sort(reverse=True)
