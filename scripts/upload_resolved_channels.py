@@ -133,6 +133,10 @@ for pr in ins:
         task = RegisterChannels(session_path, one=one, pname=name, location='SDSC')
         task.run()
         response = task.register_datasets()
+        for resp in response:
+            fi = next((fr for fr in resp['file_records'] if 'flatiron' in fr['data_repository']), None)
+            if fi is not None:
+                one.alyx.rest('files', 'partial_update', id=fi['id'], data={'exists': True})
         task.cleanUp()
     except Exception as err:
         logger.error(f'{pr.id} errored with message: {err}')
