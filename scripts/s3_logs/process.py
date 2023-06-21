@@ -137,11 +137,12 @@ def consolidate_logs(boto_session=None, date='last_month', ipinfo_token=None, pr
 
     print(f'Reading remote logs for {start.strftime("%B")}' + (' so far' if partial else ''))
     try:
-        df = s3io.read_remote_logs(date_range=(start, end), log_location=s3io.REMOTE_LOG_LOCATION)
+        df = s3io.read_remote_logs(date_range=(start, end), log_location=s3io.REMOTE_LOG_LOCATION, s3_bucket=bucket)
     except pd.errors.ParserError as ex:
         # pandas.errors.ParserError: Error tokenizing data. C error: Expected 26 fields in line 2, saw 27
         warnings.warn(f'{ex}\n')
-        df = s3io.read_remote_logs_robust(date_range=(start, end), log_location=s3io.REMOTE_LOG_LOCATION)
+        df = s3io.read_remote_logs_robust(date_range=(start, end), log_location=s3io.REMOTE_LOG_LOCATION,
+                                          s3_bucket=bucket)
 
     # Process table
     df = s3io.prepare_for_parquet(df)
@@ -244,9 +245,9 @@ def key2date(key: str) -> datetime:
     return datetime(*map(int, PurePosixPath(key).name.split('-')[:-1]))
 
 
-def _first_log_datetime():
+def _first_log_datetime(s3_bucket=None):
     """Get the datetime of the first S3 log file."""
-    obj = next(s3io._iter_objects(s3io.REMOTE_LOG_LOCATION))
+    obj = next(s3io._iter_objects(s3io.REMOTE_LOG_LOCATION, s3_bucket=s3_bucket))
     return key2date(obj.key)
 
 
@@ -282,11 +283,13 @@ def consolidate_logs_by_week(boto_session=None):
 
         print(f'Reading remote logs for week {week_number} of {start.strftime("%B")}')
         try:
-            df = s3io.read_remote_logs(date_range=(start, end), log_location=s3io.REMOTE_LOG_LOCATION)
+            df = s3io.read_remote_logs(date_range=(start, end), log_location=s3io.REMOTE_LOG_LOCATION,
+                                       s3_bucket=bucket)
         except pd.errors.ParserError as ex:
             # pandas.errors.ParserError: Error tokenizing data. C error: Expected 26 fields in line 2, saw 27
             warnings.warn(f'{ex}\n')
-            df = s3io.read_remote_logs_robust(date_range=(start, end), log_location=s3io.REMOTE_LOG_LOCATION)
+            df = s3io.read_remote_logs_robust(date_range=(start, end), log_location=s3io.REMOTE_LOG_LOCATION,
+                                              s3_bucket=bucket)
 
         # Process table
         df = s3io.prepare_for_parquet(df)

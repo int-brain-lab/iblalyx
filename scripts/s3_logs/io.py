@@ -26,7 +26,7 @@ REMOTE_LOG_LOCATION = 'info/ibl-brain-wide-map-public/logs/server-access-logs/'
 LOCAL_LOG_LOCATION = Path.home().joinpath('s3_logs')
 
 
-def get_log_directory(key=REMOTE_LOG_LOCATION):
+def get_log_directory(key=REMOTE_LOG_LOCATION, s3=None, bucket_name=None):
     """
     Returns collection of S3 objects found within the server access logs location.
 
@@ -34,17 +34,23 @@ def get_log_directory(key=REMOTE_LOG_LOCATION):
     ----------
     key : str
         The location of the server access log files on the private bucket.
+    s3: s3.ServiceResource
+        An S3 resource object
+    bucket_name: str
+        Name of s3 bucket
 
     Returns
     -------
     s3.Bucket.objectsCollection
         The S3 objects within the log location.
     """
-    s3, bucket_name = aws.get_s3_from_alyx(AlyxClient())
+
+    if not s3:
+        s3, bucket_name = aws.get_s3_from_alyx(AlyxClient())
     return s3.Bucket(name=bucket_name).objects.filter(Prefix=key)
 
 
-def get_log_table_by_month(date, location=None):
+def get_log_table_by_month(date, location=None, s3=None, bucket_name=None):
     """
     Return the S3 consolidated access log table for a given month.
 
@@ -54,6 +60,10 @@ def get_log_table_by_month(date, location=None):
         Retrieve log table object contains logs of this datetime.
     location : str
         The location of the server access log files on the private bucket.
+    s3: s3.ServiceResource
+        An S3 resource object
+    bucket_name: str
+        Name of s3 bucket
 
     Returns
     -------
@@ -70,7 +80,8 @@ def get_log_table_by_month(date, location=None):
     - IP address information is also available in a separate file with the suffix '_IP-info'.
     - Logs are not sorted.
     """
-    s3, bucket_name = aws.get_s3_from_alyx(AlyxClient())
+    if not s3:
+        s3, bucket_name = aws.get_s3_from_alyx(AlyxClient())
     filename = date.strftime('%Y-%m') + '_ibl-brain-wide-map-public.pqt'
     if date.date() < pd.Timestamp(2023, 3, 1).date():
         warnings.warn('Note: duplicate rows were not removed prior to 2023-03-01')
@@ -84,7 +95,7 @@ def get_log_table_by_month(date, location=None):
     return file_obj
 
 
-def iter_log_tables(location=None):
+def iter_log_tables(location=None, s3=None, bucket_name=None):
     """
     Yield the consolidated log tables from a given bucket location.
 
@@ -92,6 +103,10 @@ def iter_log_tables(location=None):
     ----------
     location : str
         The location of the server access log files on the private bucket.
+    s3: s3.ServiceResource
+        An S3 resource object
+    bucket_name: str
+        Name of s3 bucket
 
     Yields
     -------
@@ -100,7 +115,8 @@ def iter_log_tables(location=None):
     """
     if not location:
         location = PurePosixPath(REMOTE_LOG_LOCATION, 'consolidated').as_posix()
-    s3, bucket_name = aws.get_s3_from_alyx(AlyxClient())
+    if not s3:
+        s3, bucket_name = aws.get_s3_from_alyx(AlyxClient())
     file_objects = s3.Bucket(name=bucket_name).objects.filter(Prefix=location)
     for obj in filterfalse(aws.is_folder, file_objects):
         yield obj
@@ -160,6 +176,8 @@ def _iter_objects(log_location, date_range=None, s3_bucket=None):
         The location of the server access log files on the private bucket.
     date_range : str, list, datetime.datetime, datetime.date, pd.timestamp, Optional
         An optional date range to filter logs by.
+    s3_bucket: s3.bucket
+        An s3 bucket instance
 
     Yields
     -------
@@ -185,7 +203,7 @@ def _iter_objects(log_location, date_range=None, s3_bucket=None):
             yield obj
 
 
-def _iter_logs(log_location, date_range=None):
+def _iter_logs(log_location, date_range=None, s3_bucket=None):
     """
     Iterate over S3 objects in a collection, yield logs that fall within a given date range.
 
@@ -195,17 +213,19 @@ def _iter_logs(log_location, date_range=None):
         The location of the server access log files on the private bucket.
     date_range : str, list, datetime.datetime, datetime.date, pd.timestamp, Optional
         An optional date range to filter logs by.
+    s3_bucket: s3.bucket
+        An s3 bucket instance
 
     Yields
     -------
     io.BytesIO
         A byte string buffer of each log file.
     """
-    for obj in _iter_objects(log_location, date_range):
+    for obj in _iter_objects(log_location, date_range, s3_bucket=s3_bucket):
         yield BytesIO(obj.get()['Body'].read())
 
 
-def read_remote_logs(date_range=None, log_location=REMOTE_LOG_LOCATION) -> pd.DataFrame:
+def read_remote_logs(date_range=None, log_location=REMOTE_LOG_LOCATION, s3_bucket=None) -> pd.DataFrame:
     """
 
     Parameters
@@ -214,20 +234,22 @@ def read_remote_logs(date_range=None, log_location=REMOTE_LOG_LOCATION) -> pd.Da
         An optional date range to filter logs by.
     log_location : str
         The location of the server access log files on the private bucket.
+    s3_bucket: s3.bucket
+        An s3 bucket instance
 
     Returns
     -------
     pd.DataFrame
         A pandas data frame of remote server access logs.
     """
-    log_files = tqdm(_iter_logs(log_location, date_range), unit=' files')
+    log_files = tqdm(_iter_logs(log_location, date_range, s3_bucket=s3_bucket), unit=' files')
     logs = (pd.read_csv(log, sep=' ', header=None) for log in log_files)
     df = pd.concat(logs, ignore_index=True)
     df.columns = COL_NAMES
     return df
 
 
-def read_remote_logs_robust(date_range=None, log_location=REMOTE_LOG_LOCATION) -> pd.DataFrame:
+def read_remote_logs_robust(date_range=None, log_location=REMOTE_LOG_LOCATION, s3_bucket=None) -> pd.DataFrame:
     """
     Sometimes logs contain an uneven number of columns (they keep adding columns). This function
     deals with those logs but it's slow and ugly. Additionally the raw log strings are pickled
@@ -239,6 +261,8 @@ def read_remote_logs_robust(date_range=None, log_location=REMOTE_LOG_LOCATION) -
         An optional date range to filter logs by.
     log_location : str
         The location of the server access log files on the private bucket.
+    s3_bucket: s3.bucket
+        An s3 bucket instance
 
     Returns
     -------
@@ -247,7 +271,7 @@ def read_remote_logs_robust(date_range=None, log_location=REMOTE_LOG_LOCATION) -
     """
     import pickle
     from io import StringIO
-    log_files = tqdm(_iter_logs(log_location, date_range), unit=' files')
+    log_files = tqdm(_iter_logs(log_location, date_range, s3_bucket=s3_bucket), unit=' files')
     log_files = map(BytesIO.read, log_files)
     # Decode each log and save as list of strings in home dir in case we fail to parse them
     logstr = list(map(bytes.decode, log_files))
@@ -276,7 +300,7 @@ def read_remote_logs_robust(date_range=None, log_location=REMOTE_LOG_LOCATION) -
     return df
 
 
-def get_remote_log_date_range(log_location=REMOTE_LOG_LOCATION):
+def get_remote_log_date_range(log_location=REMOTE_LOG_LOCATION, s3_bucket=None):
     """
     For a given log location, return the datetime of earliest and most recent log file.
     NB: There are typically thousands, maybe millions, of log files.  This is not performant.
@@ -285,13 +309,15 @@ def get_remote_log_date_range(log_location=REMOTE_LOG_LOCATION):
     ----------
     log_location : str
         The location of the server access log files on the private bucket.
+    s3_bucket: s3.bucket
+        An s3 bucket instance
 
     Returns
     -------
     tuple of pd.Timestamp
         The start and end timestamps.
     """
-    log_files = sorted(map(lambda x: x.key, _iter_objects(log_location)))
+    log_files = sorted(map(lambda x: x.key, _iter_objects(log_location, s3_bucket=s3_bucket)))
     return _timestamp(log_files[0]), _timestamp(log_files[-1])
 
 
@@ -327,7 +353,7 @@ def prepare_for_parquet(df):
     return df
 
 
-def download_public_logs(download_location=None, date_range=None) -> pd.DataFrame:
+def download_public_logs(download_location=None, date_range=None, s3_bucket=None) -> pd.DataFrame:
     """
     Download the remote logs and save as parquet table if local file does not already exist for the
     provided date range.
@@ -338,6 +364,8 @@ def download_public_logs(download_location=None, date_range=None) -> pd.DataFram
         The location of the local log parquet files to load.
     date_range : str, list, datetime.datetime, datetime.date, pd.timestamp, Optional
         An optional date range to filter logs by.
+    s3_bucket: s3.bucket
+        An s3 bucket instance
 
     Returns
     -------
@@ -348,14 +376,14 @@ def download_public_logs(download_location=None, date_range=None) -> pd.DataFram
     download_location = Path(download_location or LOCAL_LOG_LOCATION)
     if not date_range:
         # Get full range from remote directory.  If no new logs we may load from local files.
-        date_range = get_remote_log_date_range()
+        date_range = get_remote_log_date_range(s3_bucket=s3_bucket)
     range_str = '{}_{}'.format(*map(pd.Timestamp.isoformat, date_range)).replace(':', '')
     if (local_path := next(download_location.glob(f'*{range_str}*.pqt'), False)):
         print(f'Loading {local_path}')
         return pd.read_parquet(local_path)
     else:
         print('Reading remote logs')
-        df = read_remote_logs(date_range=date_range)
+        df = read_remote_logs(date_range=date_range, s3_bucket=s3_bucket)
         bucket_name, = df['Bucket_Owner'].unique()
         local_path = download_location.joinpath(f'{range_str}_{bucket_name}.pqt')
         local_path.parent.mkdir(parents=True, exist_ok=True)
