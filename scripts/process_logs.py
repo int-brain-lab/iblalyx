@@ -1,4 +1,4 @@
-from process import consolidate_logs
+from s3_logs.process import consolidate_logs
 import logging
 
 logger = logging.getLogger('ibllib')

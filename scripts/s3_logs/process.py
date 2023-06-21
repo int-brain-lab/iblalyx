@@ -17,7 +17,7 @@ import boto3
 from botocore.exceptions import ClientError
 from one.alf.files import get_session_path
 
-import io as s3io
+from . import io as s3io
 
 
 def files_accessed_this_month():
