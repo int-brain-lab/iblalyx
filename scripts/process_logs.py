@@ -11,4 +11,4 @@ if __name__ == '__main__':
     ipinfo_token = sys.argv[2]
     logger.warning(command)
     logger.warning(ipinfo_token)
-    consolidate_logs(date=command, ipinfo_token=ipinfo_token, profile_name='ibl')
+    consolidate_logs(date=command, ipinfo_token=ipinfo_token, profile_name='ibladmin')
