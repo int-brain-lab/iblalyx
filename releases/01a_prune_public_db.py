@@ -117,14 +117,18 @@ Revision.objects.using('public').exclude(pk__in=datasets.values_list('revision',
 
 print("...pruning sessions")
 # Delete sessions that don't have a dataset in public db, along with probe insertions, trajectories, channels and tasks
-Session.objects.using('public').exclude(id__in=datasets.values_list('session_id', flat=True)).delete()
+session_ids = datasets.exclude(session__isnull=True).values_list('session_id', flat=True).distinct()
+Session.objects.using('public').exclude(pk__in=session_ids).delete()
 sessions = Session.objects.using('public').all()
 # Remove the session json and narrative which contain identifying information
 sessions.update(json=None, narrative='')
 
 print("...pruning subjects")
-# Delete all subjects that don't have a session along with many actions
-Subject.objects.using('public').exclude(actions_sessions__in=sessions).delete()
+# Delete all subjects that don't have a session OR A DATASET along with many actions
+# This is a bit of a crutch for now, on the long run we should be able to query the content objects of non-session
+# data more systematically
+subs_to_keep = [ds.content_object.id for ds in datasets.filter(session__isnull=True)]
+Subject.objects.using('public').exclude(actions_sessions__in=sessions).exclude(pk__in=subs_to_keep).delete()
 subjects = Subject.objects.using('public').all()
 # Remove subject json
 subjects.update(json=None, description='', death_date=None)
