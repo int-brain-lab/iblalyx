@@ -46,6 +46,7 @@ public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2022_Q4_IBL_et_al_BWM_datasets.pqt',
                    '2023_Q1_Mohammadi_et_al_datasets.pqt',
                    '2023_Q1_Biderman_Whiteway_et_al_datasets.pqt',
+                   '2023_Q3_Findling_Hubert_et_al_datasets.pqt',
                    ]
 public_ds_tags = [
     "cfc4906a-316e-4150-8222-fe7e7f13bdac",  # "Behaviour Paper", "2021_Q1_IBL_et_al_Behaviour"
@@ -57,6 +58,7 @@ public_ds_tags = [
     "4df91a7a-faac-4894-800e-b306cafe9a8c",  # 2022_Q4_IBL_et_al_BWM
     "9cba03f8-f491-43b2-9686-45309aee8657",  # 2023_Q1_Mohammadi_et_al
     "4984ea79-b162-49cc-8660-0dc6bbb7a5ff",  # 2023_Q1_Biderman_Whiteway_et_al
+    "0f146f03-8dfe-44d6-84ef-e8fd24762fb2",  # 2023_Q3_Findling_Hubert_et_al
 ]
 
 # Check that files exist
