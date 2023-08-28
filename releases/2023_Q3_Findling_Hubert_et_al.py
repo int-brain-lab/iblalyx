@@ -1,7 +1,7 @@
 import pandas as pd
 from data.models import Tag, Dataset
 
-dataset_types = [
+wfield_dataset_types = [
  'imaging.times.npy',
  'imagingLightSource.properties.htsv',
  'imaging.imagingLightSource.npy',
@@ -15,8 +15,13 @@ dataset_types = [
  '_ibl_trials.stimOff_times.npy'
  ]
 
-eids = list(pd.read_csv('2023_Q3_Findling_Hubert_et_al_wfield_sessions.csv', index_col=0)['session_id'])
-datasets = Dataset.objects.filter(session__in=eids, name__in=dataset_types)
+wfield_eids = pd.read_csv('2023_Q3_Findling_Hubert_et_al_wfield_sessions.csv', index_col=0)['session_id']
+wfield_datasets = Dataset.objects.filter(session__in=wfield_eids, name__in=wfield_dataset_types)
+
+pupil_eids = pd.read_csv('2023_Q3_Findling_Hubert_et_al_pupil_sessions.csv', index_col=0)['session_id']
+pupil_datasets = Dataset.objects.filter(session__in=pupil_eids, name='_ibl_leftCamera.lightningPose.pqt')
+
+datasets = wfield_datasets | pupil_datasets
 
 tag, _ = Tag.objects.get_or_create(name="2023_Q3_Findling_Hubert_et_al", protected=True, public=True)
 tag.datasets.set(datasets)
