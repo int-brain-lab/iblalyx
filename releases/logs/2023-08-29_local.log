@@ -1,4 +1,4 @@
-2023-08-28 18:10:03 Beginning to create local version of public database
+2023-08-29 18:07:51 Beginning to create local version of public database
 ... creating working directory /home/julia/openalyx_wd
 ... copying latest backup of production database
 ... destroying local public database
@@ -20,7 +20,7 @@
 
  setval 
 --------
- 472351
+ 472374
 (1 row)
 
  setval 
@@ -35,17 +35,17 @@
 
  setval 
 --------
-  70714
+  70762
 (1 row)
 
  setval 
 --------
-  56285
+  56327
 (1 row)
 
  setval 
 --------
- 206682
+ 206797
 (1 row)
 
  setval 
@@ -95,7 +95,7 @@
 
  setval 
 --------
- 167309
+ 167359
 (1 row)
 
  setval 
@@ -105,7 +105,7 @@
 
  setval 
 --------
- 168582
+ 168735
 (1 row)
 
  setval 
@@ -120,7 +120,7 @@
 
  setval 
 --------
-  14627
+  16379
 (1 row)
 
  setval 
@@ -130,12 +130,12 @@
 
   setval  
 ----------
- 12562660
+ 12613099
 (1 row)
 
  setval 
 --------
- 605349
+ 605494
 (1 row)
 
  setval 
@@ -160,12 +160,12 @@
 
  setval 
 --------
-  39652
+  39669
 (1 row)
 
  setval  
 ---------
- 4060816
+ 4072967
 (1 row)
 
  setval 
@@ -211,8 +211,8 @@ Finished pruning database
 
 ... creating sql dump of local public database
 ... copying sql dump to mbox as backup
-2023-08-28 20:58:41 Finished creating local version of public database
-2023-08-28 23:50:03 Beginning to upload database to openalyx RDS
+2023-08-29 18:36:19 Finished creating local version of public database
+2023-08-29 18:43:35 Beginning to upload database to openalyx RDS
 ... destroying the openalyx database
 NOTICE:  drop cascades to 98 other objects
 DETAIL:  drop cascades to table actions_chronicrecording
@@ -267,6 +267,12 @@ drop cascades to table experiments_brainregion
 drop cascades to table experiments_channel
 drop cascades to table experiments_chronicinsertion
 drop cascades to table experiments_coordinatesystem
+drop cascades to table experiments_fov
+drop cascades to table experiments_fov_datasets
+drop cascades to table experiments_fovlocation
+drop cascades to table experiments_fovlocation_brain_region
+drop cascades to table experiments_imagingstack
+drop cascades to table experiments_imagingtype
 drop cascades to table experiments_probeinsertion
 drop cascades to table experiments_probeinsertion_datasets
 drop cascades to table experiments_probemodel
@@ -307,12 +313,6 @@ drop cascades to table subjects_subject_projects
 drop cascades to table subjects_subjectrequest
 drop cascades to table subjects_zygosity
 drop cascades to table subjects_zygosityrule
-drop cascades to table experiments_fov
-drop cascades to table experiments_fov_datasets
-drop cascades to table experiments_imagingstack
-drop cascades to table experiments_imagingtype
-drop cascades to table experiments_fovlocation
-drop cascades to table experiments_fovlocation_brain_region
 DROP SCHEMA
 CREATE SCHEMA
 ... loading pruned database to openalyx
@@ -1034,7 +1034,7 @@ psql:/home/julia/openalyx_wd/openalyx.sql:719: ERROR:  table "actions_chronicrec
 
  setval 
 --------
- 472351
+ 472374
 (1 row)
 
  setval 
@@ -1049,17 +1049,17 @@ psql:/home/julia/openalyx_wd/openalyx.sql:719: ERROR:  table "actions_chronicrec
 
  setval 
 --------
-  70714
+  70762
 (1 row)
 
  setval 
 --------
-  56285
+  56327
 (1 row)
 
  setval 
 --------
- 206682
+ 206797
 (1 row)
 
  setval 
@@ -1109,7 +1109,7 @@ psql:/home/julia/openalyx_wd/openalyx.sql:719: ERROR:  table "actions_chronicrec
 
  setval 
 --------
- 167309
+ 167359
 (1 row)
 
  setval 
@@ -1119,7 +1119,7 @@ psql:/home/julia/openalyx_wd/openalyx.sql:719: ERROR:  table "actions_chronicrec
 
  setval 
 --------
- 168582
+ 168735
 (1 row)
 
  setval 
@@ -1134,7 +1134,7 @@ psql:/home/julia/openalyx_wd/openalyx.sql:719: ERROR:  table "actions_chronicrec
 
  setval 
 --------
-  14627
+  16379
 (1 row)
 
  setval 
@@ -1144,12 +1144,12 @@ psql:/home/julia/openalyx_wd/openalyx.sql:719: ERROR:  table "actions_chronicrec
 
   setval  
 ----------
- 12562660
+ 12613099
 (1 row)
 
  setval 
 --------
- 605349
+ 605494
 (1 row)
 
  setval 
@@ -1174,12 +1174,12 @@ psql:/home/julia/openalyx_wd/openalyx.sql:719: ERROR:  table "actions_chronicrec
 
  setval 
 --------
-  39652
+  39669
 (1 row)
 
  setval  
 ---------
- 4060816
+ 4072967
 (1 row)
 
  setval 
@@ -1202,4 +1202,4 @@ psql:/home/julia/openalyx_wd/openalyx.sql:719: ERROR:  table "actions_chronicrec
    2293
 (1 row)
 
-2023-08-28 23:53:16 Finished uploading database to openalyx RDS
+2023-08-29 18:46:48 Finished uploading database to openalyx RDS
