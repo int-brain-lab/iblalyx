@@ -11,7 +11,6 @@ wfield_dataset_types = [
  '_ibl_trials.table.pqt',
  '_ibl_trials.goCueTrigger_times.npy',
  '_ibl_trials.quiescencePeriod.npy',
- '_ibl_trials.laserProbability.npy',
  '_ibl_trials.stimOff_times.npy'
  ]
 
