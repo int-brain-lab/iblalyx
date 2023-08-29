@@ -11,7 +11,8 @@ wfield_dataset_types = [
  '_ibl_trials.table.pqt',
  '_ibl_trials.goCueTrigger_times.npy',
  '_ibl_trials.quiescencePeriod.npy',
- '_ibl_trials.stimOff_times.npy'
+ '_ibl_trials.stimOff_times.npy',
+ '_ibl_trials.intervals_bpod.npy'
  ]
 
 wfield_eids = pd.read_csv('2023_Q3_Findling_Hubert_et_al_wfield_sessions.csv', index_col=0)['session_id']
