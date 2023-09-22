@@ -15,7 +15,7 @@ _logger = logging.getLogger()
 def remove_old_datasets_local_and_server_missing():
     """
     The sync tasks label file records that can't be found anywhere as local_missing in the json file
-    If after 30 days of daily attemps to upload them none can be found, this removes the datasets from the database
+    If after 30 days of daily attempts to upload them none can be found, this removes the datasets from the database
     :return:
     """
     cut_off_date = datetime.datetime.now() - datetime.timedelta(days=30)
