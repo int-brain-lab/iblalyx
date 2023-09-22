@@ -704,8 +704,8 @@ class SubjectTrainingPlots(LoginRequiredMixin, ListView):
 
         context['info'] = data
         context['subjects'] = s
-        if not self.request.GET['nickname']:
-            context['status_data'] = self.get_all_subjects_status_data(lab=self.request.GET['lab'])
+        if not self.request.GET.get('nickname'):
+            context['status_data'] = self.get_all_subjects_status_data(lab=self.request.GET.get('lab'))
         return context
 
     def get_my_data(self, subjects, notes):

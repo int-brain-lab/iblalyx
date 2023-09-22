@@ -8,7 +8,7 @@ CERTBOT_SG="sg-07b6343c0d485e097"
 
 echo "Checking arg passed for build environment, special case for alyx-dev..."
 if [ -z "$1" ]; then
-  echo "Error: No argument supplied, script requires first argument for build env (alyx-prod, alyx-dev, openalyx, etc)"
+  echo "Error: No argument supplied, script requires first argument for build env (alyx, alyx-dev, openalyx, etc)"
   exit 1
 else
   if [ "${1}" == "alyx-dev" ]; then
