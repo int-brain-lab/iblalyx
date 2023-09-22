@@ -48,7 +48,7 @@
 {% endblock %}
 
 {% block main %}
-    {% if not request.GET.nickname %}
+    {% if not request.GET.nickname and status_data %}
     <div class="row">
         <div id="gallery_all_subjects">
             <div class="card my-2">

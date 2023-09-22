@@ -756,6 +756,8 @@ class SubjectTrainingPlots(LoginRequiredMixin, ListView):
                         (SELECT subject_id FROM actions_waterrestriction
                         WHERE end_time IS NULL)
                         ''']))
+        if subjects.count() == 0:
+            return {}
         subject_data = subjects.values_list('nickname', 'json')
         names, crit = zip(*[(name, jsn.get('trained_criteria', {})) for name, jsn in subject_data])
         training_status = pd.DataFrame.from_records(crit, index=names)
