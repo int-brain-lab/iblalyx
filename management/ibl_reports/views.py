@@ -1,3 +1,6 @@
+from datetime import date
+import time
+
 import django_filters
 from django.http import HttpResponse, JsonResponse
 from django.template import loader
@@ -12,7 +15,10 @@ from misc.models import Note, Lab
 from subjects.models import Project, Subject
 from actions.models import Session
 
-import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.colors import to_hex
+
 from ibl_reports import qc_check
 from ibl_reports import data_check
 from ibl_reports import data_info
@@ -685,6 +691,9 @@ class SubjectTrainingPlots(LoginRequiredMixin, ListView):
     template_name = 'ibl_reports/gallery_subject_overview.html'
     login_url = LOGIN_URL
     paginate_by = 20
+    statuses = (
+        'habituation', 'in_training', 'trained_1a', 'trained_1b',
+        'ready4delay', 'ready4ephysrig', 'ready4recording', 'untrainable', 'unbiasable')
 
     def get_context_data(self, **kwargs):
         # need to figure out which is more efficient
@@ -695,7 +704,8 @@ class SubjectTrainingPlots(LoginRequiredMixin, ListView):
 
         context['info'] = data
         context['subjects'] = s
-
+        if not self.request.GET['nickname']:
+            context['status_data'] = self.get_all_subjects_status_data(lab=self.request.GET['lab'])
         return context
 
     def get_my_data(self, subjects, notes):
@@ -724,6 +734,104 @@ class SubjectTrainingPlots(LoginRequiredMixin, ListView):
         self.f = SubjectFilter(self.request.GET, queryset=qs)
 
         return self.f.qs
+
+    def get_all_subjects_status_data(self, lab=None):
+        """
+        Fetch the data required for the subjects training status plot.
+
+        A plot of subject (y-axis) vs date (x-axis), which each point a session whose colour
+        corresponds to the training status on that session.
+
+        :param lab: The UUID of the lab whose subjects are plotted. If None, all active subjects are plotted.
+        """
+        # We handle only the live mice that are in the training pipeline
+        filter_args = dict(cull__isnull=True, death_date__isnull=True, json__has_key='trained_criteria')
+        if lab:
+            filter_args['lab'] = lab
+        subjects = (Subject
+                    .objects
+                    .filter(**filter_args)
+                    .extra(where=['''
+                        subjects_subject.id IN
+                        (SELECT subject_id FROM actions_waterrestriction
+                        WHERE end_time IS NULL)
+                        ''']))
+        if subjects.count() == 0:
+            return {}
+        subject_data = subjects.values_list('nickname', 'json')
+        names, crit = zip(*[(name, jsn.get('trained_criteria', {})) for name, jsn in subject_data])
+        training_status = pd.DataFrame.from_records(crit, index=names)
+        # Drop eids and parse dates
+        training_status = (training_status[~training_status.isna()]
+                           .applymap(lambda x: date.fromisoformat(x[0]), na_action='ignore'))
+        sessions = (Session
+                    .objects
+                    .select_related('subject')
+                    .filter(subject__in=subjects, procedures__name='Behavior training/tasks')
+                    .values_list('subject__nickname', 'pk', 'start_time__date'))
+        sessions = (pd.DataFrame
+                    .from_records(sessions, columns=('subject', 'eid', 'date'))
+                    .set_index('subject'))
+
+        # Create map of training status -> mice
+        mice_by_status = (training_status
+                          .applymap(lambda d: time.mktime(d.timetuple()), na_action='ignore')
+                          .idxmax(axis=1, skipna=True)  # status for latest date
+                          .to_frame()  # allows us to call groupby on values without assignment
+                          .groupby(0))
+        # Sort dict by status
+        mice_by_status = sorted(mice_by_status, key=lambda item: self.statuses.index(item[0]))
+        all_subjects = training_status.index.tolist()
+        all_data = {'datasets': [],
+                    'subject_map': {i: s for i, s in enumerate(all_subjects)},
+                    'mice_by_status': {x: y.index.tolist() for x, y in mice_by_status}}
+        colour_map = self.status_colour_map()
+        for i, status in enumerate(filter(lambda s: s in training_status.columns, self.statuses)):
+            data = {'label': status, 'backgroundColor': colour_map[status], 'data': []}
+            # Get a map of subject name and date on which status reached
+            for subject, date_reached in training_status[status].items():
+                subject_idx = all_subjects.index(subject)
+                if not isinstance(date_reached, date):
+                    continue  # Status not met for this subject; nothing to plot
+                # Subject map of status -> date reached
+                status_dates = training_status.loc[subject]
+                # Unique dates of all this subject's sessions
+                session_dates = sessions.loc[subject, 'date'].unique()
+                # Plot session dates on or after date when status reached, up until the next of the next status
+                session_dates = session_dates[session_dates >= date_reached]
+                next_date = status_dates[status_dates > date_reached].sort_values()
+                if not next_date.empty:
+                    session_dates = session_dates[session_dates <= next_date[0]]
+                if len(session_dates) == 0:
+                    continue
+                if status in ('untrainable', 'unbiasable') and len(session_dates) > 1:
+                    # Add data point for first session only
+                    data['data'].append({'x': time.mktime(session_dates[0].timetuple()),
+                                         'y': subject_idx})
+                    # Add data points to the previous status
+                    all_prev = status_dates[status_dates < date_reached].sort_values(ascending=False)
+                    prev_status = next(iter(all_prev.keys()), 'in_training')  # previous training status
+                    # NB: Order is important here; 'untrainable' is processed last, after others added
+                    prev_data = next(d for d in all_data['datasets'] if d['label'] == prev_status)
+                    prev_data['data'].extend(
+                        [{'x': time.mktime(d.timetuple()), 'y': subject_idx} for d in session_dates[1:]])
+                else:
+                    data['data'].extend([
+                        {'x': time.mktime(d.timetuple()), 'y': subject_idx} for d in session_dates]
+                    )
+            all_data['datasets'].append(data)
+        all_data['datasets'] = list(reversed(all_data['datasets']))
+        for dset in all_data['datasets']:
+            dset['data'] = sorted(dset['data'], key=lambda d: d['x'])
+        return all_data
+
+    @staticmethod
+    def status_colour_map():
+        """Return map of status: hexadecimal colour"""
+        import numpy as np
+        statuses = SubjectTrainingPlots.statuses
+        gradient = np.linspace(0, 1, len(statuses))
+        return {status: to_hex(plt.cm.hsv(i)) for i, status in zip(gradient, statuses)}
 
 
 class SubjectFilter(django_filters.FilterSet):

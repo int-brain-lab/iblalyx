@@ -196,7 +196,7 @@ PLOT_MAP = {
     'behaviour': BEHAVIOUR_PLOTS
 }
 
-# Tuple, plot name and whether or not to display placeholder of plot not available
+# Tuple, plot name and whether to display placeholder of plot not available
 OVERVIEW_PROBE_PLOTS = [('raw_ephys_bad_channels_destripe', True),
                         ('spike_sorting_raster_pykilosort', True),
                         ('lfp_spectrum', True),

@@ -1,18 +1,33 @@
 {% extends "ibl_reports/gallery_base.html" %}
 {% load jobs_template_tags %}
 
-
 {% block extrahead %}
 
     <style>
-
         .responsive {
           padding: 0 6px;
           float: left;
           width: 29.999%;
           position: relative;
         }
+        #status_table {
+          margin: 50px;
+          display: block;
+          overflow: auto;
+        }
+        #status_table th, td {
+          padding: 15px;
+          text-align: left;
+          vertical-align: top;
+        }
+        #status_table td > ul {
+            list-style-type: none;
+            padding: 0;
+        }
     </style>
+
+    <!-- Load Chart.js for subject training status graph -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 {% endblock extrahead %}
 
@@ -33,9 +48,113 @@
 {% endblock %}
 
 {% block main %}
+    {% if not request.GET.nickname and status_data %}
+    <div class="row">
+        <div id="gallery_all_subjects">
+            <div class="card my-2">
+                <div class="card-header bg">
+                    <div class="row">
+                        {# Selected lab in title or 'all labs' #}
+                        <div class="col-md-4"><h5>All subjects for {{ subjectFilter.form.lab.value|default:"all labs" }}</h5></div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="subject_status_chart"></canvas>
+                <script>
+                    // Load chart once all data loaded
+                    $(document).ready(loadChart);
+
+                    function loadChart() {
+                        const chart_data = {{ status_data|safe }};
+                        const ctx_taskqc = document.getElementById("subject_status_chart").getContext("2d");
+                        const chart = new Chart(ctx_taskqc, {
+                            // Use a line chart instead of scatter as this supports dates and category data
+                            type: "scatter",
+                            data: chart_data,
+                            options: {
+                                responsive: true,
+                                scales: {
+                                    x: {
+                                        type: 'linear',
+                                        display: true,
+                                        grid: { display: true },
+                                        title: {
+                                          display: true,
+                                          text: 'Date'
+                                        },
+                                        // Convert x tick labels from unix timestamp to ISO date string
+                                        ticks: { callback: (value) => new Date(value*1000).toISOString().slice(0, 10) }
+                                    },
+                                    y: {
+                                        type: 'linear',
+                                        grid: { display: false },
+                                        title: {
+                                          display: true,
+                                          text: 'Subject'
+                                        },
+                                        suggestedMin: -1,  // Space between first mouse (0) and x-axis
+                                        ticks: {
+                                            // Show all subject labels (NB spacing bad when too many subjects)
+                                            autoSkip: false,
+                                            min: 0,
+                                            max: Object.keys(chart_data.subject_map).length + 1,
+                                            stepSize: 1,
+                                            beginAtZero: true,
+                                            // Map subject int to nickname for y tick labels
+                                            callback: (value) => chart_data.subject_map[value]
+                                        }
+                                    }
+                                },
+                                plugins: {
+                                    tooltip: {
+                                        mode: 'point',
+                                        callbacks: {
+                                            // Convert tooltip title from unix timestamp to ISO date string
+                                            title: (itms) => new Date(itms[0].parsed.x*1000).toISOString().slice(0, 10),
+                                            // Convert subject int to nickname
+                                            label: (itm) => chart_data.subject_map[itm.parsed.y]
+                                        }
+                                    },
+                                    // datasets in reverse order so older statuses plotted first, so reverse legend here
+                                    legend: { reverse: true }
+                                },
+                                legend: { display: true },
+                                elements: {
+                                    point: {
+                                        radius: 7,
+                                        hoverRadius: 9,
+                                    }
+                                }
+                            }
+                        });
+                      }
+                </script>
+                    <table id="status_table">
+                        <tr>
+                            {% for status in status_data.mice_by_status.keys %}
+                                <th>{{ status }}</th>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            {% for subjects in status_data.mice_by_status.values %}
+                                <td>
+                                <ul>
+                                    {% for subject in subjects %}
+                                    <li>{{ subject }}</li>
+                                    {% endfor %}
+                                </ul>
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
     <div class="row">
         {% for plot, subject in info|zip:subjects %}
-            <div class="gallery_{{ forloop.counter0 }}">
+            <div id="gallery_{{ forloop.counter0 }}">
                 <div class="card my-2">
                     <div class="card-header bg">
                         <div class="row">
@@ -85,7 +204,7 @@
     <script>
         var galleries = []
         for (var i = 0; i < {{ subjects|length }}; i++) {
-            galleries.push(new SimpleLightbox('.gallery_' + i + ' .imagecard a', {'captionPosition': 'outside'}));
+            galleries.push(new SimpleLightbox('#gallery_' + i + ' .imagecard a', {'captionPosition': 'outside'}));
         }
     </script>
 
