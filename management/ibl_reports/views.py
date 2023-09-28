@@ -16,6 +16,7 @@ from subjects.models import Project, Subject
 from actions.models import Session
 
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import to_hex
 
@@ -794,7 +795,7 @@ class SubjectTrainingPlots(LoginRequiredMixin, ListView):
                 # Subject map of status -> date reached
                 status_dates = training_status.loc[subject]
                 # Unique dates of all this subject's sessions
-                session_dates = sessions.loc[subject, 'date'].unique()
+                session_dates = np.unique(sessions.loc[subject, 'date'])  # use np because sometimes returns single value
                 # Plot session dates on or after date when status reached, up until the next of the next status
                 session_dates = session_dates[session_dates >= date_reached]
                 next_date = status_dates[status_dates > date_reached].sort_values()
@@ -826,7 +827,6 @@ class SubjectTrainingPlots(LoginRequiredMixin, ListView):
     @staticmethod
     def status_colour_map():
         """Return map of status: hexadecimal colour"""
-        import numpy as np
         statuses = SubjectTrainingPlots.statuses
         gradient = np.linspace(0, 1, len(statuses))
         return {status: to_hex(plt.cm.hsv(i)) for i, status in zip(gradient, statuses)}
