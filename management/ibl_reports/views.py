@@ -25,7 +25,6 @@ from ibl_reports import data_info
 
 LOGIN_URL = '/admin/login/'
 
-
 def landingpage(request):
     template = loader.get_template('ibl_reports/landing.html')
     context = dict()
@@ -411,12 +410,12 @@ class GalleryOverviewView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super(GalleryOverviewView, self).get_context_data(**kwargs)
-        context['session'] = Session.objects.all().get(id=self.eid)
+        context['session'] = Session.objects.get(id=self.eid)
 
         context['behaviour'] = qc_check.behav_summary(context['session'].extended_qc)
         context['qc'] = qc_check.qc_summary(context['session'].extended_qc)
 
-        probes = ProbeInsertion.objects.all().filter(session=self.eid).prefetch_related('trajectory_estimate').order_by('name')
+        probes = ProbeInsertion.objects.filter(session=self.eid).prefetch_related('trajectory_estimate').order_by('name')
         probes = probes.annotate(planned=Exists(
             TrajectoryEstimate.objects.filter(probe_insertion=OuterRef('pk'), provenance=10)))
         probes = probes.annotate(micro=Exists(
@@ -610,7 +609,6 @@ class SessionImportantPlots(LoginRequiredMixin, ListView):
         context['sessionFilter'] = self.f
         notes = Note.objects.all().filter(json__tag="## report ##")
         s, data = self.get_my_data(context['object_list'], notes)
-
         context['info'] = data
         context['sessions'] = s
 
@@ -693,7 +691,7 @@ class SubjectTrainingPlots(LoginRequiredMixin, ListView):
     paginate_by = 20
     statuses = (
         'habituation', 'in_training', 'trained_1a', 'trained_1b',
-        'ready4delay', 'ready4ephysrig', 'ready4recording', 'untrainable', 'unbiasable')
+        'ready4ephysrig', 'ready4delay', 'ready4recording', 'untrainable', 'unbiasable')
 
     def get_context_data(self, **kwargs):
         # need to figure out which is more efficient
