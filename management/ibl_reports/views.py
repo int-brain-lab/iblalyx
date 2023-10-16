@@ -14,6 +14,7 @@ from experiments.models import TrajectoryEstimate, ProbeInsertion
 from misc.models import Note, Lab
 from subjects.models import Project, Subject
 from actions.models import Session
+from jobs.models import Task
 
 import pandas as pd
 import numpy as np
@@ -292,22 +293,8 @@ class GalleryTaskView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super(GalleryTaskView, self).get_context_data(**kwargs)
         session = context['object_list'][0]
-        probes = ProbeInsertion.objects.filter(session=session.id).prefetch_related('datasets')
-        dsets = session.data_dataset_session_related.select_related('dataset_type')
-
         context['session'] = session
-        context['data'] = {}
-        context['data']['raw_behaviour'] = data_check.raw_behaviour_data_status(dsets, session)
-        context['data']['raw_passive'] = data_check.raw_passive_data_status(dsets, session)
-        context['data']['raw_ephys'] = data_check.raw_ephys_data_status(dsets, session, probes)
-        context['data']['raw_video'] = data_check.raw_video_data_status(dsets, session)
-        context['data']['trials'] = data_check.trial_data_status(dsets, session)
-        context['data']['wheel'] = data_check.wheel_data_status(dsets, session)
-        context['data']['passive'] = data_check.passive_data_status(dsets, session)
-        context['data']['ephys'] = data_check.ephys_data_status(dsets, session, probes)
-        context['data']['spikesort'] = data_check.spikesort_data_status(dsets, session, probes)
-        context['data']['video'] = data_check.video_data_status(dsets, session)
-        context['data']['dlc'] = data_check.dlc_data_status(dsets, session)
+        context['tasks'] = Task.objects.filter(session=session)
 
         return context
 
@@ -602,7 +589,7 @@ class GalleryFilter(django_filters.FilterSet):
 class SessionImportantPlots(LoginRequiredMixin, ListView):
     template_name = 'ibl_reports/gallery_session_overview.html'
     login_url = LOGIN_URL
-    paginate_by = 20
+    paginate_by = 15
 
     def get_context_data(self, **kwargs):
         # need to figure out which is more efficient
@@ -645,8 +632,9 @@ class SessionImportantPlots(LoginRequiredMixin, ListView):
         return s, data
 
     def get_queryset(self):
-        qs = Session.objects.filter(task_protocol__icontains='ephysChoiceWorld',
-                                    json__IS_MOCK=False).prefetch_related('probe_insertion')
+        qs = Session.objects.all().prefetch_related('probe_insertion')
+        # qs = Session.objects.filter(task_protocol__icontains='ephysChoiceWorld',
+        #                             json__IS_MOCK=False).prefetch_related('probe_insertion')
         self.f = SessionFilter(self.request.GET, queryset=qs)
 
         return self.f.qs.order_by('-start_time')

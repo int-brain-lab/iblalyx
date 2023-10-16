@@ -51,16 +51,16 @@
                                     <h5>{{ key }}</h5>
                                     {% for title, note in value.items %}
                                         <div class="responsive">
-                                            {% if note == None %}
-                                                <div class="imagecard">
-                                                    <div class="imageicon">
-                                                        <center><i class="fa fa-area-chart"></i></center>
-                                                    </div>
-                                                    <div class="card-body">
-                                                        <h6>{{ title }}</h6>
-                                                    </div>
-                                                </div>
-                                            {% else %}
+{#                                            {% if note == None %}#}
+{#                                                <div class="imagecard">#}
+{#                                                    <div class="imageicon">#}
+{#                                                        <center><i class="fa fa-area-chart"></i></center>#}
+{#                                                    </div>#}
+{#                                                    <div class="card-body">#}
+{#                                                        <h6>{{ title }}</h6>#}
+{#                                                    </div>#}
+{#                                                </div>#}
+                                            {% if note %}
                                                 <div class="imagecard">
                                                     <a href="{{ MEDIA_ROOT }}{{ note.image.url }}" data-lightbox="session">
                                                         <img class="card-img-top" src="{{ MEDIA_ROOT }}{{ note.image.url }}" title="{{ note.content_object }} {{ note.text }}">

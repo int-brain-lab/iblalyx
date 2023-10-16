@@ -66,6 +66,13 @@ def get_session_path(obj):
 
 
 @register.filter
+def get_parents(obj):
+    parents = obj.parents.all()
+
+    return parents
+
+
+@register.filter
 def get_task_colour(status):
     if status == 20:
         return "color: #79aec8"

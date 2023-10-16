@@ -1,49 +1,45 @@
 {% extends "ibl_reports/gallery_content.html" %}
 {% load jobs_template_tags %}
 
+{% block extrahead %}
+
+    <style>
+        .flex-card {
+            justify-content: space-between;
+        }
+    </style>
+
+{% endblock extrahead %}
+
+
+
 {% block content %}
     <div class="row">
-        <div class="col-md-6">
-            {%  for key, value in data.items %}
-                <div class="card my-2">
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col"><h4 class="card-title">{{ value.title }}</h4></div>
-                            <div class="col"><h4 class="card-title" style="{% get_colour value.critical value.n_dsets value.n_exp_dsets %}">{{ value.n_dsets }}/{{ value.n_exp_dsets }}</h4></div>
-                            <div class="col">
-                                {% for key, value in value.tasks.items %}
-                                    {% if value %}
-                                        <h5 class="card-title">{{ key }} : <a style="{{ value.status|get_task_colour }}" href="{% url 'admin:jobs_task_change' value.id %}">{{ value.get_status_display }}</a></h5>
-                                    {% else %}
-                                        <h5 class="card-title">{{ key }} : No task</h5>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                        </div>
-                        <a data-toggle="collapse" href="#collapse{{ forloop.counter }}">
-                            <h6 class="card-subtitle mb-2 text-muted">Details</h6></a>
+        {% for value in tasks %}
+            <div class="card my-0">
+                <div class="card-body">
+                    <div class="row flex-card">
+                        <div class="col-lg-6"><h5 class="card-title">{{ value.name }} : <a style="{{ value.status|get_task_colour }}" href="{% url 'admin:jobs_task_change' value.id %}">{{ value.get_status_display }}</a></h5></div>
+                        <div class="col-lg-3"><a data-toggle="collapse" href="#collapse{{ forloop.counter }}"><p>
+              Parents <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-down" viewBox="0 0 16 16">
+  <path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"></path>
+</svg>
+            </p></a></div>
                     </div>
                 </div>
-                <div id="collapse{{ forloop.counter }}" class="panel-collapse collapse">
-                    <table class="table">
-                        <thead>
-                        <tr>
-                            <th>Dataset type</th>
-                            <th>Collection</th>
-                            <th>Dataset name</th>
-                            <th>Status</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {%  for data in value.dsets %}
-                            <tr><td>{{ data.type }}</td><td>{{ data.collection }}</td><td>{{ data.name }}</td><td>{{ data.status|get_icon }}</td>
+            </div>
+            <div id="collapse{{ forloop.counter }}" class="panel-collapse collapse">
+                <table class="table">
+                    <tbody>
+                        {%  for parent in value|get_parents %}
+                            <tr><td>{{ parent.name }}</td><td><a style="{{ parent.status|get_task_colour }}" href="{% url 'admin:jobs_task_change' parent.id %}">{{ parent.get_status_display }}</a></td>
                             </tr>
                         {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {%  endfor %}
-        </div>
+                    </tbody>
+                </table>
+            </div>
+        {%  endfor %}
     </div>
+
 
 {% endblock %}
