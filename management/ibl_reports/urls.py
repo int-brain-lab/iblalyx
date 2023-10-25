@@ -28,5 +28,5 @@ urlpatterns = [
     path('gallery/<uuid:eid>/histology', views.GallerySubPlotProbeView.as_view(plot_type='histology'), name='histology'),
     path('gallery/<uuid:eid>/video', views.GallerySubPlotSessionView.as_view(plot_type='video'), name='video'),
 
-    path('gallery/<uuid:pid>/video', views.GallerySubPlotSessionView.as_view(plot_type='video'), name='video'),
+    path('pairs', views.view_paired_recordings, name='paired recordings'),
 ]

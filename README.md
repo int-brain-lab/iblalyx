@@ -5,13 +5,16 @@ The `scripts` folder contains one offs, or manual scripts to perform specific in
 The `management` folder is meant to populate an alyx django application to be used within the scope of the manage commands.
 In practice a symlink sends the ibl.py file and the private package _ibl to the alyx app via the following command on the server:
 
-```
+```shell
 ln -s ~/iblalyx/management/commands/_ibl /var/www/alyx-main/alyx/data/management/commands/_ibl
 ln -s ~/iblalyx/management/commands/ibl.py /var/www/alyx-main/alyx/data/management/commands/ibl.py
 
 # to link the ibl_reports page
-ln -s ~/iblalyx/management/ibl_reports /var/www/alyx-main/alyx/ibl_reports
-ln -s ~/iblalyx/management/ibl_reports/templates /var/www/alyx-main/alyx/templates/ibl_reports
+ALYX_PATH=/var/www/alyx-main
+IBLALYX_PATH=~/iblalyx
+
+ln -s $IBLALYX_PATH/management/ibl_reports $ALYX_PATH/alyx/ibl_reports
+ln -s $IBLALYX_PATH/management/ibl_reports/templates $ALYX_PATH/alyx/templates/ibl_reports
 ```
 
 ## Commands
