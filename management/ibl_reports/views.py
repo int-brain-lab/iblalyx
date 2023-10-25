@@ -137,19 +137,20 @@ def view_paired_recordings(request):
             irs, _ = ismember(np.abs(regions.id), descendants)  # NB: this is where to work on multi hemisphere
             mapping[irs] = np.where(aid == regions.id)[0][0]
 
-    # todo: this is inefficient
-    _, paired_experiments['ia'] = ismember(
-        regions.remap(paired_experiments['aida'], source_map='Allen', target_map=mapping), mapped_ids)
-    _, paired_experiments['ib'] = ismember(
-        regions.remap(paired_experiments['aidb'], source_map='Allen', target_map=mapping), mapped_ids)
+    # remaps the regions to the target map
+    paired_experiments['aida'] = regions.remap(paired_experiments['aida'], source_map='Allen', target_map=mapping)
+    paired_experiments['aidb'] = regions.remap(paired_experiments['aidb'], source_map='Allen', target_map=mapping)
 
-    plinks = paired_experiments.groupby(['ia', 'ib']).aggregate(
+    # aggregate per per of regions
+    plinks = paired_experiments.groupby(['aida', 'aidb']).aggregate(
         n_experiments=pd.NamedAgg(column='eid', aggfunc='nunique')).reset_index()
-
+    # compute the paired recording matrix indices
+    _, plinks['ia'] = ismember(plinks['aida'], mapped_ids)
+    _, plinks['ib'] = ismember(plinks['aidb'], mapped_ids)
     values = np.r_[plinks['n_experiments'], plinks['n_experiments']] / 2
     ia = np.r_[plinks['ia'], plinks['ib']]
     ib = np.r_[plinks['ib'], plinks['ia']]
-
+    # compute the matrix from the indices and values
     shared_recordings = sp.coo_matrix((values, (ia, ib)), shape=(mapped_ids.size, mapped_ids.size)).todense()
     shared_recordings = shared_recordings[1:, 1:]
     # context['data'] = {}
