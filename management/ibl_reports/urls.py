@@ -20,4 +20,7 @@ urlpatterns = [
     path('gallery/<uuid:eid>/qc', views.GallerySessionQcView.as_view(), name='qc'),
     path('gallery/<uuid:eid>/task', views.GalleryTaskView.as_view(), name='task'),
 
+    path('paired_recordings', views.plot_paired_recordings),
+    path('paired_recordings/compute', views.compute_paired_recordings, name='paired')
+
 ]

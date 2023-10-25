@@ -34,6 +34,105 @@ def landingpage(request):
     return HttpResponse(template.render(context, request))
 
 
+def plot_paired_recordings(request):
+    template = loader.get_template('ibl_reports/paired_recordings.html')
+    context = dict()
+
+    return HttpResponse(template.render(context, request))
+
+
+def compute_paired_recordings(request):
+
+    mapping='Beryl'
+    from iblatlas.regions import BrainRegions  # todo need to install iblatlas with Django :explode:
+    from pathlib import Path
+    import pandas as pd
+    from iblutil.numerical import ismember
+    import scipy.sparse as sp
+    from django.conf import settings
+
+    regions = BrainRegions()  # todo need to cache this
+    # here we want to generate this using a cronjob
+    paired_experiments = pd.read_parquet(Path(settings.MEDIA_ROOT).joinpath('paired_experiments.pqt'))
+    if isinstance(mapping, str):  # in this case we compute the paired recordings for a specific mapping
+        mapped_ids = np.unique(regions.id[regions.mappings[mapping]])
+        name = mapping
+    else:  # in this case we compute the mapping corresponding to a list of custom regions, taking into
+        # account the hierarchical nature of the brain atlas
+        acronyms = mapping
+        name = '_'.join(acronyms)
+        mapped_ids = np.unique(np.r_[regions.acronym2id(acronyms), 0])
+        mapping = np.zeros_like(regions.id)
+        regions.descendants(regions.acronym2id(acronyms))
+        for aid in regions.acronym2id(acronyms):
+            descendants = regions.descendants(aid)['id']
+            irs, _ = ismember(np.abs(regions.id), descendants)  # NB: this is where to work on multi hemisphere
+            mapping[irs] = np.where(aid == regions.id)[0][0]
+
+    # remaps the regions to the target map
+    paired_experiments['aida'] = regions.remap(paired_experiments['aida'], source_map='Allen', target_map=mapping)
+    paired_experiments['aidb'] = regions.remap(paired_experiments['aidb'], source_map='Allen', target_map=mapping)
+
+    # aggregate per per of regions
+    plinks = paired_experiments.groupby(['aida', 'aidb']).aggregate(
+        n_experiments=pd.NamedAgg(column='eid', aggfunc='nunique')).reset_index()
+    # compute the paired recording matrix indices
+    _, plinks['ia'] = ismember(plinks['aida'], mapped_ids)
+    _, plinks['ib'] = ismember(plinks['aidb'], mapped_ids)
+    values = np.r_[plinks['n_experiments'], plinks['n_experiments']] / 2
+    ia = np.r_[plinks['ia'], plinks['ib']]
+    ib = np.r_[plinks['ib'], plinks['ia']]
+    # compute the matrix from the indices and values
+    shared_recordings = sp.coo_matrix((values, (ia, ib)), shape=(mapped_ids.size, mapped_ids.size)).todense()
+    shared_recordings = shared_recordings[1:, 1:]
+    # context['data'] = {}
+    # context['data']['shared_recordings'] = shared_recordings
+    # context['data']['name'] = name
+    # context['data']['acronyms'] = regions.id2acronym(mapped_ids[1:])
+
+    def rgb_to_hex(r, g, b):
+        return '#{:02x}{:02x}{:02x}'.format(r, g, b)
+
+    nodes = []
+    for r in regions.id2acronym(mapped_ids[1:]):
+        nodes.append({'name': r, 'color': rgb_to_hex(*regions.rgb[regions.acronym2index(r)[1][0][0]])})
+
+    links = []
+    for i in range(shared_recordings.shape[0]):
+        for j in range(shared_recordings.shape[1]):
+            links.append({'source': i, 'target': j, 'value': shared_recordings[i, j]})
+
+    info = {'nodes': nodes, 'links': links}
+
+    return JsonResponse(info)
+
+
+    # import io
+    # import base64
+    # import seaborn as sns
+    # from django.http import HttpResponse
+    # # auto scale the plot taking the quartile of off-diagonal terms
+    # vmax = np.maximum(1, np.quantile(
+    #     np.squeeze(np.asarray(shared_recordings[~np.eye(shared_recordings.shape[0], dtype=bool)])), 0.75))
+    # fig, ax = plt.subplots(figsize=(7, 6))
+    # if mapped_ids.size < 24:
+    #     sns.heatmap(shared_recordings, ax=ax, cmap='Blues', vmin=0, vmax=vmax, annot=True, fmt='.0f')
+    #     ax.set(
+    #         xticklabels=regions.id2acronym(mapped_ids[1:]),
+    #         yticklabels=regions.id2acronym(mapped_ids[1:]),
+    #     )
+    # else:
+    #     sns.heatmap(shared_recordings, vmin=0, vmax=vmax, ax=ax, cmap='Blues', annot=False, fmt='.0f')
+    # ax.set(title=f'Number of shared recordings {name}')
+    # striobytes = io.BytesIO()
+    # plt.savefig(striobytes, format='jpg')
+    # striobytes.seek(0)
+    # imgb64 = base64.b64encode(striobytes.read()).decode()
+    # print(imgb64)
+    # return HttpResponse(f'<img alt="scouic" src="data:image/png;base64,{imgb64}" />')
+
+
+
 # get task qc for plotting
 def plot_task_qc_eid(request, eid):
     extended_qc = Session.objects.get(id=eid).extended_qc
