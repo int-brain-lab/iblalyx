@@ -21,6 +21,6 @@ urlpatterns = [
     path('gallery/<uuid:eid>/task', views.GalleryTaskView.as_view(), name='task'),
 
     path('paired_recordings', views.plot_paired_recordings),
-    path('paired_recordings/compute', views.compute_paired_recordings, name='paired')
+    path('paired_recordings/<str:mapping>', views.compute_paired_recordings, name='paired')
 
 ]

@@ -22,13 +22,30 @@
 </head>
 <body>
 
-    <div class="container">
+    <div>
+        <select value="Cosmos" id="mapping-selector">
+            <option value="Allen"> Allen</option>
+            <option value="Beryl">Beryl</option>
+            <option value="Cosmos">Cosmos</option>
+        </select>
     </div>
+
+    <div class="container"></div>
 
 <script>
 
+    let el = document.getElementById("mapping-selector");
+    el.addEventListener("change", function(e) {
+        document.getElementById("main-svg").remove()
+        create_plot(event.target.value)
+    });
+
+    create_plot('Cosmos')
+
+    function create_plot(map) {
+
     // Pass in json data
-     d3.json("{% url "paired" %}").then( function(data) {
+     d3.json("{% url "paired" mapping=0 %}".replace("0", map)).then( function(data) {
 
         // PREPARE DATA
 
@@ -73,7 +90,7 @@
         var x = d3.scaleBand().domain(names).range([0, width]);
         var y = d3.scaleBand().domain(names).range([0, height]);
         // Crate linear scale range for z (color of each pixel)
-        var z = d3.scaleLinear().domain([0, 10]).clamp(true);
+        var z = d3.scaleLinear().domain([0, 300]).clamp(true);
 
         // Create axis objects and assign them the scales
         const xAxis = d3.axisTop(x);
@@ -82,8 +99,10 @@
         // ADD ELEMENTS TO THE CONTAINER
         // Add a main svg element to our container
         const mainSvg = d3.select(".container").append("svg")
+          .attr('id', 'main-svg')
           .attr("width", width + margin.left + margin.right)
           .attr("height", height + margin.top + margin.bottom)
+
 
         // Add a group that will contain all our elements
         const svg = mainSvg.append("g")
@@ -159,7 +178,8 @@
                 .attr("width", x.bandwidth())
                 .attr("height", x.bandwidth())
                 .style("fill-opacity", function(d) { return z(d.z); })
-                .style("fill", function(d) { return nodes[d.x].color == nodes[d.y].color ? nodes[d.x].color : "grey"; })
+                //.style("fill", function(d) { return z(d.z); })
+                .style("fill", function(d) { return nodes[d.x].color }) // == nodes[d.y].color ? nodes[d.x].color : "grey"; })
           }
 
 
@@ -182,7 +202,7 @@
             svg.selectAll(".y-axis").call(yAxis);
         }
 
-    });
+    })};
 </script>
 
 </body>

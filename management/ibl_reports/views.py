@@ -41,9 +41,8 @@ def plot_paired_recordings(request):
     return HttpResponse(template.render(context, request))
 
 
-def compute_paired_recordings(request):
+def compute_paired_recordings(request, mapping):
 
-    mapping='Beryl'
     from iblatlas.regions import BrainRegions  # todo need to install iblatlas with Django :explode:
     from pathlib import Path
     import pandas as pd
