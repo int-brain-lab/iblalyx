@@ -14,6 +14,7 @@ from experiments.models import TrajectoryEstimate, ProbeInsertion
 from misc.models import Note, Lab
 from subjects.models import Project, Subject
 from actions.models import Session
+from jobs.models import Task
 
 import pandas as pd
 import numpy as np
@@ -205,86 +206,6 @@ class InsertionFilter(django_filters.FilterSet):
         return queryset
 
 
-class SpikeSortingTable(LoginRequiredMixin, ListView):
-    login_url = LOGIN_URL
-    template_name = 'ibl_reports/spikesorting.html'
-    paginate_by = 50
-
-    def get_context_data(self, **kwargs):
-        context = super(SpikeSortingTable, self).get_context_data(**kwargs)
-        context['spikesortingFilter'] = self.f
-        context['task'] = data_check.get_spikesorting_task(context['object_list'])
-
-        return context
-
-    def get_queryset(self):
-
-        qs = ProbeInsertion.objects.all().prefetch_related('session__data_dataset_session_related',
-                                                           'session', 'session__project',
-                                                           'session__subject__lab',)
-
-        qs = qs.annotate(insertion_qc=F('json__qc'))
-        qs = qs.annotate(raw=Exists(Dataset.objects.filter(probe_insertion=OuterRef('pk'), name__endswith='ap.cbin')))
-        qs = qs.annotate(ks=Exists(Dataset.objects.filter(~Q(collection__icontains='pykilosort'), probe_insertion=OuterRef('pk'),
-                                                          name='spikes.times.npy')))
-        qs = qs.annotate(pyks=Exists(Dataset.objects.filter(collection__icontains=f'pykilosort', probe_insertion=OuterRef('pk'),
-                                                            name='spikes.times.npy')))
-
-        self.f = SpikeSortingFilter(self.request.GET, queryset=qs)
-
-        return self.f.qs.order_by('-session__start_time')
-
-
-class SpikeSortingFilter(django_filters.FilterSet):
-
-    SPIKESORTINGCHOICES = (
-        (0, 'No spikesorting'),
-        (1, 'Kilosort'),
-        (2, 'Pykilosort'),
-    )
-
-    REPEATEDSITE = (
-        (0, 'All'),
-        (1, 'Repeated Site')
-    )
-
-    id = django_filters.CharFilter(label='Experiment ID/ Probe ID', method='filter_id', lookup_expr='startswith')
-    status = django_filters.ChoiceFilter(choices=SPIKESORTINGCHOICES, method='filter_spikesorting', label='Spike Sorting status')
-    repeated = django_filters.ChoiceFilter(choices=REPEATEDSITE, label='Location', method='filter_repeated')
-
-    class Meta:
-        model = ProbeInsertion
-        fields = ['session__lab', 'session__project']
-        exclude = ['json']
-
-    def __init__(self, *args, **kwargs):
-
-        super(SpikeSortingFilter, self).__init__(*args, **kwargs)
-
-        self.filters['session__lab'].label = "Lab"
-        self.filters['session__project'].label = "Project"
-
-    def filter_spikesorting(self, queryset, name, value):
-        if value == '0':
-            return queryset.filter(pyks=False, ks=False)
-        if value == '1':
-            return queryset.filter(pyks=False, ks=True)
-        if value == '2':
-            return queryset.filter(pyks=True)
-
-    def filter_repeated(self, queryset, name, value):
-        if value == '0':
-            return queryset
-        if value == '1':
-            return queryset.filter(Q(trajectory_estimate__provenance=10) & Q(trajectory_estimate__x=-2243) &
-                                   Q(trajectory_estimate__y=-2000) &
-                                   Q(trajectory_estimate__theta=15) & Q(session__project__name='ibl_neuropixel_brainwide_01'))
-
-    def filter_id(self, queryset, name, value):
-        queryset = queryset.filter(Q(session__id__startswith=value) | Q(id__startswith=value))
-        return queryset
-
-
 class GalleryTaskView(LoginRequiredMixin, ListView):
     template_name = 'ibl_reports/gallery_task.html'
     login_url = LOGIN_URL
@@ -292,22 +213,8 @@ class GalleryTaskView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super(GalleryTaskView, self).get_context_data(**kwargs)
         session = context['object_list'][0]
-        probes = ProbeInsertion.objects.filter(session=session.id).prefetch_related('datasets')
-        dsets = session.data_dataset_session_related.select_related('dataset_type')
-
         context['session'] = session
-        context['data'] = {}
-        context['data']['raw_behaviour'] = data_check.raw_behaviour_data_status(dsets, session)
-        context['data']['raw_passive'] = data_check.raw_passive_data_status(dsets, session)
-        context['data']['raw_ephys'] = data_check.raw_ephys_data_status(dsets, session, probes)
-        context['data']['raw_video'] = data_check.raw_video_data_status(dsets, session)
-        context['data']['trials'] = data_check.trial_data_status(dsets, session)
-        context['data']['wheel'] = data_check.wheel_data_status(dsets, session)
-        context['data']['passive'] = data_check.passive_data_status(dsets, session)
-        context['data']['ephys'] = data_check.ephys_data_status(dsets, session, probes)
-        context['data']['spikesort'] = data_check.spikesort_data_status(dsets, session, probes)
-        context['data']['video'] = data_check.video_data_status(dsets, session)
-        context['data']['dlc'] = data_check.dlc_data_status(dsets, session)
+        context['tasks'] = Task.objects.filter(session=session)
 
         return context
 
@@ -331,33 +238,6 @@ class GallerySessionQcView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         self.eid = self.kwargs.get('eid', None)
         qs = Session.objects.all().filter(id=self.eid)
-
-        return qs
-
-
-class GallerySubPlotProbeView(LoginRequiredMixin, ListView):
-    template_name = 'ibl_reports/gallery_subplots.html'
-    login_url = LOGIN_URL
-    plot_type = None
-
-    def get_context_data(self, **kwargs):
-        # need to find number of probes
-        # need to arrange the photos in the order they expected, if None we just have an empty card
-        context = super(GallerySubPlotProbeView, self).get_context_data(**kwargs)
-
-        probes = dict()
-        for pid in self.pids:
-            probes[pid.name] = data_check.get_plots(context['object_list'].filter(object_id=pid.id), self.plot_type)
-
-        context['session'] = Session.objects.all().get(id=self.eid)
-        context['devices'] = probes
-        context['plot_type'] = self.plot_type
-        return context
-
-    def get_queryset(self):
-        self.eid = self.kwargs.get('eid', None)
-        self.pids = ProbeInsertion.objects.all().filter(session=self.eid).order_by('name')
-        qs = Note.objects.all().filter(Q(object_id__in=self.pids.values_list('id', flat=True)))
 
         return qs
 
@@ -602,7 +482,7 @@ class GalleryFilter(django_filters.FilterSet):
 class SessionImportantPlots(LoginRequiredMixin, ListView):
     template_name = 'ibl_reports/gallery_session_overview.html'
     login_url = LOGIN_URL
-    paginate_by = 20
+    paginate_by = 15
 
     def get_context_data(self, **kwargs):
         # need to figure out which is more efficient
@@ -618,35 +498,45 @@ class SessionImportantPlots(LoginRequiredMixin, ListView):
     def get_my_data(self, sessions, notes):
         data = []
         s = []
+
         for sess in sessions:
-            info = {}
+            qc_info = {}
+
+            qc_info['Tasks'] = len(sess.tasks.all())
+            qc_info['Dsets'] = len(sess.data_dataset_session_related.all())
+            qc_info['session'] = sess.get_qc_display
+
+            if sess.extended_qc:
+                for key, val in sess.extended_qc.items():
+                    if key[0] != '_':
+                        if key == 'behavior':
+                            val = 'PASS' if 1 else 'FAIL'
+                        qc_info[key] = val
+
+            sess.qc_info = qc_info
             s.append(sess)
+
             plot_dict = {}
             for plot in data_info.OVERVIEW_SESSION_PLOTS:
                 note = notes.filter(object_id=sess.id, text=plot[0]).first()
-                if not note and not plot[1]:
-                    continue
-                else:
+                if note:
                     plot_dict[plot[0]] = note
-            info['session'] = plot_dict
+
             probes = sess.probe_insertion.values().order_by('name')
             if probes.count() > 0:
                 for probe in probes:
-                    plot_dict = {}
                     for plot in data_info.OVERVIEW_PROBE_PLOTS:
                         note = notes.filter(object_id=probe['id'], text=plot[0]).first()
-                        if not note and not plot[1]:
-                            continue
-                        else:
-                            plot_dict[plot[0]] = note
-                    info[f'{probe["name"]}  {probe["id"]}'] = plot_dict
-            data.append(info)
+                        if note:
+                            plot_dict[f'{plot[0]}_{probe["name"]}'] = note
+
+            data.append(plot_dict)
 
         return s, data
 
     def get_queryset(self):
-        qs = Session.objects.filter(task_protocol__icontains='ephysChoiceWorld',
-                                    json__IS_MOCK=False).prefetch_related('probe_insertion')
+        qs = Session.objects.all().prefetch_related('probe_insertion')
+
         self.f = SessionFilter(self.request.GET, queryset=qs)
 
         return self.f.qs.order_by('-start_time')

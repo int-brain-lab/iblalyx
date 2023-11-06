@@ -5,12 +5,22 @@
 {% block extrahead %}
 
     <style>
-
         .responsive {
           padding: 0 6px;
           float: left;
-          width: 29.999%;
+          width: 15.999%;
           position: relative;
+        }
+
+        .flex {
+            display: flex;
+            justify-content: flex-start;
+            align-content: center;
+            flex-flow: wrap;
+            column-gap: 100px;
+            row-gap: 10px;
+            color: black;
+            margin-top: 20px;
         }
     </style>
 
@@ -41,41 +51,34 @@
                         <div class="row">
                             <div class="col-md-4"><h5><a href="{% url 'admin:actions_session_change' session.id %}" style="color: white">{{ session.id }} </a></h5></div>
                             <div class="col-md-4"><h5>{{ session|get_session_path }}</h5></div>
-                            <div class="col-md-4"><h5><a href={% url 'session' eid=session.id %}> See more plots <i class="fa fa-arrow-circle-right"></i></a></h5></div>
+                            <div class="col-md-4"><h5 style="text-align:right"><a href={% url 'session' eid=session.id %} style="color:lightgray;text-align:right"> See more session info <i class="fa fa-arrow-circle-right"></i></a></h5></div>
                         </div>
+
+                        <div class="flex">
+                          {% for key, val in session.qc_info.items %}
+                              <div><span style="font-weight:bold">{{ key }}</span> : <span style="font-weight:500"> {{ val }} </span></div>
+                          {% endfor %}
+                        </div>
+
                     </div>
                     <div class="card-body">
                         <div class="gallery">
-                            {% for key, value in plot.items %}
-                                <div class="row">
-                                    <h5>{{ key }}</h5>
-                                    {% for title, note in value.items %}
-                                        <div class="responsive">
-                                            {% if note == None %}
-                                                <div class="imagecard">
-                                                    <div class="imageicon">
-                                                        <center><i class="fa fa-area-chart"></i></center>
-                                                    </div>
-                                                    <div class="card-body">
-                                                        <h6>{{ title }}</h6>
-                                                    </div>
+                            {% for title, note in plot.items %}
+                                <div class="responsive">
+                                    {% if note %}
+                                        <div class="imagecard">
+                                            <a href="{{ MEDIA_ROOT }}{{ note.image.url }}" data-lightbox="session">
+                                                <img class="card-img-top" src="{{ MEDIA_ROOT }}{{ note.image.url }}" title="{{ note.content_object }} {{ note.text }}">
+                                                <div class="card-body">
+                                                    <h6>{{ title }}</h6>
                                                 </div>
-                                            {% else %}
-                                                <div class="imagecard">
-                                                    <a href="{{ MEDIA_ROOT }}{{ note.image.url }}" data-lightbox="session">
-                                                        <img class="card-img-top" src="{{ MEDIA_ROOT }}{{ note.image.url }}" title="{{ note.content_object }} {{ note.text }}">
-                                                        <div class="card-body">
-                                                            <h6>{{ title }}</h6>
-                                                        </div>
-                                                    </a>
-                                                </div>
-                                            {% endif %}
+                                            </a>
                                         </div>
-                                        {% if forloop.counter|divisibleby:3 or forloop.last %}
-                                            <div class="clearfix"></div>
-                                        {% endif %}
-                                    {% endfor %}
+                                    {% endif %}
                                 </div>
+                                {% if forloop.counter|divisibleby:6 or forloop.last %}
+                                    <div class="clearfix"></div>
+                                {% endif %}
                             {% endfor %}
                         </div>
                     </div>

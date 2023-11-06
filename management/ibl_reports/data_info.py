@@ -197,14 +197,9 @@ PLOT_MAP = {
 }
 
 # Tuple, plot name and whether to display placeholder of plot not available
-OVERVIEW_PROBE_PLOTS = [('raw_ephys_bad_channels_destripe', True),
-                        ('spike_sorting_raster_pykilosort', True),
-                        ('lfp_spectrum', True),
-                        ('histology_slices', False)]
+OVERVIEW_PROBE_PLOTS = [('spike_sorting_raster_pykilosort', True)]
 
-OVERVIEW_SESSION_PLOTS = [('psychometric_curve', True),
-                          ('reaction_time_with_trials', True),
-                          ('dlc_qc_plot', False)]
+OVERVIEW_SESSION_PLOTS = [('psychometric_curve', True)]
 
 OVERVIEW_SUBJECT_PLOTS = [('subj_trial_count_session_duration', True),
                           ('subj_performance_easy_reaction_time', True),
