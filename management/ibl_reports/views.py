@@ -684,8 +684,12 @@ class SubjectTrainingPlots(LoginRequiredMixin, ListView):
                     continue  # Status not met for this subject; nothing to plot
                 # Subject map of status -> date reached
                 status_dates = training_status.loc[subject]
-                # Unique dates of all this subject's sessions
-                session_dates = np.unique(sessions.loc[subject, 'date'])  # use np because sometimes returns single value
+                # In some cases, no sessions as they haven't been annotated as behavior/training task
+                try:
+                    # Unique dates of all this subject's sessions
+                    session_dates = np.unique(sessions.loc[subject, 'date'])  # use np because sometimes returns single value
+                except KeyError:
+                    continue
                 # Plot session dates on or after date when status reached, up until the next of the next status
                 session_dates = session_dates[session_dates >= date_reached]
                 next_date = status_dates[status_dates > date_reached].sort_values()
