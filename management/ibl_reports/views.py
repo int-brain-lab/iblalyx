@@ -56,7 +56,7 @@ class PairedRecordingsView(LoginRequiredMixin, ListView):
         sessions = sessions.annotate(eid=Cast('id', output_field=TextField()))
         eids = sessions.values_list('eid', flat=True)
 
-        paired_experiments = pd.read_parquet(Path(settings.MEDIA_ROOT).joinpath('paired_experiments.pqt'))
+        paired_experiments = pd.read_parquet(Path(settings.STATIC_ROOT).joinpath('paired_experiments.pqt'))
 
         mapping = self.request.GET.get('mapping', 1)
 
@@ -119,7 +119,7 @@ class PairedRecordingsView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
 
-        paired_experiments = pd.read_parquet(Path(settings.MEDIA_ROOT).joinpath('paired_experiments.pqt'))
+        paired_experiments = pd.read_parquet(Path(settings.STATIC_ROOT).joinpath('paired_experiments.pqt'))
         eids = paired_experiments.eid.unique()
         qs = Session.objects.filter(id__in=eids)
 
