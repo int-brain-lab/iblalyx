@@ -1,0 +1,228 @@
+{% extends "ibl_reports/gallery_base.html" %}
+{% load jobs_template_tags %}
+
+{% block extrahead %}
+
+    <style>
+        body {
+            height: 100vh;
+        }
+        .container
+            {
+            position: relative;
+            width: 90%;
+            overflow: auto;
+            }
+        .cell {
+            stroke: black;
+            stroke-width: 2px;
+        }
+
+        .axis {
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .text {
+            stroke: red;
+            fil: red;
+            stroke-width: 0.8px;
+        }
+    </style>
+
+    <!-- Load d3 for subject paired_recordings -->
+    <script src="https://d3js.org/d3.v7.min.js" charset="utf-8"></script>
+
+{% endblock extrahead %}
+
+{% block headertext %}
+    <h4>Paired Recordings</h4>
+{% endblock %}
+
+{% block form %}
+    <div class="row">
+    	<div class="card no-border">
+    	    <form method="get">
+                {{pairedFilter.form}}
+                <button class="btn btn-secondary btn-sm" type="submit"> Search </button>
+    	    </form>
+    	</div>
+
+    </div>
+{% endblock %}
+
+{% block main %}
+    <div class="row">
+        <div class="container"></div>
+    </div>
+    <script>
+        // Load chart once all data loaded
+        $(document).ready(createPlot);
+
+
+        function createPlot() {
+
+            // PREPARE DATA
+            // Prepare the data into the formats that we need
+
+            var matrix = [];
+            var counts = []
+            var nodes = {{ nodes|safe }};
+            var links = {{ links|safe }};
+            var n = nodes.length;
+
+            // Create an empty matrix with size n x n
+            // Each element has the following format {x: 0, y: 1, z: 0},
+            // where x and y indicate the element location and z the value to be assigned to that element
+            nodes.forEach(function(node, i) {
+                node.index = i;
+                matrix[i] = d3.range(n).map(function(j) { return {x: j, y: i, z: 0}; });
+            });
+
+            // Fill the matrix with the values we have in data
+            links.forEach(function(link) {
+                if (link.source == link.target) {
+                    matrix[link.source][link.target].z = link.value;
+                    counts.push(link.value)
+                }
+                else {
+                    matrix[link.source][link.target].z = 2 * link.value;
+                    counts.push(link.value * 2)
+                }
+            });
+
+            // Get out the names for each row / column of matrix
+            var names = nodes.map(node => node.name);
+
+            // CREATE AXIS
+
+            var margin = {top: 50, bottom: 50, left: 100, right: 0};
+            var width = Math.max(2 * names.length, 900)
+            var height = Math.max(2 * names.length, 900)
+
+            var maxVal = Math.max(...counts) * 0.9
+            var minVal = Math.min(...counts) * 1.1
+
+
+            // Create scale band ranges for x and y axis
+            var x = d3.scaleBand().domain(names).range([0, width]);
+            var y = d3.scaleBand().domain(names).range([0, height]);
+            // Crate linear scale range for z (color of each pixel)
+            var z = d3.scaleLinear().domain([0, 300]).clamp(true);
+            var c = d3.scaleSequential(d3.interpolateBlues).domain([minVal, maxVal]);
+
+            // Create axis objects and assign them the scales
+            const xAxis = d3.axisTop(x);
+            const yAxis = d3.axisLeft(y);
+
+            // ADD ELEMENTS TO THE CONTAINER
+            // Add a main svg element to our container
+            const mainSvg = d3.select(".container").append("svg")
+                .attr('id', 'main-svg')
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+
+            // Add a group that will contain all our elements
+            const svg = mainSvg.append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+
+            // Define a clip path for the x axis (objects outside this clip path are masked)
+            const xClipPath = mainSvg.append('clipPath')
+                .attr('id', 'x-clip-path')
+                .append('rect')
+                .attr('x',0)
+                .attr('y', -margin.top)
+                .attr('width', width)
+                .attr('height', margin.top);
+
+            // Create a group for the x axis and add the clip path and also the axis
+            const xAxisCont= svg.append("g")
+                .attr("clip-path", 'url(#x-clip-path)')
+                .append("g")
+                .attr("class", "axis")
+                .attr("transform", `translate(0,0)`)
+                .call(xAxis);
+
+            // Do the same for the y axis
+            const yClipPath = mainSvg.append('clipPath')
+                .attr('id', 'y-clip-path')
+                .append('rect')
+                .attr('x', -margin.left)
+                .attr('y', 0)
+                .attr('width', margin.left)
+                .attr('height', height);
+
+            var yaxisCont= svg.append("g")
+                .attr("clip-path", 'url(#y-clip-path)')
+                .append("g")
+                .attr("class", "axis")
+                .attr("transform", `translate(0,0)`)
+                .call(yAxis);
+
+            // Define a clip path for the data display
+            const viewClipPath = mainSvg.append('clipPath')
+                .attr('id', 'view-clip-path')
+                .append('rect')
+                .attr('x', 0)
+                .attr('y', 0)
+                .attr('width', width)
+                .attr('height', height);
+
+            // Add the group for the data display and assign the clip path
+            var viewCont= svg.append("g")
+            .attr("clip-path", 'url(#view-clip-path)')
+
+            // Add the group that will hold out data
+            var view = viewCont.append("g")
+              .attr("id", "view")
+
+            // Add all the data to the view display
+            var row = view.selectAll(".row")
+            .data(matrix)
+            .enter().append("g")
+            .attr("class", "row")
+            .attr("transform", function(d, i) {
+              return "translate(0," + x(names[i]) + ")"; })
+            .each(row);
+
+            row.append("line")
+            .attr("x2", width);
+
+            function row(row) {
+                var cell = d3.select(this).selectAll(".cell")
+                    .data(row.filter(function(d) {
+                        // hack
+                        if (d.z == 0) {
+                            return 0.0001
+                        }
+                        return d.z; }))
+                    .enter().append("rect")
+                    .attr("class", "cell")
+                    .attr("x", function(d) { return x(names[d.x]); })
+                    .attr("y", 0)
+                    .attr("width", x.bandwidth())
+                    .attr("height", x.bandwidth())
+                    .style("fill", function(d) {
+                        return c(d.z); })
+                    //.style("fill", function(d) { return nodes[d.x].color == nodes[d.y].color ? nodes[d.x].color : "grey"; })
+
+                var text = d3.select(this).selectAll(".text")
+                    .data(row.filter(function(d) {
+                        // hack
+                        if (d.z == 0) {
+                            return 0.0001
+                        }
+                        return d.z; }))
+                    .enter().append("text")
+                    .attr("class", "text")
+                    .attr("x", function(d) { return x(names[d.x]) + x.bandwidth() / 2; })
+                    .attr("y", x.bandwidth() / 2)
+                    .text(function(d) { return d.z })
+                    .style("text-anchor", "middle")
+              }
+
+        };
+    </script>
+
+{% endblock %}
+
