@@ -6,6 +6,8 @@ from . import views
 
 urlpatterns = [
     path('', views.landingpage),
+    path('overview', views.InsertionTable.as_view(), name='insertion table'),
+    path('overview/<uuid:pid>', views.InsertionOverview.as_view(), name='insertion overview'),
     path('task_qc_eid/<uuid:eid>', views.plot_task_qc_eid, name='plot_task_qc_eid'),
     path('video_qc_eid/<uuid:eid>', views.plot_video_qc_eid, name='plot_video_qc_eid'),
     path('dlc_qc_eid/<uuid:eid>', views.plot_dlc_qc_eid, name='plot_dlc_qc_eid'),

@@ -2,16 +2,17 @@
 
 # date from 1 week ago
 old_date=$(date +'%Y-%m-%d' -d 'now - 1 week')
+today_day=$(date '+%d')  # for checking if 1st of the month
 
 # move the old backup to the larger drive
 src="/var/www/alyx-main/alyx-backups/$old_date"
 dst="/data/alyx-backups/"
 mv $src $dst
 
-# delete an old backup
+# delete an old backup but leave one backup for each month
 old_old_date=$(date +'%Y-%m-%d' -d 'now - 3 months')
 old_backup="/data/alyx-backups/$old_old_date/"
-if [ -d $old_backup ]; then
+if [ -d $old_backup ] && [ ! $today_day == 01 ]; then
   echo "removing $old_backup"
   rm -rf $old_backup
 else
@@ -19,7 +20,7 @@ else
 fi
 
 # check if any folders still unchanged
-if [ -d $src ] || [ -d $old_backup ]; then
+if [ -d $src ] || [[ -d $old_backup && ! $today_day == 01 ]]; then
   # send a message about backup failure
   recipient=$"devs@internationalbrainlab.org"
   echo "either $src or $old_backup unchanged; sending email report to $recipient"

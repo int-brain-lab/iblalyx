@@ -25,18 +25,22 @@ def remove_old_datasets_local_and_server_missing():
     dsets.delete()
 
 
-def remove_sessions_local_servers(labname, archive_date=None, gc=None, dry_run=False, nsessions=100):
+def remove_sessions_local_servers(labname=None, data_repository=None,
+                                  archive_date=None, gc=None, dry_run=False, nsessions=100):
     """
     remove_sessions_local_servers('angelakilab', archive_date='2020-06-01', nsessions=100)
     :param labname: example: 'angelakilab'
+    :param data_repository: example: 'churchland_lab_ucla_SR'
     :param archive_date: example: '2020-06-01'
     :param gc: globus transfer client
     :param nsessions: number of sessions to handle max (100)
     :param dry_run: (False) if True, just lists number of sessions to handle and returns
     :return:
     """
-
-    server_repository = DataRepository.objects.get(lab__name=labname, globus_is_personal=True)
+    kwargs = {'lab__name': labname, 'name': data_repository}
+    if not (kwargs := {k: v for k, v in kwargs.items() if v is not None}):
+        raise ValueError('at least one of `labname` or `data_repository` must be passed')
+    server_repository = DataRepository.objects.get(globus_is_personal=True, **kwargs)
     frs = FileRecord.objects.filter(data_repository=server_repository,
                                     dataset__session__start_time__lt=archive_date,
                                     dataset__session__procedures__name='Behavior training/tasks')

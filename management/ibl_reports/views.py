@@ -289,6 +289,103 @@ def plot_dlc_qc_eid(request, eid):
     return JsonResponse(dlc_dict)
 
 
+# Insertion overview page
+class InsertionOverview(LoginRequiredMixin, ListView):
+    template_name = 'ibl_reports/plots.html'
+    login_url = LOGIN_URL
+
+    def get_context_data(self, **kwargs):
+        context = super(InsertionOverview, self).get_context_data(**kwargs)
+        probe = context['object_list'][0]
+        session = Session.objects.get(id=probe.session.id)
+        dsets = session.data_dataset_session_related
+
+        context['probe'] = probe
+        context['session'] = session
+        context['data'] = {}
+        context['data']['raw_behaviour'] = data_check.raw_behaviour_data_status(dsets, session)
+        context['data']['raw_passive'] = data_check.raw_passive_data_status(dsets, session)
+        context['data']['raw_ephys'] = data_check.raw_ephys_data_status(dsets, session, [probe])
+        context['data']['raw_video'] = data_check.raw_video_data_status(dsets, session)
+        context['data']['trials'] = data_check.trial_data_status(dsets, session)
+        context['data']['wheel'] = data_check.wheel_data_status(dsets, session)
+        context['data']['passive'] = data_check.passive_data_status(dsets, session)
+        context['data']['ephys'] = data_check.ephys_data_status(dsets, session, [probe])
+        context['data']['spikesort'] = data_check.spikesort_data_status(dsets, session, [probe])
+        context['data']['video'] = data_check.video_data_status(dsets, session)
+        context['data']['dlc'] = data_check.dlc_data_status(dsets, session)
+
+        return context
+
+    def get_queryset(self):
+        self.pid = self.kwargs.get('pid', None)
+        qs = ProbeInsertion.objects.all().filter(id=self.pid)
+
+        return qs
+
+
+# Insertion table page
+class InsertionTable(LoginRequiredMixin, ListView):
+
+    login_url = LOGIN_URL
+    template_name = 'ibl_reports/table.html'
+    paginate_by = 50
+
+    def get_context_data(self, **kwargs):
+        context = super(InsertionTable, self).get_context_data(**kwargs)
+        context['data_status'] = data_check.get_data_status_qs(context['object_list'])
+        context['tableFilter'] = self.f
+
+        return context
+
+    def get_queryset(self):
+
+        qs = ProbeInsertion.objects.all().prefetch_related('session__data_dataset_session_related',
+                                                           'session', 'session__project',
+                                                           'session__subject__lab',)
+        # self.f = InsertionFilter(self.request.GET, queryset=qs)
+        # qs = self.f.qs
+        qs = qs.annotate(task=F('session__extended_qc__task'),
+                         video_left=F('session__extended_qc__videoLeft'),
+                         video_right=F('session__extended_qc__videoRight'),
+                         video_body=F('session__extended_qc__videoBody'),
+                         behavior=F('session__extended_qc__behavior'),
+                         insertion_qc=F('json__qc'))
+        qs = qs.annotate(planned=Exists(
+            TrajectoryEstimate.objects.filter(probe_insertion=OuterRef('pk'), provenance=10)))
+        qs = qs.annotate(micro=Exists(
+            TrajectoryEstimate.objects.filter(probe_insertion=OuterRef('pk'), provenance=30)))
+        qs = qs.annotate(histology=Exists(
+            TrajectoryEstimate.objects.filter(probe_insertion=OuterRef('pk'), provenance=50,
+                                              x__isnull=False)))
+        qs = qs.annotate(resolved=F('json__extended_qc__alignment_resolved'))
+
+        self.f = InsertionFilter(self.request.GET, queryset=qs)
+
+        return self.f.qs.order_by('-session__start_time')
+
+
+class InsertionFilter(django_filters.FilterSet):
+
+    id = django_filters.CharFilter(label='Experiment ID/ Probe ID', method='filter_id', lookup_expr='startswith')
+
+    class Meta:
+        model = ProbeInsertion
+        fields = ['session__lab', 'session__project']
+        exclude = ['json']
+
+    def __init__(self, *args, **kwargs):
+
+        super(InsertionFilter, self).__init__(*args, **kwargs)
+
+        self.filters['session__lab'].label = "Lab"
+        self.filters['session__project'].label = "Project"
+
+    def filter_id(self, queryset, name, value):
+        queryset = queryset.filter(Q(session__id__startswith=value) | Q(id__startswith=value))
+        return queryset
+
+
 class GalleryTaskView(LoginRequiredMixin, ListView):
     template_name = 'ibl_reports/gallery_task.html'
     login_url = LOGIN_URL
@@ -767,8 +864,12 @@ class SubjectTrainingPlots(LoginRequiredMixin, ListView):
                     continue  # Status not met for this subject; nothing to plot
                 # Subject map of status -> date reached
                 status_dates = training_status.loc[subject]
-                # Unique dates of all this subject's sessions
-                session_dates = np.unique(sessions.loc[subject, 'date'])  # use np because sometimes returns single value
+                # In some cases, no sessions as they haven't been annotated as behavior/training task
+                try:
+                    # Unique dates of all this subject's sessions
+                    session_dates = np.unique(sessions.loc[subject, 'date'])  # use np because sometimes returns single value
+                except KeyError:
+                    continue
                 # Plot session dates on or after date when status reached, up until the next of the next status
                 session_dates = session_dates[session_dates >= date_reached]
                 next_date = status_dates[status_dates > date_reached].sort_values()
