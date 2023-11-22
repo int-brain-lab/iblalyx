@@ -25,6 +25,7 @@
 
         .text {
             stroke: red;
+            fil: red;
             stroke-width: 0.8px;
         }
     </style>
@@ -65,6 +66,7 @@
             // Prepare the data into the formats that we need
 
             var matrix = [];
+            var counts = []
             var nodes = {{ nodes|safe }};
             var links = {{ links|safe }};
             var n = nodes.length;
@@ -74,19 +76,23 @@
             // where x and y indicate the element location and z the value to be assigned to that element
             nodes.forEach(function(node, i) {
                 node.index = i;
-                node.count = 0;
                 matrix[i] = d3.range(n).map(function(j) { return {x: j, y: i, z: 0}; });
             });
 
             // Fill the matrix with the values we have in data
             links.forEach(function(link) {
-                matrix[link.source][link.target].z = link.value;
-                nodes[link.source].count = link.value;
+                if (link.source == link.target) {
+                    matrix[link.source][link.target].z = link.value;
+                    counts.push(link.value)
+                }
+                else {
+                    matrix[link.source][link.target].z = 2 * link.value;
+                    counts.push(link.value * 2)
+                }
             });
 
             // Get out the names for each row / column of matrix
             var names = nodes.map(node => node.name);
-            var counts = nodes.map(node => node.count);
 
             // CREATE AXIS
 
@@ -96,6 +102,7 @@
 
             var maxVal = Math.max(...counts) * 0.9
             var minVal = Math.min(...counts) * 1.1
+
 
             // Create scale band ranges for x and y axis
             var x = d3.scaleBand().domain(names).range([0, width]);

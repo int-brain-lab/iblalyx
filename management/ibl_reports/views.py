@@ -118,7 +118,7 @@ class PairedRecordingsView(LoginRequiredMixin, ListView):
         return context
 
     def get_queryset(self):
-
+        # Not optimal as we load this twice....
         paired_experiments = pd.read_parquet(Path(settings.STATIC_ROOT).joinpath('paired_experiments.pqt'))
         eids = paired_experiments.eid.unique()
         qs = Session.objects.filter(id__in=eids)
