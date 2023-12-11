@@ -25,10 +25,11 @@ public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2023_Q1_Mohammadi_et_al_datasets.pqt',
                    '2023_Q1_Biderman_Whiteway_et_al_datasets.pqt',
                    '2023_Q3_Findling_Hubert_et_al_datasets.pqt',
+                   '2023_Q4_Bruijns_et_al_datasets.pqt',
                    ]
 
 # Select which release you want to check by changing i
-i = 9
+i = 10
 
 # Load datasets and check if they have the FI and AWS file records and both exist
 dset_file = IBL_ALYX_ROOT.joinpath('releases', public_ds_files[i])
@@ -118,7 +119,7 @@ s3 = boto3.resource('s3',
 bucket = s3.Bucket(name='ibl-brain-wide-map-private')
 
 # Make sure you are still looking at the correct release
-i = 9
+i = 10
 dset_file = IBL_ALYX_ROOT.joinpath('releases', public_ds_files[i])
 datasets = Dataset.objects.filter(pk__in=list(pd.read_parquet(dset_file)['dataset_id']))
 fr = FileRecord.objects.filter(dataset__in=datasets, data_repository__name__startswith='aws')
@@ -169,10 +170,11 @@ public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2023_Q1_Mohammadi_et_al_datasets.pqt',
                    '2023_Q1_Biderman_Whiteway_et_al_datasets.pqt',
                    '2023_Q3_Findling_Hubert_et_al_datasets.pqt',
+                   '2023_Q4_Bruijns_et_al_datasets.pqt',
                    ]
 
 # Chose release with i
-i = 9
+i = 10
 dset_file = IBL_ALYX_ROOT.joinpath('releases', public_ds_files[i])
 datasets = Dataset.objects.filter(pk__in=list(pd.read_parquet(dset_file)['dataset_id']))
 
