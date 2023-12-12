@@ -1,0 +1,25 @@
+2023-12-11 18:37:53 Beginning copy data
+Starting to create 56749 symlinks
+creating symlinks 20000/56749
+creating symlinks 40000/56749
+Finished creating symlinks
+
+Syncing to public S3 bucket data/
+warning: Skipping file /mnt/ibl/public/zadorlab/Subjects/CSH_ZAD_23/2020-03-02/001/alf/_ibl_trials.repNum.a7555400-3be8-48b1-97d5-e043a96b51c4.npy. File does not exist.
+warning: Skipping file /mnt/ibl/public/zadorlab/Subjects/CSH_ZAD_23/2020-03-03/001/alf/_ibl_trials.repNum.f35324dd-94d0-49ea-acbd-191dd7748804.npy. File does not exist.
+warning: Skipping file /mnt/ibl/public/zadorlab/Subjects/CSH_ZAD_23/2020-03-04/001/alf/_ibl_trials.repNum.0ddb865e-8e3c-4301-9985-02d7bd32b64d.npy. File does not exist.
+warning: Skipping file /mnt/ibl/public/zadorlab/Subjects/CSH_ZAD_23/2020-03-05/001/alf/_ibl_trials.repNum.bc1bb87d-9cb7-4bd7-9fe7-b3506dd7e78d.npy. File does not exist.
+warning: Skipping file /mnt/ibl/public/zadorlab/Subjects/CSH_ZAD_23/2020-03-06/001/alf/_ibl_trials.repNum.860c99a7-011b-4ae1-95c0-0b42c1bdf567.npy. File does not exist.
+warning: Skipping file /mnt/ibl/public/zadorlab/Subjects/CSH_ZAD_23/2020-03-09/001/alf/_ibl_trials.repNum.ae93f157-8999-49df-81e0-92ab843bdc15.npy. File does not exist.
+warning: Skipping file /mnt/ibl/public/zadorlab/Subjects/CSH_ZAD_23/2020-03-10/001/alf/_ibl_trials.repNum.669bf2ec-f29c-4035-bed9-e05701d39908.npy. File does not exist.
+warning: Skipping file /mnt/ibl/public/zadorlab/Subjects/CSH_ZAD_23/2020-03-11/001/alf/_ibl_trials.repNum.ed72ee85-5f93-41f8-b759-06964efad933.npy. File does not exist.
+warning: Skipping file /mnt/ibl/public/zadorlab/Subjects/CSH_ZAD_23/2020-03-12/001/alf/_ibl_trials.repNum.85372cd4-74a2-432f-9655-111622b92f69.npy. File does not exist.
+warning: Skipping file /mnt/ibl/public/zadorlab/Subjects/CSH_ZAD_23/2020-03-13/001/alf/_ibl_trials.repNum.12df71a6-b01c-40fa-92ff-efe55262de1e.npy. File does not exist.
+warning: Skipping file /mnt/ibl/public/zadorlab/Subjects/CSH_ZAD_23/2020-03-16/001/alf/_ibl_trials.repNum.7eceb8ce-8436-4a5e-a21c-d5f0238895a4.npy. File does not exist.
+warning: Skipping file /mnt/ibl/public/zadorlab/Subjects/CSH_ZAD_23/2020-03-17/001/alf/_ibl_trials.repNum.1a9621dc-9444-409f-9a0e-1eb3ed0ea022.npy. File does not exist.
+warning: Skipping file /mnt/ibl/public/zadorlab/Subjects/CSH_ZAD_23/2020-03-17/002/alf/_ibl_trials.repNum.b6cd86b8-35e2-4aed-9b70-cd08a9dfc15b.npy. File does not exist.
+warning: Skipping file /mnt/ibl/public/zadorlab/Subjects/CSH_ZAD_23/2020-03-18/001/alf/_ibl_trials.repNum.fedc300c-d779-4872-a51d-e3f05c71e886.npy. File does not exist.
+warning: Skipping file /mnt/ibl/public/zadorlab/Subjects/CSH_ZAD_23/2020-03-19/001/alf/_ibl_trials.repNum.180e9ff0-2691-4eee-a287-4d31d7b8a9b3.npy. File does not exist.
+warning: Skipping file /mnt/ibl/public/zadorlab/Subjects/CSH_ZAD_23/2020-03-20/001/alf/_ibl_trials.repNum.f2a44c27-0b3a-4f65-8e4c-7f51c3c3eef4.npy. File does not exist.
+warning: Skipping file /mnt/ibl/public/zadorlab/Subjects/CSH_ZAD_23/2020-03-21/001/alf/_ibl_trials.repNum.0d7b56e4-8c93-431c-a0bb-d5b9bec46f19.npy. File does not exist.
+warning: Skipping file /mnt/ibl/public/zadorlab/Subjects/CSH_ZAD_23/2020-03-22/001/alf/_ibl_trials.repNum.57b538d3-8f5c-46fa-9095-1a2fef87afc9.npy. File does not exist.
