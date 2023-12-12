@@ -38,3 +38,4 @@ COPY settings_lab.py-deploy /var/www/alyx/alyx/alyx/settings_lab.py
 COPY settings_secret.py-deploy /var/www/alyx/alyx/alyx/settings_secret.py
 RUN git pull && \
     git rev-parse HEAD
+CMD python /var/www/alyx/alyx/manage.py runserver 0.0.0.0:8000

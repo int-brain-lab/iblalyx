@@ -28,3 +28,11 @@ The buildx command is used to make sure the image is built for the right archite
 
     aws --profile ucl ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/p4h6o9n8   
     docker push public.ecr.aws/p4h6o9n8/alyx:latest
+
+### Running the container locally
+
+    docker run  \
+        --env-file environment.env \
+        --platform linux/amd64 \
+        -p 8000:8000 \
+        public.ecr.aws/p4h6o9n8/alyx:latest

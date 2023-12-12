@@ -89,7 +89,10 @@ LOGGING = {
 }
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.getenv("DJANGO_DEBUG", 'False').lower() in ('true', '1', 't')
+import logging
+logger = logging.getLogger(__name__)
+logger.warning("DEBUG: %s", DEBUG)
 
 # Production settings:
 if not DEBUG:
