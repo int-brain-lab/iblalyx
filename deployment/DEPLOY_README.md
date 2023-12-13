@@ -17,6 +17,7 @@ Additional packages installed are tools to build the `pyscopg2` package, which i
 ### Command to build the container
 Build Docker container:
 
+    cd /home/olivier/Documents/PYTHON/00_IBL/iblalyx/deployment
     docker buildx build ./ \
         --platform linux/amd64 \
         --tag public.ecr.aws/p4h6o9n8/alyx:latest \
@@ -29,8 +30,10 @@ The buildx command is used to make sure the image is built for the right archite
     aws --profile ucl ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/p4h6o9n8   
     docker push public.ecr.aws/p4h6o9n8/alyx:latest
 
-### Running the container locally
 
+### Running the container locally
+    
+    cd /home/olivier/Documents/PYTHON/00_IBL/iblalyx/deployment
     docker run  \
         --env-file environment.env \
         --platform linux/amd64 \
