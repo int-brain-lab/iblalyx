@@ -41,17 +41,6 @@ sessions = Session.objects.filter(
     id__in=probes.values_list('session_id', flat=True)).exclude(
     id__in=tag.datasets.values_list('session_id', flat=True))
 
-
-# Create session and probe dataframe
-df = pd.DataFrame(
-    columns=['eid', 'pid', 'probe_name'],
-    data=zip([str(p.session.id) for p in probes],
-             [str(p.id) for p in probes],
-             [str(p.name) for p in probes])
-)
-df.to_csv('./2023_Q4_IBL_et_al_BWM_2_eids_pids.csv')
-
-
 # Video data (some excluded)
 vid_dtypes = ['camera.times', 'camera.dlc', 'camera.features', 'ROIMotionEnergy.position', 'camera.ROIMotionEnergy']
 video_dsets = Dataset.objects.none()
@@ -83,6 +72,9 @@ wheel_dsets = Dataset.objects.filter(session__in=sessions, dataset_type__name__i
 probe_descr_dsets = Dataset.objects.filter(session__in=sessions, collection='alf', default_dataset=True,
                                            dataset_type__name='probes.description')
 
+# This is session level data, if another probe of this session has already been released, we don't add it
+session_ephys_dsets = Dataset.objects.filter(session__in=sessions, collection='raw_ephys_data', default_dataset=True)
+
 # Probe related data
 all_probes_dset_ids = []
 for i, probe in enumerate(probes):
@@ -92,9 +84,6 @@ for i, probe in enumerate(probes):
     probe_dsets = Dataset.objects.filter(session=probe.session, collection=collection, default_dataset=True, name__in=include)
 
     collection = f'alf/{probe.name}/pykilosort'
-    probe_dsets = probe_dsets | Dataset.objects.filter(session=probe.session, collection=collection, default_dataset=True)
-
-    collection = f'raw_ephys_data'
     probe_dsets = probe_dsets | Dataset.objects.filter(session=probe.session, collection=collection, default_dataset=True)
 
     collection = f'raw_ephys_data/{probe.name}'
@@ -110,11 +99,20 @@ all_probes_dsets = Dataset.objects.filter(id__in=all_probes_dset_ids)
 ts_patch = Dataset.objects.filter(revision__name='2023-04-20')
 
 # Combine all datasets and tag
-dsets = video_dsets | trials_dsets | wheel_dsets | probe_descr_dsets | all_probes_dsets | ts_patch
+dsets = video_dsets | trials_dsets | wheel_dsets | probe_descr_dsets | session_ephys_dsets | all_probes_dsets | ts_patch
 dsets = dsets.distinct()
 
 tag, _ = Tag.objects.get_or_create(name="2023_Q4_IBL_et_al_BWM_2", protected=True, public=True)
 tag.datasets.set(dsets)
+
+# Create session and probe dataframe
+df = pd.DataFrame(
+    columns=['eid', 'pid', 'probe_name'],
+    data=zip([str(p.session.id) for p in probes],
+             [str(p.id) for p in probes],
+             [str(p.name) for p in probes])
+)
+df.to_csv('./2023_Q4_IBL_et_al_BWM_2_eids_pids.csv')
 
 # Save dataset IDs
 dset_ids = [str(d.id) for d in dsets]
