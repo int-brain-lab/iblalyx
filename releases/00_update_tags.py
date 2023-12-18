@@ -20,6 +20,8 @@ public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2023_Q1_Biderman_Whiteway_et_al_datasets.pqt',
                    '2023_Q3_Findling_Hubert_et_al_datasets.pqt',
                    '2023_Q4_Bruijns_et_al_datasets.pqt',
+                   '2023_Q4_IBL_et_al_BWM_2_datasets.pqt',
+                   '2023_Q4_IBL_et_al_BWM_passive_datasets.pqt'
                    ]
 public_ds_tags = [
     "cfc4906a-316e-4150-8222-fe7e7f13bdac",  # "Behaviour Paper", "2021_Q1_IBL_et_al_Behaviour"
@@ -33,6 +35,8 @@ public_ds_tags = [
     "4984ea79-b162-49cc-8660-0dc6bbb7a5ff",  # 2023_Q1_Biderman_Whiteway_et_al
     "0f146f03-8dfe-44d6-84ef-e8fd24762fb2",  # 2023_Q3_Findling_Hubert_et_al
     "a8f643f2-0b71-430f-a57a-485202fba2c1",  # 2023_Q4_Bruijns_et_al
+    "7f7cd406-bb25-470f-bae4-55b56c3acac5",  # 2023_Q4_IBL_et_al_BWM_2
+    "30734650-65f3-4653-a059-0687ae872c97",  # 2023_Q4_IBL_et_al_BWM_passive
     ]
 
 
