@@ -27,8 +27,7 @@ RUN virtualenv ${VIRTUAL_ENV} --python=python3
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 WORKDIR /var/www/alyx
 RUN pip install -r requirements.txt
-
-WORKDIR /var/www/alyx
+RUN pip install gunicorn && pip install whitenoise && pip install dj-database-url
 
 # the DATETIME argument forces rebuilding the container from those layers
 ARG DATETIME
@@ -38,4 +37,8 @@ COPY settings_lab.py-deploy /var/www/alyx/alyx/alyx/settings_lab.py
 COPY settings_secret.py-deploy /var/www/alyx/alyx/alyx/settings_secret.py
 RUN git pull && \
     git rev-parse HEAD
-CMD python /var/www/alyx/alyx/manage.py runserver 0.0.0.0:8000
+
+WORKDIR /var/www/alyx/alyx
+CMD /var/www/alyx/alyx/manage.py collectstatic --noinput && gunicorn --workers 2 -b 0.0.0.0:8000 alyx.wsgi
+# WORKDIR /var/www/alyx
+# CMD python /var/www/alyx/alyx/manage.py runserver 0.0.0.0:8000

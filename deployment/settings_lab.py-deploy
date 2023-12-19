@@ -1,8 +1,6 @@
 import os
 from textwrap import dedent
 
-# ALYX-SPECIFIC
-ALLOWED_HOSTS = ['localhost', '0.0.0.0', '127.0.0.1', os.getenv('DJANGO_ALLOWED_HOST', '0.0.0.0')]
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'GB'
 GLOBUS_CLIENT_ID = os.getenv('GLOBUS_CLIENT_ID')

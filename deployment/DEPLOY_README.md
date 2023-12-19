@@ -13,7 +13,7 @@ In our case, we will deploy Alyx on the Coud using the following services
 ### Description of the Dockerfile
 The Dockerfile is based of a python 3.11 image and pulls the latest version of Alyx from the github repository.
 Additional packages installed are tools to build the `pyscopg2` package, which is required to connect to the postgres database, and the ssh service, which will allow to connect to the container later on.
-
+04a1b15b672d44101ffdd39b4fef219655ab56ad306b68a78115878509569422        
 ### Command to build the container
 Build Docker container:
 
@@ -34,6 +34,7 @@ The buildx command is used to make sure the image is built for the right archite
 ### Running the container locally
     
     cd /home/olivier/Documents/PYTHON/00_IBL/iblalyx/deployment
+
     docker run  \
         --env-file environment.env \
         --platform linux/amd64 \

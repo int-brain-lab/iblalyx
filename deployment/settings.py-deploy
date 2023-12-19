@@ -52,21 +52,23 @@ LOGGING = {
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG", 'False').lower() in ('true', '1', 't')
 
-# Production settings:
-if not DEBUG:
-    CSRF_COOKIE_SECURE = True
-    X_FRAME_OPTIONS = 'DENY'
-    SESSION_COOKIE_SECURE = True
-    SECURE_SSL_REDIRECT = True
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_HSTS_SECONDS = 30
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
+# ALYX-SPECIFIC
+ALLOWED_HOSTS = ['localhost', '0.0.0.0', '127.0.0.1']
+if (web_host := os.getenv('DJANGO_ALLOWED_HOST', '0.0.0.0')) is not None:
+    ALLOWED_HOSTS.append(web_host)
+CSRF_TRUSTED_ORIGINS = [f"http://{web_host}", f"https://{web_host}"]
+CSRF_COOKIE_SECURE = True
 
+# X_FRAME_OPTIONS = 'DENY'
+# SESSION_COOKIE_SECURE = True
+# SECURE_SSL_REDIRECT = False
+# SECURE_BROWSER_XSS_FILTER = True
+# SECURE_CONTENT_TYPE_NOSNIFF = True
+# SECURE_HSTS_SECONDS = 30
+# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+# SECURE_HSTS_PRELOAD = True
 
 # Application definition
-
 INSTALLED_APPS = (
     # 'dal',
     # 'dal_select2',
@@ -105,6 +107,7 @@ MIDDLEWARE = (
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     'alyx.base.QueryPrintingMiddleware',
     'django_structlog.middlewares.RequestMiddleware',
 )
@@ -144,9 +147,6 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',),
     'STRICT_JSON': False,
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    # 'DEFAULT_RENDERER_CLASSES': (
-    #     'rest_framework.renderers.JSONRenderer',
-    # ),
     'EXCEPTION_HANDLER': 'alyx.base.rest_filters_exception_handler',
     'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
     'PAGE_SIZE': 250,
