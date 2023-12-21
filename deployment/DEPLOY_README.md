@@ -26,21 +26,6 @@ On mbox, cd to the `iblalyx` repository.
 
 The buildx command is used to make sure the image is built for the right architecture (linux/amd64), even if the build is done on a different architecture (e.g. macOS).
 
-
-### Running the container locally (optional)
-
-One can run the container locally to test it.
-For this to run properly, you need to define the environment variables in the `environment.env` file. You can use the `environment_template.env` file as a template.
-
-    cd ./deploymentdeployment
-
-    docker run  \
-        --env-file environment.env \
-        --platform linux/amd64 \
-        -p 8000:8000 \
-        public.ecr.aws/p4h6o9n8/alyx:latest
-
-
 ### Pushing the container to ECR
 
 I have included the login command, but it is unclear how often this needs refreshing.
@@ -76,3 +61,13 @@ Additional packages installed are:
 
 The settings files are provided in this repository and copied into the image at build time. **Neither settings files nor the docker image contains sensitive information**, all passwords and secrets are provided at runtime.
 
+One can run the container locally to test it.
+For this to run properly, you need to define the environment variables in the `environment.env` file. You can use the `environment_template.env` file as a template.
+
+    cd ./deploymentdeployment
+
+    docker run  \
+        --env-file environment.env \
+        --platform linux/amd64 \
+        -p 8000:8000 \
+        public.ecr.aws/p4h6o9n8/alyx:latest
