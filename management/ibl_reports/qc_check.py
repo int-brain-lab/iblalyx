@@ -9,14 +9,23 @@ COLOURS = {
     'PASS': "#4BAD6C",
     'WARNING': "#79AEC8",
     'FAIL': "#FF6384",
-    'NOT_SET': "#B1B3C5"
+    'NOT_SET': "#B1B3C5",
+    'CRITICAL': "#FF6384",
+}
+
+OUTCOMES = {
+    'PASS': 1,
+    'WARNING': 0.5,
+    'FAIL': -1,
+    'NOT_SET': 0,
+    'CRITICAL': -1
 }
 
 QC_DICT = {
     '50': 'CRITICAL',
     '40': 'FAIL',
     '30': 'WARNING',
-    '0' :'NOT_SET',
+    '0': 'NOT_SET',
     '10': 'PASS',
 }
 
@@ -107,6 +116,24 @@ def get_task_qc_colours(task_qc_data):
     return colour, border, thresholds, outcomes, labels, vals
 
 
+def determine_qc(value):
+
+    if isinstance(value, list):
+        value = value[0]
+
+    if isinstance(value, bool):
+        if value:
+            qc = 'PASS'
+        else:
+            qc = 'FAIL'
+    elif isinstance(value, str):
+        qc = value
+    else:
+        qc = 'NOT_SET'
+
+    return qc
+
+
 def process_video_qc(video_qc_data):
     data_dict = {'data': [],
                  'label': [],
@@ -114,23 +141,11 @@ def process_video_qc(video_qc_data):
     outcomes = []
 
     for key, value in video_qc_data.items():
-
-        if isinstance(value, list):
-            if isinstance(value[0], bool):
-                value = value[0]
         data_dict['label'].append(key)
-        if value is None:
-            data_dict['data'].append(0)
-            data_dict['colour'].append(NOT_SET_COLOUR)
-            outcomes.append('NOT_SET')
-        elif value:
-            data_dict['data'].append(1)
-            data_dict['colour'].append(PASS_COLOUR)
-            outcomes.append('PASS')
-        else:
-            data_dict['data'].append(-1)
-            data_dict['colour'].append(FAIL_COLOUR)
-            outcomes.append('FAIL')
+        qc = determine_qc(value)
+        data_dict['data'].append(OUTCOMES[qc])
+        data_dict['colour'].append(COLOURS[qc])
+        outcomes.append(qc)
 
     return data_dict, outcomes
 
@@ -193,18 +208,9 @@ def qc_summary(qc_data):
             elif '_dlc' in key:
                 name = 'DLC'
 
-            if isinstance(value, list):
-                if isinstance(value[0], bool):
-                    value = value[0]
+            qc = determine_qc(value)
 
-            if value is None:
-                if 'Left' in key:
-                    data_dict[f'{name} Left QC'][3] += 1
-                elif 'Right' in key:
-                    data_dict[f'{name} Right QC'][3] += 1
-                elif 'Body' in key:
-                    data_dict[f'{name} Body QC'][3] += 1
-            elif value:
+            if qc in ['PASS', 'WARNING']:
                 if 'Left' in key:
                     data_dict[f'{name} Left QC'][3] += 1
                     data_dict[f'{name} Left QC'][1] += 1
@@ -214,7 +220,7 @@ def qc_summary(qc_data):
                 elif 'Body' in key:
                     data_dict[f'{name} Body QC'][1] += 1
                     data_dict[f'{name} Body QC'][3] += 1
-            else:
+            elif qc in ['FAIL', 'CRITICAL']:
                 if 'Left' in key:
                     data_dict[f'{name} Left QC'][3] += 1
                     data_dict[f'{name} Left QC'][2] += 1
@@ -223,6 +229,13 @@ def qc_summary(qc_data):
                     data_dict[f'{name} Right QC'][3] += 1
                 elif 'Body' in key:
                     data_dict[f'{name} Body QC'][2] += 1
+                    data_dict[f'{name} Body QC'][3] += 1
+            else:
+                if 'Left' in key:
+                    data_dict[f'{name} Left QC'][3] += 1
+                elif 'Right' in key:
+                    data_dict[f'{name} Right QC'][3] += 1
+                elif 'Body' in key:
                     data_dict[f'{name} Body QC'][3] += 1
 
     for key, value in data_dict.items():
