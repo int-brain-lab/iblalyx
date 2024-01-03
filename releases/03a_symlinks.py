@@ -9,7 +9,6 @@ from data.models import DataRepository, Dataset
 
 datasets = Dataset.objects.using('public').all()
 ndsets = datasets.count()
-print(f"Starting to create {ndsets} symlinks")
 c = 0
 for dset in datasets:
     fr = dset.file_records.filter(data_repository__name__startswith='flatiron').first()
@@ -31,5 +30,3 @@ for dset in datasets:
     c += 1
     if c % 20000 == 0:
         print(f"creating symlinks {c}/{ndsets}")
-
-print("Finished creating symlinks\n")
