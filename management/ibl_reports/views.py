@@ -58,11 +58,9 @@ class PairedRecordingsView(LoginRequiredMixin, ListView):
 
         paired_experiments = pd.read_parquet(Path(settings.STATIC_ROOT).joinpath('paired_experiments.pqt'))
 
-        mapping = self.request.GET.get('mapping', 1)
-
+        mapping_choice = self.request.GET.get('mapping', '1')
         paired_experiments = paired_experiments[paired_experiments['eid'].isin(eids)]
-
-        if mapping == 0:
+        if mapping_choice == '0':
             mapping = ['VISp', 'VISam', 'MOs', 'PL', 'LP', 'VAL', 'CP', 'GPe', 'SNr', 'SCm', 'MRN', 'ZI',
                        'FN', 'IRN', 'GRN', 'PRNr']
         else:
@@ -70,11 +68,9 @@ class PairedRecordingsView(LoginRequiredMixin, ListView):
 
         if isinstance(mapping, str):  # in this case we compute the paired recordings for a specific mapping
             mapped_ids = np.unique(regions.id[regions.mappings[mapping]])
-            name = mapping
         else:  # in this case we compute the mapping corresponding to a list of custom regions, taking into
             # account the hierarchical nature of the brain atlas
             acronyms = mapping
-            name = '_'.join(acronyms)
             mapped_ids = np.unique(np.r_[regions.acronym2id(acronyms), 0])
             mapping = np.zeros_like(regions.id)
             for aid in regions.acronym2id(acronyms):
