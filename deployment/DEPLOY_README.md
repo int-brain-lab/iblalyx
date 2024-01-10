@@ -25,6 +25,7 @@ On mbox, cd to the `iblalyx` repository.
         --build-arg DATETIME=$(date +%Y-%m-%d-%H:%M:%S)
 
 The buildx command is used to make sure the image is built for the right architecture (linux/amd64), even if the build is done on a different architecture (e.g. macOS).
+The `buildrunlocal.sh` script is provided as a shortcut to build and run the container locally to test it before launching. The container will be available at `localhost:8000`, and connects to the production database.
 
 ### Pushing the container to ECR
 
@@ -35,6 +36,7 @@ I have included the login command, but it is unclear how often this needs refres
 
 ### Deploying the container on App Runner
 
+It is a good practice to make sure version number is updated between deployments, as it is easier to see when the website has updated.
 Login to AWS and go to the App Runner service. Select `alyx-prod` and hit `Deploy`.
 The deployment should take a few minutes.
 
