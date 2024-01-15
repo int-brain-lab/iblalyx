@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y \
 RUN echo "root:Docker!" | chpasswd
 
 # Clone repo and configure virtual environment
-RUN git clone --branch django5 https://github.com/cortex-lab/alyx.git /var/www/alyx
+RUN git clone --branch master https://github.com/cortex-lab/alyx.git /var/www/alyx
 # Best practice for configuring python venv
 ENV VIRTUAL_ENV=/var/www/alyx/venv
 RUN virtualenv ${VIRTUAL_ENV} --python=python3

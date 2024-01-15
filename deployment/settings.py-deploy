@@ -59,14 +59,6 @@ if (web_host := os.getenv('DJANGO_ALLOWED_HOST', '0.0.0.0')) is not None:
 CSRF_TRUSTED_ORIGINS = [f"http://{web_host}", f"https://{web_host}", f"https://*.internationalbrainlab.org"]
 CSRF_COOKIE_SECURE = True
 
-# X_FRAME_OPTIONS = 'DENY'
-# SESSION_COOKIE_SECURE = True
-# SECURE_SSL_REDIRECT = False
-# SECURE_BROWSER_XSS_FILTER = True
-# SECURE_CONTENT_TYPE_NOSNIFF = True
-# SECURE_HSTS_SECONDS = 30
-# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-# SECURE_HSTS_PRELOAD = True
 
 # Application definition
 INSTALLED_APPS = (
@@ -166,11 +158,10 @@ USE_TZ = False
 STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
 STATIC_URL = '/static/'
 
-
-MEDIA_ROOT = os.getenv('DJANGO_MEDIA_ROOT', os.path.realpath(os.path.join(BASE_DIR, '../uploaded/')))
+MEDIA_ROOT = 'https://alyx-uploaded.s3.eu-west-2.amazonaws.com/uploaded/'
 MEDIA_URL = '/uploaded/'
 # The location for saving and/or serving the cache tables.
 # May be a local path, http address or s3 uri (i.e. s3://)
-TABLES_ROOT = os.getenv('DJANGO_TABLES_ROOT', os.path.realpath(os.path.join(BASE_DIR, '../tables/')))
+TABLES_ROOT = 's3://ibl-brain-wide-map-public/caches/alyx'
 
 UPLOADED_IMAGE_WIDTH = 800

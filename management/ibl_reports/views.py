@@ -56,7 +56,7 @@ class PairedRecordingsView(LoginRequiredMixin, ListView):
         sessions = sessions.annotate(eid=Cast('id', output_field=TextField()))
         eids = sessions.values_list('eid', flat=True)
 
-        paired_experiments = pd.read_parquet(Path(settings.STATIC_ROOT).joinpath('paired_experiments.pqt'))
+        paired_experiments = pd.read_parquet(Path(settings.TABLES_ROOT).joinpath('paired_experiments.pqt'))
 
         mapping_choice = self.request.GET.get('mapping', '1')
         paired_experiments = paired_experiments[paired_experiments['eid'].isin(eids)]
