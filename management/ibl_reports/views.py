@@ -43,8 +43,8 @@ class PairedRecordingsView(LoginRequiredMixin, ListView):
     @staticmethod
     def _get_paired_experiments_dataframe():
         file_paired_experiments = Path(settings.BASE_DIR).joinpath('.cache', 'paired_recordings.pqt')
-        if not file_paired_experiments.exists():
-            aws.s3_download_file('caches/alyx/paired_experiments.pqt', file_paired_experiments)
+        # if not file_paired_experiments.exists():
+        aws.s3_download_file('caches/alyx/paired_experiments.pqt', file_paired_experiments)
         return pd.read_parquet(file_paired_experiments)
 
     def get_context_data(self, **kwargs):
@@ -53,7 +53,6 @@ class PairedRecordingsView(LoginRequiredMixin, ListView):
         import scipy.sparse as sp
 
         regions = BrainRegions()  # todo need to cache this
-
         context = super(PairedRecordingsView, self).get_context_data(**kwargs)
         context['pairedFilter'] = self.f
         sessions = context['object_list']

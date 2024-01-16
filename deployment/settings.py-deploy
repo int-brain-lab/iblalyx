@@ -25,13 +25,6 @@ try:
 except ImportError:
     from .settings_lab_template import *  # noqa
 
-# S3 storage configurations
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-AWS_STORAGE_BUCKET_NAME = 'alyx-uploaded'
-AWS_LOCATION = 'uploaded/'
-AWS_S3_REGION_NAME = 'eu-west-2'
-AWS_S3_ADDRESSING_STYLE = "virtual"
-
 en_formats.DATETIME_FORMAT = "d/m/Y H:i"
 DATE_INPUT_FORMATS = ('%d/%m/%Y',)
 USE_DEPRECATED_PYTZ = True  # Support for using pytz will be removed in Django 5.0
@@ -146,14 +139,30 @@ REST_FRAMEWORK = {
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.8/topics/i18n/
-
-
 USE_I18N = False
 USE_L10N = False
 USE_TZ = False
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
+
+# S3 storage configurations
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            'bucket_name': 'alyx-uploaded',
+            'location': 'uploaded',
+            'region_name': 'eu-west-2',
+            'addressing_style': 'virtual',
+            'access_key': 'AKIAX2NIY5IRH3L3ERN7',
+            'secret_key': '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',
+        },
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
 STATIC_URL = '/static/'
@@ -162,6 +171,6 @@ MEDIA_ROOT = 'https://alyx-uploaded.s3.eu-west-2.amazonaws.com/uploaded/'
 MEDIA_URL = '/uploaded/'
 # The location for saving and/or serving the cache tables.
 # May be a local path, http address or s3 uri (i.e. s3://)
-TABLES_ROOT = 's3://ibl-brain-wide-map-public/caches/alyx'
+TABLES_ROOT = 'https://ibl-brain-wide-map-public.s3.amazonaws.com/caches/alyx'
 
 UPLOADED_IMAGE_WIDTH = 800

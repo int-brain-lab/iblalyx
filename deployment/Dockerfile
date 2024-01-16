@@ -31,7 +31,8 @@ RUN pip install gunicorn && pip install whitenoise && pip install dj-database-ur
 # create backup
 RUN git clone --branch main https://github.com/int-brain-lab/iblalyx.git /home/iblalyx \
     && ln -s /home/iblalyx/management/ibl_reports /var/www/alyx/alyx/ibl_reports \
-    && ln -s /home/iblalyx/management/ibl_reports/templates /var/www/alyx/alyx/templates/ibl_reports
+    && ln -s /home/iblalyx/management/ibl_reports/templates /var/www/alyx/alyx/templates/ibl_reports \
+    && pip install -r /home/iblalyx/requirements.txt
 
 # the DATETIME argument forces rebuilding the container from those layers
 ARG DATETIME

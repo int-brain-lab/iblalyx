@@ -31,7 +31,6 @@ def compute_upload_paired_experiments_to_s3():
         paired_experiments.to_parquet(file_pqt_paired_experiments)
         s3.upload_file(str(file_pqt_paired_experiments), bucket, path_aws)
 
-
 def compute_paired_experiments():
     """
     This function computes the paired experiments cache from the current alyx database
