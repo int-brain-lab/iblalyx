@@ -42,6 +42,10 @@ class PairedRecordingsView(LoginRequiredMixin, ListView):
     template_name = 'ibl_reports/paired_recordings.html'
     login_url = LOGIN_URL
 
+    @staticmethod
+    def _get_paired_experiments_dataframe():
+        return pd.read_parquet(Path(settings.TABLES_ROOT).joinpath('paired_experiments.pqt'))
+
     def get_context_data(self, **kwargs):
 
         from iblatlas.regions import BrainRegions  # todo need to install iblatlas with Django :explode:
@@ -55,9 +59,7 @@ class PairedRecordingsView(LoginRequiredMixin, ListView):
         sessions = context['object_list']
         sessions = sessions.annotate(eid=Cast('id', output_field=TextField()))
         eids = sessions.values_list('eid', flat=True)
-
-        paired_experiments = pd.read_parquet(Path(settings.TABLES_ROOT).joinpath('paired_experiments.pqt'))
-
+        paired_experiments = self._get_paired_experiments_dataframe()
         mapping_choice = self.request.GET.get('mapping', '1')
         paired_experiments = paired_experiments[paired_experiments['eid'].isin(eids)]
         if mapping_choice == '0':
@@ -115,12 +117,10 @@ class PairedRecordingsView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         # Not optimal as we load this twice....
-        paired_experiments = pd.read_parquet(Path(settings.STATIC_ROOT).joinpath('paired_experiments.pqt'))
+        paired_experiments = self._get_paired_experiments_dataframe()
         eids = paired_experiments.eid.unique()
         qs = Session.objects.filter(id__in=eids)
-
         self.f = PairedFilter(self.request.GET, queryset=qs)
-
         return self.f.qs
 
 
