@@ -37,6 +37,7 @@ RUN git clone --branch main https://github.com/int-brain-lab/iblalyx.git /home/i
 # the DATETIME argument forces rebuilding the container from those layers
 ARG DATETIME
 
+COPY gunicorn.conf.py /var/www/alyx/gunicorn.conf.py
 COPY settings.py-deploy /var/www/alyx/alyx/alyx/settings.py
 COPY settings_lab.py-deploy /var/www/alyx/alyx/alyx/settings_lab.py
 COPY settings_secret.py-deploy /var/www/alyx/alyx/alyx/settings_secret.py
@@ -46,6 +47,4 @@ RUN git pull \
     && git -C /home/iblalyx rev-parse HEAD
 
 WORKDIR /var/www/alyx/alyx
-CMD /var/www/alyx/alyx/manage.py collectstatic --noinput && gunicorn --workers 2 -b 0.0.0.0:8000 alyx.wsgi
-# WORKDIR /var/www/alyx
-# CMD python /var/www/alyx/alyx/manage.py runserver 0.0.0.0:8000
+CMD /var/www/alyx/alyx/manage.py collectstatic --noinput && gunicorn --config /var/www/alyx/gunicorn.conf.py alyx.wsgi

@@ -1,4 +1,5 @@
 from datetime import date
+import logging
 import time
 import io
 
@@ -30,6 +31,8 @@ from ibl_reports import data_info
 
 LOGIN_URL = '/admin/login/'
 
+logger = logging.getLogger(__name__)
+
 
 def landingpage(request):
     template = loader.get_template('ibl_reports/landing.html')
@@ -45,10 +48,12 @@ class PairedRecordingsView(LoginRequiredMixin, ListView):
     @property
     def df_paired_experiments(self):
         if self._df_paired_experiments is None:
+            logger.info('Downloading paired experiments from S3')
             buffer = io.BytesIO()
             s3 = boto3.resource('s3')
             s3_object = s3.Object('ibl-brain-wide-map-public', 'caches/alyx/paired_experiments.pqt')
             s3_object.download_fileobj(buffer)
+            logger.info('Downloading successfull')
             self._df_paired_experiments = pq.read_table(buffer).to_pandas()
         return self._df_paired_experiments.copy()
 
