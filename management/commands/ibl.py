@@ -44,7 +44,8 @@ class Command(BaseCommand):
         Resets to waiting tasks that have been Started for more than 6 days
 
     python ./manage.py ibl paired_recordings
-        Computes the latest version of the paired recording cache and uploads it to s3://[public_bucket]/caches/alyx
+        Computes the latest version of the paired recording cache and uploads it to
+         s3://[public_bucket]/caches/alyx
     """
     def add_arguments(self, parser):
         parser.add_argument('action', help='Action')
@@ -64,9 +65,8 @@ class Command(BaseCommand):
         action = options.get('action')
         defined_ops = {k for k, v in options.items() if v and k not in ['action', 'verbosity']}
         if action not in ('task_reset', 'cleanup_old_sessions') and defined_ops:
-            raise ValueError(
-                f'The following options are not supported for "{action}": ' + ", ".join(defined_ops)
-            )
+            raise ValueError(f'The following options are not '
+                             f'supported for "{action}": ' + ", ".join(defined_ops))
         if action == 'ftp_delete_local':
             ftp_delete_local()
         elif action == 'histology_assign_update':
