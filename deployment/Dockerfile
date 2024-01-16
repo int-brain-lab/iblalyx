@@ -40,8 +40,10 @@ ARG DATETIME
 COPY settings.py-deploy /var/www/alyx/alyx/alyx/settings.py
 COPY settings_lab.py-deploy /var/www/alyx/alyx/alyx/settings_lab.py
 COPY settings_secret.py-deploy /var/www/alyx/alyx/alyx/settings_secret.py
-RUN git pull && \
-    git rev-parse HEAD
+RUN git pull \
+    && git rev-parse HEAD \
+    && git -C /home/iblalyx pull \
+    && git -C /home/iblalyx rev-parse HEAD
 
 WORKDIR /var/www/alyx/alyx
 CMD /var/www/alyx/alyx/manage.py collectstatic --noinput && gunicorn --workers 2 -b 0.0.0.0:8000 alyx.wsgi

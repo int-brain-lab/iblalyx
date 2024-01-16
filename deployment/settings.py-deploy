@@ -155,8 +155,6 @@ STORAGES = {
             'location': 'uploaded',
             'region_name': 'eu-west-2',
             'addressing_style': 'virtual',
-            'access_key': 'AKIAX2NIY5IRH3L3ERN7',
-            'secret_key': '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',
         },
     },
     "staticfiles": {

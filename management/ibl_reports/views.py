@@ -1,6 +1,6 @@
 from datetime import date
 import time
-from pathlib import Path
+import io
 
 import django_filters
 from django.http import HttpResponse, JsonResponse
@@ -9,7 +9,6 @@ from django.views.generic.list import ListView
 from django.db.models import Q, F, OuterRef, Exists, UUIDField, Max, Count, Func, Subquery, TextField
 from django.db.models.functions import Coalesce, Cast
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.conf import settings
 from django.contrib.postgres.fields import JSONField, ArrayField
 
 from experiments.models import TrajectoryEstimate, ProbeInsertion
@@ -18,12 +17,13 @@ from subjects.models import Project, Subject
 from actions.models import Session
 from jobs.models import Task
 
+import boto3
+import pyarrow.parquet as pq
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import to_hex
 
-from one.remote import aws
 from ibl_reports import qc_check
 from ibl_reports import data_check
 from ibl_reports import data_info
@@ -40,12 +40,17 @@ def landingpage(request):
 class PairedRecordingsView(LoginRequiredMixin, ListView):
     template_name = 'ibl_reports/paired_recordings.html'
     login_url = LOGIN_URL
-    @staticmethod
-    def _get_paired_experiments_dataframe():
-        file_paired_experiments = Path(settings.BASE_DIR).joinpath('.cache', 'paired_recordings.pqt')
-        # if not file_paired_experiments.exists():
-        aws.s3_download_file('caches/alyx/paired_experiments.pqt', file_paired_experiments)
-        return pd.read_parquet(file_paired_experiments)
+    _df_paired_experiments = None
+
+    @property
+    def df_paired_experiments(self):
+        if self._df_paired_experiments is None:
+            buffer = io.BytesIO()
+            s3 = boto3.resource('s3')
+            s3_object = s3.Object('ibl-brain-wide-map-public', 'caches/alyx/paired_experiments.pqt')
+            s3_object.download_fileobj(buffer)
+            self._df_paired_experiments = pq.read_table(buffer).to_pandas()
+        return self._df_paired_experiments.copy()
 
     def get_context_data(self, **kwargs):
         from iblatlas.regions import BrainRegions
@@ -58,7 +63,7 @@ class PairedRecordingsView(LoginRequiredMixin, ListView):
         sessions = context['object_list']
         sessions = sessions.annotate(eid=Cast('id', output_field=TextField()))
         eids = sessions.values_list('eid', flat=True)
-        paired_experiments = self._get_paired_experiments_dataframe()
+        paired_experiments = self.df_paired_experiments
         mapping_choice = self.request.GET.get('mapping', '1')
         paired_experiments = paired_experiments[paired_experiments['eid'].isin(eids)]
         if mapping_choice == '0':
@@ -116,7 +121,7 @@ class PairedRecordingsView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         # Not optimal as we load this twice....
-        paired_experiments = self._get_paired_experiments_dataframe()
+        paired_experiments = self.df_paired_experiments
         eids = paired_experiments.eid.unique()
         qs = Session.objects.filter(id__in=eids)
         self.f = PairedFilter(self.request.GET, queryset=qs)
