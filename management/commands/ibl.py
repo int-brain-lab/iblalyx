@@ -6,6 +6,7 @@ from ._ibl.spreadsheets import histology_assign_update
 from ._ibl.table import qc_table
 from ._ibl.tasks import held_status_reset, task_reset, started_stalled_reset
 from ._ibl.housekeeping import remove_sessions_local_servers
+from ._ibl.paired_recordings import compute_upload_paired_experiments_to_s3
 
 
 class Command(BaseCommand):
@@ -41,6 +42,9 @@ class Command(BaseCommand):
 
     python ./manage.py ibl cleanup_old_sessions --lab angelakilab --date 2020-06-01  --n 500
         Resets to waiting tasks that have been Started for more than 6 days
+
+    python ./manage.py ibl paired_recordings
+        Computes the latest version of the paired recording cache and uploads it to s3://[public_bucket]/caches/alyx
     """
     def add_arguments(self, parser):
         parser.add_argument('action', help='Action')
@@ -58,12 +62,11 @@ class Command(BaseCommand):
         :return:
         """
         action = options.get('action')
-        defined_ops = {k for k, v in options.items() if v and k != 'action'}
+        defined_ops = {k for k, v in options.items() if v and k not in ['action', 'verbosity']}
         if action not in ('task_reset', 'cleanup_old_sessions') and defined_ops:
             raise ValueError(
                 f'The following options are not supported for "{action}": ' + ", ".join(defined_ops)
             )
-
         if action == 'ftp_delete_local':
             ftp_delete_local()
         elif action == 'histology_assign_update':
@@ -95,5 +98,7 @@ class Command(BaseCommand):
             dry = options.get('dry')
             remove_sessions_local_servers(
                 lab, data_repository=repo, archive_date=date, nsessions=n, dry_run=dry)
+        elif action == 'paired_recordings':
+            compute_upload_paired_experiments_to_s3()
         else:
             raise ValueError(f'No action for command {action}')

@@ -1,1 +1,3 @@
+google-api-python-client
 iblatlas
+oauth2client
