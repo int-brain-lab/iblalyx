@@ -1,17 +1,17 @@
 from datetime import date
 import time
+from pathlib import Path
 
 import django_filters
 from django.http import HttpResponse, JsonResponse
 from django.template import loader
 from django.views.generic.list import ListView
-from django.db.models import Q, F, OuterRef, Exists, UUIDField, DateTimeField, Max, Count, Func, Subquery, TextField
+from django.db.models import Q, F, OuterRef, Exists, UUIDField, Max, Count, Func, Subquery, TextField
 from django.db.models.functions import Coalesce, Cast
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.conf import settings
 from django.contrib.postgres.fields import JSONField, ArrayField
 
-from data.models import Dataset
 from experiments.models import TrajectoryEstimate, ProbeInsertion
 from misc.models import Note, Lab
 from subjects.models import Project, Subject
@@ -22,8 +22,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import to_hex
-from pathlib import Path
 
+from one.remote import aws
 from ibl_reports import qc_check
 from ibl_reports import data_check
 from ibl_reports import data_info
@@ -34,21 +34,21 @@ LOGIN_URL = '/admin/login/'
 def landingpage(request):
     template = loader.get_template('ibl_reports/landing.html')
     context = dict()
-
     return HttpResponse(template.render(context, request))
 
 
 class PairedRecordingsView(LoginRequiredMixin, ListView):
     template_name = 'ibl_reports/paired_recordings.html'
     login_url = LOGIN_URL
-
     @staticmethod
     def _get_paired_experiments_dataframe():
-        return pd.read_parquet(Path(settings.TABLES_ROOT).joinpath('paired_experiments.pqt'))
+        file_paired_experiments = Path(settings.BASE_DIR).joinpath('.cache', 'paired_recordings.pqt')
+        if not file_paired_experiments.exists():
+            aws.s3_download_file('caches/alyx/paired_experiments.pqt', file_paired_experiments)
+        return pd.read_parquet(file_paired_experiments)
 
     def get_context_data(self, **kwargs):
-
-        from iblatlas.regions import BrainRegions  # todo need to install iblatlas with Django :explode:
+        from iblatlas.regions import BrainRegions
         from iblutil.numerical import ismember
         import scipy.sparse as sp
 

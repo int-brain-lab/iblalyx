@@ -45,7 +45,8 @@ def compute_paired_experiments():
     regions = BrainRegions()
 
     # gets the latest and greatest insertion for each probe
-    trajs = TrajectoryEstimate.objects.order_by('probe_insertion', '-provenance').distinct('probe_insertion')
+    trajs = TrajectoryEstimate.objects.filter(probe_insertion__session__isnull=False)
+    trajs = trajs.order_by('probe_insertion', '-provenance').distinct('probe_insertion')
     # here we can eventually filter by histology level
     sessions = trajs.values_list('probe_insertion__session', flat=True).distinct()
 
