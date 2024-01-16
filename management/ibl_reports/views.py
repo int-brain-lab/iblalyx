@@ -43,19 +43,16 @@ def landingpage(request):
 class PairedRecordingsView(LoginRequiredMixin, ListView):
     template_name = 'ibl_reports/paired_recordings.html'
     login_url = LOGIN_URL
-    _df_paired_experiments = None
 
     @property
     def df_paired_experiments(self):
         if self._df_paired_experiments is None:
-            logger.info('Downloading paired experiments from S3')
-            buffer = io.BytesIO()
-            s3 = boto3.resource('s3')
-            s3_object = s3.Object('ibl-brain-wide-map-public', 'caches/alyx/paired_experiments.pqt')
-            s3_object.download_fileobj(buffer)
-            logger.info('Downloading successfull')
-            self._df_paired_experiments = pq.read_table(buffer).to_pandas()
-        return self._df_paired_experiments.copy()
+            logger.info('Getting paired experiments files from the media storage backend')
+            from django.core.files.storage import default_storage
+            with default_storage.open('paired_experiments.pqt') as fp:
+                df = pq.read_table(fp).to_pandas()
+            logger.info('Download successful')
+        return df
 
     def get_context_data(self, **kwargs):
         from iblatlas.regions import BrainRegions
