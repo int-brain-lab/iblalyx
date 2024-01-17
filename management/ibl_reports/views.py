@@ -11,6 +11,7 @@ from django.db.models import Q, F, OuterRef, Exists, UUIDField, Max, Count, Func
 from django.db.models.functions import Coalesce, Cast
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.postgres.fields import JSONField, ArrayField
+from django.core.files.storage import default_storage
 
 from experiments.models import TrajectoryEstimate, ProbeInsertion
 from misc.models import Note, Lab
@@ -18,7 +19,6 @@ from subjects.models import Project, Subject
 from actions.models import Session
 from jobs.models import Task
 
-import boto3
 import pyarrow.parquet as pq
 import pandas as pd
 import numpy as np
@@ -46,12 +46,10 @@ class PairedRecordingsView(LoginRequiredMixin, ListView):
 
     @property
     def df_paired_experiments(self):
-        if self._df_paired_experiments is None:
-            logger.info('Getting paired experiments files from the media storage backend')
-            from django.core.files.storage import default_storage
-            with default_storage.open('paired_experiments.pqt') as fp:
-                df = pq.read_table(fp).to_pandas()
-            logger.info('Download successful')
+        logger.info('Getting paired experiments files from the media storage backend')
+        with default_storage.open('paired_experiments.pqt') as fp:
+            df = pq.read_table(fp).to_pandas()
+        logger.info('Download successful')
         return df
 
     def get_context_data(self, **kwargs):
