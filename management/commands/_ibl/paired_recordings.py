@@ -14,22 +14,22 @@ logger = logging.getLogger('data.transfers')
 logger.setLevel(20)
 
 
-def compute_upload_paired_experiments_to_s3():
+def compute_upload_paired_experiments_to_s3(profile='ucl', region='eu-west-2', bucket='alyx-uploaded'):
     """
     This function computes the paired experiments dataframe and uploads it to s3 for public access
     :return:
     """
     logger.info('Computing paired experiments dataframe')
     paired_experiments, _, _ = compute_paired_experiments()
-    logger.info('Uploading the cache to s3://ibl-brain-wide-map-public/caches/alyx/paired_experiments.pqt')
-    session = boto3.Session(profile_name='ibl', region_name='us-east-1')
+    logger.info(f'Uploading the cache to s3://{bucket}/uploaded/paired_experiments.pqt')
+    session = boto3.Session(profile_name=profile, region_name=region)
     s3 = session.client('s3')
-    bucket = 'ibl-brain-wide-map-public'
-    path_aws = Path("caches/alyx/paired_experiments.pqt").as_posix()
+    path_aws = Path("uploaded/paired_experiments.pqt").as_posix()
     with tempfile.TemporaryDirectory() as td:
         file_pqt_paired_experiments = Path(td).joinpath('paired_experiments.pqt')
         paired_experiments.to_parquet(file_pqt_paired_experiments)
         s3.upload_file(str(file_pqt_paired_experiments), bucket, path_aws)
+
 
 def compute_paired_experiments():
     """

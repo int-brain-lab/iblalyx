@@ -41,15 +41,28 @@ Login to AWS and go to the App Runner service. Select `alyx-prod` and hit `Deplo
 The deployment should take a few minutes.
 
 ## Creating a service on App Runner
+
+### Connecting the AWS services together
+We are going to use **App Runner** for the Docker container, **S3** to store media files, **RDS** for the database, **Secrets Manager** to store sensitive database credentials and a virtual network **VPC** to connect them together.
+Permissions to access the services from other services will be handled by an **IAM** role assigned to the **App**.
+The logs are redirected to `stout` and `stderr` in the Docker and are automatically logged through **CloudWatch** and can be accessed there.
+
+- For the application to connect to the database:
+  - credentials are provided through secrets manager in AWS and the environment variables in `environment_template.env` need to be set for the app configuration.
+  The `DATABASE_SECRET` key is provided through an AWS secret.
+  - you need to configure the VPC to allow the app to connect to the database. This is done by assigning the VPC used by the database to the application
+  - the role used by the app needs to have access to the secret manager, the VPC and RDS
+- For the application to connect to s3:
+  - the role used by the app needs to have access to the s3 bucket
+  - you have to create a VPC endpoint for s3 and assign it to the VPC used by the app
+- For the application to connect to secrets manager, the role used by the app needs to have access to the secret manager
+
 [This resource](https://aws.amazon.com/blogs/containers/deploy-and-scale-django-applications-on-aws-app-runner/
 ) is useful as a starting point, especially to configure the VPC between the app and the postgres service.
 
-For configuring the app, the environment variables in `environment_template.env` need to be set for the app configuration.
-The `DATABASE_SECRET` key is provided through an AWS secret.
-
+### The webserver
 A custom webdomain can be setup once the app is deployed by updating DNS records for the specified subdomain.
 The SSL certificates are handled automatically as part of the service.
-
 
 ## Description of the Dockerfile
 

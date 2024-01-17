@@ -46,7 +46,7 @@ class PairedRecordingsView(LoginRequiredMixin, ListView):
 
     @property
     def df_paired_experiments(self):
-        logger.info('Getting paired experiments files from the media storage backend')
+        logger.info(f'Getting paired experiments files from the media storage backend {default_storage}')
         with default_storage.open('paired_experiments.pqt') as fp:
             df = pq.read_table(fp).to_pandas()
         logger.info('Download successful')
