@@ -1,11 +1,10 @@
 import pandas as pd
+from actions.models import Session
 from data.models import Tag, Dataset
 
 df = pd.read_csv('2022_Q4_IBL_et_al_BWM_eids_pids.csv', index_col=0)
-video_exclude = pd.read_csv('/home/ubuntu/paper-brain-wide-map/data_checks/video_exclude.csv', index_col=0)
-video_exclude.columns = ['left', 'right', 'body']
 eids = df['eid'].unique()
-
+sessions = Session.objects.filter(id__in=eids)
 
 # Trials data
 trials_dtypes = ['trials.goCueTrigger_times', 'trials.stimOff_times', 'trials.table']
@@ -15,25 +14,25 @@ trials_dsets = Dataset.objects.filter(session__in=eids, dataset_type__name__in=t
 wheel_dtypes = ['wheelMoves.intervals', 'wheelMoves.peakAmplitude', 'wheel.position', 'wheel.timestamps']
 wheel_dsets = Dataset.objects.filter(session__in=eids, dataset_type__name__in=wheel_dtypes, default_dataset=True)
 
-# Video data (some excluded)
-vid_eids = [eid for eid in eids if eid not in video_exclude.index]
-vid_dtypes = ['camera.times', 'camera.dlc', 'camera.features', 'licks.times',
-              'ROIMotionEnergy.position', 'camera.ROIMotionEnergy']
-alf_video_dsets = Dataset.objects.filter(session__in=vid_eids, dataset_type__name__in=vid_dtypes, default_dataset=True)
-raw_video_dsets = Dataset.objects.filter(session__in=vid_eids, default_dataset=True,
-                                         name__in=['_iblrig_leftCamera.raw.mp4',
-                                                   '_iblrig_rightCamera.raw.mp4',
-                                                   '_iblrig_bodyCamera.raw.mp4'])
-# For those that have only some videos excluded
-for eid in video_exclude[~video_exclude.all(axis=1)].index:
-    cams_include = [cam for cam in ['left', 'right', 'body'] if video_exclude.loc[eid, cam] == False]
-    for cam in cams_include:
-        alf_video_dsets = alf_video_dsets | Dataset.objects.filter(session=eid,
-                                                                   name__icontains=cam,
-                                                                   dataset_type__name__in=vid_dtypes,
-                                                                   default_dataset=True)
-        raw_video_dsets = raw_video_dsets | Dataset.objects.filter(session=eid, default_dataset=True,
-                                                                   name=f'_iblrig_{cam}Camera.raw.mp4')
+# Video data
+vid_dtypes = ['camera.times', 'camera.dlc', 'camera.features', 'ROIMotionEnergy.position', 'camera.ROIMotionEnergy']
+video_dsets = Dataset.objects.none()
+for sess in sessions:
+    for cam in ['left', 'right', 'body']:
+        if sess.extended_qc[f'video{cam.capitalize()}'] != 'CRITICAL':
+            video_dsets = video_dsets | Dataset.objects.filter(session=sess,
+                                                               name__icontains=cam,
+                                                               dataset_type__name__in=vid_dtypes,
+                                                               default_dataset=True)
+            video_dsets = video_dsets | Dataset.objects.filter(session=sess, default_dataset=True,
+                                                               name=f'_iblrig_{cam}Camera.raw.mp4')
+# Licks times should be released if either left or right cam or both released
+lick_sess = Session.objects.filter(id__in=video_dsets.values_list('session_id', flat=True))
+for l in lick_sess:
+    if not (l.extended_qc[f'videoLeft'] == 'CRITICAL' and l.extended_qc[f'videoRight'] == 'CRITICAL'):
+        video_dsets = video_dsets | Dataset.objects.filter(session=l, default_dataset=True,
+                                                           dataset_type__name=f'licks.times')
+
 # Probe description dataset (session level)
 probe_descr_dsets = Dataset.objects.filter(session__in=eids, collection='alf', default_dataset=True,
                                            dataset_type__name='probes.description')
@@ -62,7 +61,7 @@ for eid, probe_name in zip(df['eid'], df['probe_name']):
 
 # Combine all and tag
 all_probes_dsets = Dataset.objects.filter(id__in=all_probes_dset_ids)
-dsets = trials_dsets | wheel_dsets | alf_video_dsets | raw_video_dsets | probe_descr_dsets | all_probes_dsets
+dsets = trials_dsets | wheel_dsets | video_dsets | probe_descr_dsets | all_probes_dsets
 dsets = dsets.distinct()
 
 tag, _ = Tag.objects.get_or_create(name="2022_Q4_IBL_et_al_BWM", protected=True, public=True)
