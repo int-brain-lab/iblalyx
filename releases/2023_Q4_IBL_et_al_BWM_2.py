@@ -95,11 +95,8 @@ for i, probe in enumerate(probes):
 
 all_probes_dsets = Dataset.objects.filter(id__in=all_probes_dset_ids)
 
-# Timestamp patches
-ts_patch = Dataset.objects.filter(revision__name='2023-04-20')
-
 # Combine all datasets and tag
-dsets = video_dsets | trials_dsets | wheel_dsets | probe_descr_dsets | session_ephys_dsets | all_probes_dsets | ts_patch
+dsets = video_dsets | trials_dsets | wheel_dsets | probe_descr_dsets | session_ephys_dsets | all_probes_dsets
 dsets = dsets.distinct()
 
 tag, _ = Tag.objects.get_or_create(name="2023_Q4_IBL_et_al_BWM_2", protected=True, public=True)
