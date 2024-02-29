@@ -1,0 +1,15 @@
+version: '3.1'
+services:
+  django:
+    image: public.ecr.aws/p4h6o9n8/alyx
+    ports:
+      - "8080:8080"
+      - "443:443"
+      - "5432:5432"
+      - "80:80"
+    env_file: environment.env
+    command:
+      - '/usr/sbin/apache2ctl'
+      - '-DFOREGROUND'
+    volumes:
+      - alyxlogs:/var/log/alyx

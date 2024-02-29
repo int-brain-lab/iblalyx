@@ -2,4 +2,6 @@
 .DS_Store
 .deploy/*
 /.idea/*
-/deployment/environment.env
+/deployment_app/environment.env
+/deploy/environment.env
+
