@@ -67,4 +67,4 @@ RUN git pull \
 WORKDIR /var/www/alyx/alyx
 
 # the entrypoint here just starts a local development server, this is overriden by the compse file
-CMD env | grep _ >> /etc/environment && python /var/www/alyx/alyx/manage.py runserver 0.0.0.0:8000
+CMD python /var/www/alyx/alyx/manage.py collectstatic --noinput && python /var/www/alyx/alyx/manage.py runserver 0.0.0.0:8000
