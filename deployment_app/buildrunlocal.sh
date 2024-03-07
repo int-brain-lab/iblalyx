@@ -1,3 +1,5 @@
+    #!/bin/bash
+    set -e
     docker buildx build ./ \
         --platform linux/amd64 \
         --tag public.ecr.aws/p4h6o9n8/alyx:latest \

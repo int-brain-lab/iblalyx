@@ -58,7 +58,6 @@ RUN a2enmod wsgi
 ARG DATETIME
 COPY settings.py-deploy /var/www/alyx/alyx/alyx/settings.py
 COPY settings_lab.py-deploy /var/www/alyx/alyx/alyx/settings_lab.py
-COPY settings_secret.py-deploy /var/www/alyx/alyx/alyx/settings_secret.py
 RUN git pull \
     && git rev-parse HEAD \
     && git -C /home/iblalyx pull \

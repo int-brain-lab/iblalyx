@@ -13,3 +13,7 @@ services:
       - '-DFOREGROUND'
     volumes:
       - alyxlogs:/var/log/alyx
+
+volumes:
+  alyxlogs:
+    driver: local

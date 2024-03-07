@@ -9,15 +9,11 @@ https://docs.djangoproject.com/en/stable/ref/settings/
 """
 
 import os
-from django.conf.locale.en import formats as en_formats
+import json
+import dj_database_url
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-try:
-    from .settings_secret import *  # noqa
-except ImportError:
-    # We're probably autobuilding some documentation so let's just import something
-    # to keep Django happy...
-    from .settings_secret_template import *  # noqa
+from pathlib import Path
+from django.conf.locale.en import formats as en_formats
 
 # Lab-specific settings
 try:
@@ -25,13 +21,24 @@ try:
 except ImportError:
     from .settings_lab_template import *  # noqa
 
+
+# %% Databases
+# here we have 2 ways to configure the database, one is by providing a standard env file
+#, another is by providing a json string with the database url as done in AWS secret.
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+if (database_secret := os.getenv("DATABASE_SECRET", None)) is not None:
+    # the URL string would look like this: "postgres://USER:PASSWORD@HOST:PORT/NAME"
+    db_url = json.loads(database_secret)["DATABASE_URL"]
+    DATABASES = {"default": dj_database_url.parse(db_url)}
+
+
 en_formats.DATETIME_FORMAT = "d/m/Y H:i"
 DATE_INPUT_FORMATS = ('%d/%m/%Y',)
 USE_DEPRECATED_PYTZ = True  # Support for using pytz will be removed in Django 5.0
 
 # Custom User model with UUID primary key
 AUTH_USER_MODEL = 'misc.LabMember'
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = Path(__file__).parents[1]  # '/var/www/alyx/alyx'
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
@@ -72,8 +79,6 @@ CSRF_COOKIE_SECURE = True
 
 # Application definition
 INSTALLED_APPS = (
-    # 'dal',
-    # 'dal_select2',
     'django_admin_listfilter_dropdown',
     'django_filters',
     'django.contrib.admin',
@@ -91,7 +96,6 @@ INSTALLED_APPS = (
     'rest_framework_docs',
     'reversion',
     'test_without_migrations',
-    # alyx-apps
     'actions',
     'data',
     'misc',
@@ -154,15 +158,18 @@ REST_FRAMEWORK = {
 }
 
 # Internationalization
-# https://docs.djangoproject.com/en/1.8/topics/i18n/
 USE_I18N = False
 USE_L10N = False
 USE_TZ = False
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/1.8/howto/static-files/
+# %% Email configuration
+EMAIL_HOST = 'mail.superserver.net'
+EMAIL_HOST_USER = 'alyx@awesomedomain.org'
+EMAIL_HOST_PASSWORD = 'UnbreakablePassword'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
 
-# S3 storage configurations
+# storage configurations
 STORAGES = {
     "default": {
         "BACKEND": "storages.backends.s3.S3Storage",
@@ -178,13 +185,11 @@ STORAGES = {
     },
 }
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
+STATIC_ROOT = BASE_DIR.joinpath('static')   # /var/www/alyx/alyx/static
 STATIC_URL = '/static/'
-
 MEDIA_ROOT = 'https://alyx-uploaded.s3.eu-west-2.amazonaws.com/uploaded/'
 MEDIA_URL = '/uploaded/'
 # The location for saving and/or serving the cache tables.
 # May be a local path, http address or s3 uri (i.e. s3://)
 TABLES_ROOT = 'https://ibl-brain-wide-map-public.s3.amazonaws.com/caches/alyx'
-
 UPLOADED_IMAGE_WIDTH = 800
