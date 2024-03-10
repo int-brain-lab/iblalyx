@@ -1,6 +1,7 @@
 FROM python:3.11-slim-bookworm
 
-# Time zone autoconfig
+# the key to real-time logs !
+ENV PYTHONUNBUFFERED 1
 ENV TZ=Europe/London
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
@@ -56,8 +57,8 @@ RUN a2enmod wsgi
 
 # the DATETIME argument forces rebuilding the container from those layers
 ARG DATETIME
-COPY settings.py-deploy /var/www/alyx/alyx/alyx/settings.py
-COPY settings_lab.py-deploy /var/www/alyx/alyx/alyx/settings_lab.py
+COPY settings-deploy.py /var/www/alyx/alyx/alyx/settings.py
+COPY settings_lab-deploy.py /var/www/alyx/alyx/alyx/settings_lab.py
 RUN git pull \
     && git rev-parse HEAD \
     && git -C /home/iblalyx pull \

@@ -23,14 +23,12 @@ except ImportError:
 
 
 # %% Databases
-# here we have 2 ways to configure the database, one is by providing a standard env file
-#, another is by providing a json string with the database url as done in AWS secret.
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+# the database details are provided in the form of a JSON string. The variable looks like:
+# DATABASE_SECRET={"DATABASE_URL":"postgres://pguser:pgpassword@pghost:pgport/pgdbname"}
 if (database_secret := os.getenv("DATABASE_SECRET", None)) is not None:
-    # the URL string would look like this: "postgres://USER:PASSWORD@HOST:PORT/NAME"
     db_url = json.loads(database_secret)["DATABASE_URL"]
     DATABASES = {"default": dj_database_url.parse(db_url)}
-
 
 en_formats.DATETIME_FORMAT = "d/m/Y H:i"
 DATE_INPUT_FORMATS = ('%d/%m/%Y',)
@@ -64,7 +62,6 @@ LOGGING = {
         'propagate': True,
     }
 }
-
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG", 'False').lower() in ('true', '1', 't')
@@ -187,9 +184,11 @@ STORAGES = {
 
 STATIC_ROOT = BASE_DIR.joinpath('static')   # /var/www/alyx/alyx/static
 STATIC_URL = '/static/'
-MEDIA_ROOT = 'https://alyx-uploaded.s3.eu-west-2.amazonaws.com/uploaded/'
+MEDIA_ROOT = os.getenv('DJANGO_MEDIA_ROOT', BASE_DIR.joinpath('uploaded'))
 MEDIA_URL = '/uploaded/'
 # The location for saving and/or serving the cache tables.
 # May be a local path, http address or s3 uri (i.e. s3://)
-TABLES_ROOT = 'https://ibl-brain-wide-map-public.s3.amazonaws.com/caches/alyx'
+TABLES_ROOT = os.getenv('DJANGO_TABLES_ROOT', BASE_DIR.joinpath('uploaded'))
+
+
 UPLOADED_IMAGE_WIDTH = 800
