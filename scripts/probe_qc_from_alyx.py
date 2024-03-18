@@ -21,7 +21,7 @@ dsets.aggregate(siz=Sum('file_size'))['siz'] / 1024 ** 4
 
 # %% Get Insertin QCs to look at whitening
 ins = ProbeInsertion.objects.filter(
-    session__project__name__icontains='ibl_neuropixel_brainwide_01',
+    session__projects__name__icontains='ibl_neuropixel_brainwide_01',
     session__qc__lt=50,
     session__json__IS_MOCK=False,
 ).exclude(

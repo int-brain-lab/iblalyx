@@ -530,7 +530,7 @@ class GalleryPlotsOverview(LoginRequiredMixin, ListView):
         qs = Note.objects.all().filter(json__tag="## report ##")
         qs = qs.annotate(lab=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__lab__name'),
                                       Session.objects.filter(id=OuterRef('object_id')).values('lab__name')))
-        qs = qs.annotate(project=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__project__name'),
+        qs = qs.annotate(project=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__projects__name'),
                                           Session.objects.filter(id=OuterRef('object_id')).values('project__name')))
         qs = qs.annotate(session=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session'),
                                           Session.objects.filter(id=OuterRef('object_id')).values('pk'), output_field=UUIDField()))

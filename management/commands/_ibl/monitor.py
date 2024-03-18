@@ -37,7 +37,7 @@ def monitor_spikesorting():
 
     df = pd.DataFrame.from_records(
         qs.values_list('id', 'session', 'name', 'session__lab__name', 'session__subject__nickname', 'session__start_time',
-                       'session__number', 'session__project__name', 'raw', 'ks', 'pyks', 'version', 'serial', 'model__name'),
+                       'session__number', 'session__projects__name', 'raw', 'ks', 'pyks', 'version', 'serial', 'model__name'),
                        columns=['pid', 'eid', 'probe_name', 'lab', 'subject', 'date', 'number', 'project', 'raw_data', 'ks',
                        'pyks', 'version', 'serial_no', 'probe_type'])
 

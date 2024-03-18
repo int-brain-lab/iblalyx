@@ -368,7 +368,7 @@ def _query_insertions():
 
     all_insertions = ProbeInsertion.objects.filter(
         session__task_protocol__icontains='_iblrig_tasks_ephysChoiceWorld',
-        session__project__name='ibl_neuropixel_brainwide_01',
+        session__projects__name='ibl_neuropixel_brainwide_01',
         session__subject__actions_sessions__procedures__name='Histology',
         session__json__IS_MOCK=False
     )
@@ -455,7 +455,7 @@ def histology_assign_update():
     # Take only insertion for BW project, with histology, remove critical insertions
     all_insertions1 = ProbeInsertion.objects.filter(
         session__task_protocol__icontains='_iblrig_tasks_ephysChoiceWorld',
-        session__project__name='ibl_neuropixel_brainwide_01',
+        session__projects__name='ibl_neuropixel_brainwide_01',
         session__subject__actions_sessions__procedures__name='Histology',
         session__json__IS_MOCK=False,
         session__qc__lt=50,
@@ -463,7 +463,7 @@ def histology_assign_update():
         json__extended_qc__tracing_exists=True
     ) | ProbeInsertion.objects.filter(  # Some sessions do not have IS_MOCK as field
         session__task_protocol__icontains='_iblrig_tasks_ephysChoiceWorld',
-        session__project__name='ibl_neuropixel_brainwide_01',
+        session__projects__name='ibl_neuropixel_brainwide_01',
         session__subject__actions_sessions__procedures__name='Histology',
         session__json__IS_MOCK__isnull=True,
         session__qc__lt=50,
