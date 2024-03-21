@@ -10,9 +10,14 @@ No migrations, just git pull inside the container
 
 
 ## Container release process
-1. Build the container locally and test it
-2. Push the container to ECR
-3. Update the container on EC2
+
+### Outline of the process:
+1. **Build the container locally and test it**
+2. **Push the container to ECR**
+3. **Update the container on EC2**
+
+Todo: when should this be done ?
+### Detailed instructions:
 
 1. Build the container locally and test it
     ```
@@ -21,7 +26,6 @@ No migrations, just git pull inside the container
    ```
 This will fist build the docker image, and then run it locally. 
 The container runs a Django development server available at `localhost:8000`.
-
 
 2. Push the container to ECR. We store this container in Elastic Container Registry (ECR) for public images.
 
@@ -40,6 +44,16 @@ First authenticate, this assumes that the profile `ucl` is set up in the AWS CLI
 
 
 ## AWS instance creation process
--   Create a new EC2 instance, Ubuntu and SSH into it 
+- Create a new EC2 instance, Ubuntu and SSH into it.
+- Clone IBL alyx repository and create the environment file with secrets (Todo add bucket)
+   ```
+   git clone https://github.com/int-brain-lab/iblalyx.git
+   cd iblalyx/deploy
+   cp environment_template.env environment.env
+   ```
+- Run the bootstrap script
+
+sudo bash alyx_ec2_bootstrap.sh
+
 -   run the convenience `alyx_ec2_bootstrap.sh` script to prepare the instnce
 -   run the instructions above to update the container on EC2

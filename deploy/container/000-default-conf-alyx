@@ -12,7 +12,6 @@
         <Files wsgi.py>
             Require all granted
         </Files>
-        Include /etc/apache2/sites-available/ip_whitelist.conf
     </Directory>
 
     Alias /static/ /var/www/alyx/alyx/static/

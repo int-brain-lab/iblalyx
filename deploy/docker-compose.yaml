@@ -13,6 +13,7 @@ services:
       - '-DFOREGROUND'
     volumes:
       - alyxlogs:/var/log/alyx
+    restart: always
 
 volumes:
   alyxlogs:
