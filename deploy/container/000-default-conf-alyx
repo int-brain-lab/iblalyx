@@ -1,6 +1,6 @@
 <VirtualHost *:80>
     ServerName ${APACHE_SERVER_NAME}
-    Redirect permanent / https://dev.alyx.internationalbrainlab.org/
+    Redirect permanent / https://${APACHE_SERVER_NAME}/
 </VirtualHost>
 
 <VirtualHost *:443>

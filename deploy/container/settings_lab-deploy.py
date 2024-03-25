@@ -2,7 +2,7 @@ import os
 from textwrap import dedent
 
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'GB'
+TIME_ZONE = 'Europe/London'
 GLOBUS_CLIENT_ID = os.getenv('GLOBUS_CLIENT_ID')
 SUBJECT_REQUEST_EMAIL_FROM = 'alyx@internationalbrainlab.org'
 DEFAULT_SOURCE = 'IBL'

@@ -1,14 +1,12 @@
-FROM python:3.11-slim-bookworm
+FROM ubuntu/apache2:latest
 
-# the key to real-time logs !
+# python unbuffered allows to get real-time logs
 ENV PYTHONUNBUFFERED 1
 ENV TZ=Europe/London
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Install services, packages and perform cleanup
 RUN apt-get update && apt-get install -y \
-    apache2 \
-    apache2-utils \
     libapache2-mod-wsgi-py3 \
     vim \
     git \
@@ -19,7 +17,11 @@ RUN apt-get update && apt-get install -y \
     awscli \
     certbot \
     python3-certbot-apache \
+    python3.11 \
+    python3-pip \
+    python3-venv \
     wget \
+    w3m \
     && apt-get autoremove \
     && rm -rf /var/lib/apt/lists/*
 
@@ -29,17 +31,17 @@ RUN echo "root:Docker!" | chpasswd
 RUN git clone --branch master https://github.com/cortex-lab/alyx.git /var/www/alyx
 # Best practice for configuring python venv
 ENV VIRTUAL_ENV=/var/www/alyx/venv
-RUN virtualenv ${VIRTUAL_ENV} --python=python3
+RUN virtualenv ${VIRTUAL_ENV} --python=python3.11
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 WORKDIR /var/www/alyx
-RUN pip install -r requirements.txt
-RUN pip install dj-database-url
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir dj-database-url
 
 # create reports application
 RUN git clone --branch main https://github.com/int-brain-lab/iblalyx.git /home/iblalyx \
     && ln -s /home/iblalyx/management/ibl_reports /var/www/alyx/alyx/ibl_reports \
     && ln -s /home/iblalyx/management/ibl_reports/templates /var/www/alyx/alyx/templates/ibl_reports \
-    && pip install -r /home/iblalyx/requirements.txt
+    && pip install --no-cache-dir -r /home/iblalyx/requirements.txt
 
 # Apache ENVs
 ENV APACHE_RUN_USER www-data

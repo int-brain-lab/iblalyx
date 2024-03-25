@@ -32,7 +32,6 @@ if (database_secret := os.getenv("DATABASE_SECRET", None)) is not None:
 
 en_formats.DATETIME_FORMAT = "d/m/Y H:i"
 DATE_INPUT_FORMATS = ('%d/%m/%Y',)
-USE_DEPRECATED_PYTZ = True  # Support for using pytz will be removed in Django 5.0
 
 # Custom User model with UUID primary key
 AUTH_USER_MODEL = 'misc.LabMember'

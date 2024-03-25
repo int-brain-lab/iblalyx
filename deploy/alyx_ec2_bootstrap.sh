@@ -76,6 +76,10 @@ aws ec2 authorize-security-group-ingress \
 
 cd $WORKING_DIR || exit 1
 
+echo "Copying SSL certificates from S3..."
+aws s3 cp s3://alyx-docker/fullchain.pem-"$HOSTNAME" /etc/letsencrypt/fullchain.pem
+aws s3 cp s3://alyx-docker/privkey.pem-"$HOSTNAME" /etc/letsencrypt/privkey.pem
+
 echo "Building out crontab entries..."
 echo -e "${LOG_CRON}\n${CERTBOT_CRON}" >> temp_cron
 crontab temp_cron # install new cron file
@@ -84,7 +88,7 @@ rm temp_cron # remove temp_cron file
 echo "Adding alias to .bashrc..."
 echo '' >> /home/ubuntu/.bashrc \
   && echo "# IBL Alias" >> /home/ubuntu/.bashrc \
-  && echo "alias docker-bash='sudo docker exec --interactive --tty alyx_con /bin/bash'" >> /home/ubuntu/.bashrc
+  && echo "alias docker-bash='sudo docker exec --interactive --tty alyx /bin/bash'" >> /home/ubuntu/.bashrc
 
 echo "Performing any remaining package upgrades..."
 apt upgrade -y
