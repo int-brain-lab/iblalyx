@@ -731,7 +731,7 @@ class SessionFilter(django_filters.FilterSet):
 
     id = django_filters.CharFilter(label='Experiment ID/ Probe ID', method='filter_id', lookup_expr='startswith')
     lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')
-    project = django_filters.ModelChoiceFilter(queryset=Project.objects.all(), label='Project')
+    projects = django_filters.ModelChoiceFilter(queryset=Project.objects.all(), label='Project')
     repeated = django_filters.ChoiceFilter(choices=REPEATEDSITE, label='Location', method='filter_repeated')
 
     class Meta:

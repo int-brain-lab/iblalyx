@@ -16,7 +16,6 @@ No migrations, just git pull inside the container
 2. **Push the container to ECR**
 3. **Update the container on EC2**
 
-Todo: when should this be done ?
 ### Detailed instructions:
 
 1. Build the container locally and test it
@@ -38,8 +37,8 @@ First authenticate, this assumes that the profile `ucl` is set up in the AWS CLI
 3. Update and start/restart the container on EC2
    ```
    docker pull public.ecr.aws/p4h6o9n8/alyx:latest
-   # TODO: command to start/restart with docker-compose
-   # TODO: first a first start, command to make sure the container restart on reboot
+   cd ~/iblalyx/deploy
+   docker compose up
    ```
 
 
