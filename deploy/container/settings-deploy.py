@@ -69,10 +69,7 @@ LOGGING = {
     'handlers': {
         'file': {
             'level': LOG_LEVEL,
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': LOG_FOLDER_ROOT.joinpath('django.log'),
-            'maxBytes': 16777216,
-            'backupCount': 5,
+            'class': 'logging.FileHandler',
             'formatter': 'simple'
         },
         'console': {
@@ -82,10 +79,8 @@ LOGGING = {
         },
         'json_file': {
             'level': LOG_LEVEL,
-            'class': 'logging.handlers.RotatingFileHandler',
+            'class': 'logging.FileHandler',
             'filename': LOG_FOLDER_ROOT.joinpath('django.json'),
-            'maxBytes': 16777216,
-            'backupCount': 5,
             'formatter': 'json_formatter',
         },
     },
