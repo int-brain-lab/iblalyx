@@ -164,7 +164,7 @@ class PairedFilter(django_filters.FilterSet):
 
     class Meta:
         model = Session
-        fields = ['project']
+        fields = ['projects']
         exclude = ['json']
 
     def __init__(self, *args, **kwargs):
@@ -184,7 +184,7 @@ class PairedFilter(django_filters.FilterSet):
         return qs
 
     def filter_project(self, queryset, name, value):
-        queryset = queryset.filter(project__name=value.name)
+        queryset = queryset.filter(projects__name=value.name)
         return queryset
 
     def filter_mapping(self, queryset, name, value):
@@ -341,7 +341,7 @@ class InsertionTable(LoginRequiredMixin, ListView):
     def get_queryset(self):
 
         qs = ProbeInsertion.objects.all().prefetch_related('session__data_dataset_session_related',
-                                                           'session', 'session__project',
+                                                           'session', 'session__projects',
                                                            'session__subject__lab',)
         # self.f = InsertionFilter(self.request.GET, queryset=qs)
         # qs = self.f.qs
@@ -371,7 +371,7 @@ class InsertionFilter(django_filters.FilterSet):
 
     class Meta:
         model = ProbeInsertion
-        fields = ['session__lab', 'session__project']
+        fields = ['session__lab', 'session__projects']
         exclude = ['json']
 
     def __init__(self, *args, **kwargs):
@@ -379,7 +379,7 @@ class InsertionFilter(django_filters.FilterSet):
         super(InsertionFilter, self).__init__(*args, **kwargs)
 
         self.filters['session__lab'].label = "Lab"
-        self.filters['session__project'].label = "Project"
+        self.filters['session__projects'].label = "Project"
 
     def filter_id(self, queryset, name, value):
         queryset = queryset.filter(Q(session__id__startswith=value) | Q(id__startswith=value))
@@ -531,7 +531,7 @@ class GalleryPlotsOverview(LoginRequiredMixin, ListView):
         qs = qs.annotate(lab=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__lab__name'),
                                       Session.objects.filter(id=OuterRef('object_id')).values('lab__name')))
         qs = qs.annotate(project=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__projects__name'),
-                                          Session.objects.filter(id=OuterRef('object_id')).values('project__name')))
+                                          Session.objects.filter(id=OuterRef('object_id')).values('projects__name')))
         qs = qs.annotate(session=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session'),
                                           Session.objects.filter(id=OuterRef('object_id')).values('pk'), output_field=UUIDField()))
 
@@ -636,7 +636,7 @@ class GalleryFilter(django_filters.FilterSet):
         return queryset
 
     def filter_project(self, queryset, name, value):
-        queryset = queryset.filter(project=value.name)
+        queryset = queryset.filter(projects=value.name)
         return queryset
 
     def filter_plot(self, queryset, name, value):
@@ -731,12 +731,12 @@ class SessionFilter(django_filters.FilterSet):
 
     id = django_filters.CharFilter(label='Experiment ID/ Probe ID', method='filter_id', lookup_expr='startswith')
     lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')
-    project = django_filters.ModelChoiceFilter(queryset=Project.objects.all(), label='Project')
+    projects = django_filters.ModelChoiceFilter(queryset=Project.objects.all(), label='Project')
     repeated = django_filters.ChoiceFilter(choices=REPEATEDSITE, label='Location', method='filter_repeated')
 
     class Meta:
         model = Note
-        fields = ['lab', 'project']
+        fields = ['lab', 'projects']
         exclude = ['json']
 
     def __init__(self, *args, **kwargs):
