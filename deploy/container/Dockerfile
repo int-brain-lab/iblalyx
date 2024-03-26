@@ -50,6 +50,9 @@ ENV APACHE_LOCK_DIR /var/lock/apache2
 ENV APACHE_LOG_DIR /var/log/apache2
 ENV APACHE_PID_FILE /var/run/apache2/apache2.pid
 
+RUN mkdir -p ${APACHE_LOG_DIR} \
+    && chown -R ${APACHE_RUN_USER}:${APACHE_RUN_GROUP} ${APACHE_LOG_DIR}
+
 # Apache configs
 COPY apache-conf-alyx /etc/apache2/apache2.conf
 COPY 000-default-conf-alyx /etc/apache2/sites-available/000-default.conf

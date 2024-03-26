@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/stable/ref/settings/
 import os
 import json
 import dj_database_url
+import structlog
 
 from pathlib import Path
 from django.conf.locale.en import formats as en_formats
@@ -40,24 +41,68 @@ BASE_DIR = Path(__file__).parents[1]  # '/var/www/alyx/alyx'
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
+LOG_LEVEL = os.getenv('DJANGO_LOG_LEVEL', 'INFO')
+LOG_FOLDER_ROOT = Path(os.getenv('APACHE_LOG_DIR', BASE_DIR.joinpath('logs')))
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'simple': {
+            '()': 'colorlog.ColoredFormatter',
+            'format': '%(log_color)s%(asctime)s [%(levelname)s] ' +
+                      '{%(filename)s:%(lineno)s} %(message)s',
+            'datefmt': '%d/%m %H:%M:%S',
+            'log_colors': {
+                'DEBUG': 'cyan',
+                'INFO': 'white',
+                'WARNING': 'yellow',
+                'ERROR': 'red',
+                'CRITICAL': 'bold_red',
+            },
+        },
+        'json_formatter': {
+            '()': structlog.stdlib.ProcessorFormatter,
+            'processor': structlog.processors.JSONRenderer(),
+        },
+    },
     'handlers': {
+        'file': {
+            'level': LOG_LEVEL,
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOG_FOLDER_ROOT.joinpath('django.log'),
+            'maxBytes': 16777216,
+            'backupCount': 5,
+            'formatter': 'simple'
+        },
         'console': {
+            'level': LOG_LEVEL,
             'class': 'logging.StreamHandler',
+            'formatter': 'simple'
+        },
+        'json_file': {
+            'level': LOG_LEVEL,
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOG_FOLDER_ROOT.joinpath('django.json'),
+            'maxBytes': 16777216,
+            'backupCount': 5,
+            'formatter': 'json_formatter',
         },
     },
     'loggers': {
         'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
+            'handlers': ['file'],
+            'level': LOG_LEVEL,
             'propagate': True,
+        },
+        'django_structlog': {
+            'handlers': ['json_file'],
+            'level': LOG_LEVEL,
         },
     },
     'root': {
-        'handlers': ['console'],
-        'level': 'INFO',
+        'handlers': ['file', 'console'],
+        'level': LOG_LEVEL,
         'propagate': True,
     }
 }

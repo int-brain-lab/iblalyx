@@ -6,8 +6,24 @@ Here we are going to detail 3 scenarios:
 - Full AWS instance creation process
 
 ## Quick code update process
-No migrations, just git pull inside the container
-
+From mbox, connect to the EC2 instance.
+Get the bash command inside of the Docker: `docker-bash`
+Run the following commands:
+```shell
+git pull
+git  -C ./ibl_reports pull
+```
+Eventually apply some migrations
+```shell
+./manage.py makemigrations  # this should not make any changes. If it does, abort !!
+./manage.py migrate
+```
+Restart the docker compose gracefully
+```shell
+exit
+cd ~/iblalyx/deploy
+docker compose restart
+```
 
 ## Container release process
 
@@ -54,5 +70,5 @@ First authenticate, this assumes that the profile `ucl` is set up in the AWS CLI
 
 sudo bash alyx_ec2_bootstrap.sh
 
--   run the convenience `alyx_ec2_bootstrap.sh` script to prepare the instnce
+-   run the convenience `alyx_ec2_bootstrap.sh` script to prepare the instance
 -   run the instructions above to update the container on EC2
