@@ -51,6 +51,8 @@ ENV APACHE_LOG_DIR /var/log/apache2
 ENV APACHE_PID_FILE /var/run/apache2/apache2.pid
 
 RUN mkdir -p ${APACHE_LOG_DIR} \
+    && touch ${APACHE_LOG_DIR}/django.log \
+    && touch ${APACHE_LOG_DIR}/django.json \
     && chown -R ${APACHE_RUN_USER}:${APACHE_RUN_GROUP} ${APACHE_LOG_DIR}
 
 # Apache configs
