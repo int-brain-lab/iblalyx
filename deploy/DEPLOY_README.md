@@ -59,16 +59,21 @@ First authenticate, this assumes that the profile `ucl` is set up in the AWS CLI
 
 
 ## AWS instance creation process
-- Create a new EC2 instance, Ubuntu and SSH into it.
-- Clone IBL alyx repository and create the environment file with secrets (Todo add bucket)
+- Create a new EC2 instance, with a volume of a few GB
+- Update mbox ssh config file with the new instance IP
+- Connect to the instance from mbox
+- Clone IBL alyx repository and create the environment file with secrets:
    ```
    git clone https://github.com/int-brain-lab/iblalyx.git
    cd iblalyx/deploy
    cp environment_template.env environment.env
    ```
-- Run the bootstrap script
-
-sudo bash alyx_ec2_bootstrap.sh
-
--   run the convenience `alyx_ec2_bootstrap.sh` script to prepare the instance
--   run the instructions above to update the container on EC2
+- Run the bootstrap script to prepare the instance
+    ```
+    sudo bash alyx_ec2_bootstrap.sh alyx-prod
+    ```
+-   create and start the container services:
+    ```
+    cd ~/iblalyx/deploy
+    sudo docker compose up
+    ```

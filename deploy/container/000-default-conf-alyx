@@ -25,8 +25,7 @@
         Require all granted
     </Directory>
 
-    # ErrorLog ${APACHE_LOG_DIR}/error_alyx.log
-    ErrorLog "|bin/rotatelogs -T ${APACHE_LOG_DIR}/error_alyx.log.%d 86400"
+    ErrorLog ${APACHE_LOG_DIR}/error_alyx.log
     CustomLog ${APACHE_LOG_DIR}/access_alyx.log combined
 
     WSGIApplicationGroup %{GLOBAL}
