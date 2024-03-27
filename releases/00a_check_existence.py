@@ -1,6 +1,6 @@
 """
 --------------
-TO RUN ON MBOX
+1. TO RUN ON MBOX
 --------------
 """
 
@@ -31,7 +31,7 @@ public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    ]
 
 # Select which release you want to check by changing i
-i = 11
+i = 6
 
 # Load datasets and check if they have the FI and AWS file records and both exist
 dset_file = IBL_ALYX_ROOT.joinpath('releases', public_ds_files[i])
@@ -58,6 +58,17 @@ print(f'{public_ds_files[i]}: {datasets.count()} datasets')
 print(f'Incorrect repositories: {len(incorrect_repos)}')
 print(f'File records exist=False: {len(not_exist)}')
 print(f'Correct: {len(correct)}')
+
+"""
+---------------------------------------------------------------------------------------------------------
+THE FOLLOWING THREE STEPS, ONLY IF THERE ARE ISSUES (INCORRECT REPOS OR FILE RECORDS THAT DO NOT EXIST)
+otherwise skip to point 3
+---------------------------------------------------------------------------------------------------------
+"""
+
+"""
+2a. ON MBOX
+"""
 
 # Check that all the nonexistent file records are aws ones, so far this has been the case, if not, figure out what to do
 for d in not_exist:
@@ -86,9 +97,7 @@ for d in incorrect_repos:
                                   exists=False)
 
 """
---------------
-TO RUN ON SDSC
---------------
+2b. ON SDSC
 """
 # force sync the datasets that didn't have an aws file record before (write ids to txt file and scp over or copy paste)
 to_check = [str(d.id) for d in not_exist]
@@ -104,10 +113,9 @@ with open(r'/home/ubuntu/to_check.txt', 'w') as fp:
 # done < $fname
 
 
+
 """
---------------
-TO RUN ON MBOX
---------------
+2c. ON MBOX
 """
 # Once syncing on SDSC has finished, rerun the block above checking that all expected file records exist
 # Finally check that these file records are not just set to exist, but the files indeed exist on AWS on SDSC
@@ -149,7 +157,7 @@ print(f'Exists on AWS: {len(exist)}')
 
 """
 --------------
-TO RUN ON SDSC
+3. TO RUN ON SDSC
 --------------
 """
 # Check that files also indeed exist on SDSC. Run this in django shell
@@ -178,7 +186,7 @@ public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    ]
 
 # Chose release with i
-i = 11
+i = 6
 dset_file = IBL_ALYX_ROOT.joinpath('releases', public_ds_files[i])
 datasets = Dataset.objects.filter(pk__in=list(pd.read_parquet(dset_file)['dataset_id']))
 
