@@ -144,7 +144,6 @@ subjects.update(json=None, description='', death_date=None)
 print("...pruning projects")
 # Delete projects that aren't attached to public session or subject
 projects = Project.objects.using('public').filter(
-    Q(pk__in=sessions.values_list('project', flat=True).distinct()) |
     Q(pk__in=subjects.values_list('projects', flat=True).distinct())
 )
 Project.objects.using('public').exclude(pk__in=projects.values('pk')).delete()
