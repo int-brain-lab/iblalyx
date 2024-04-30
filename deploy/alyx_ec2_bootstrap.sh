@@ -1,12 +1,13 @@
 #!/bin/bash
 # script to prepare a newly launched instance to run the ibl alyx docker image
 # the hostname should be either of (alyx-prod, alyx-dev, openalyx), this is important for automated certificate renewals
-# >>> sudo bash alyx_ec2_bootstrap.sh hostname
+# the rds_name should either be alyx_rds (for alyx-prod or alyx-dev) or openalyx_backend (for openalyx)
+# >>> sudo bash alyx_ec2_bootstrap.sh hostname rds_name
 # the script will
 # - setup a cron job to renew https certificate for the host/domain name
 # - set the local timezone
 # - install docker
-# - add the ec2 instance IP address to the "alyx-rds" security groups
+# - add the ec2 instance IP address to the "rds_name" security groups
 # - create a 'docker-bash' alias command in the .bashrc to open a shell in the running container
 
 
@@ -26,6 +27,7 @@ fi
 
 # Set vars
 HOSTNAME=$1
+RDS_NAME=$2
 WORKING_DIR=/home/ubuntu/alyx-docker
 LOG_DIR=/var/log/apache2
 EC2_REGION="eu-west-2"
@@ -71,7 +73,7 @@ docker run hello-world
 echo "Adding IP Address to 'alyx_rds' security group with unique description..."
 aws ec2 authorize-security-group-ingress \
     --region=$EC2_REGION \
-    --group-name alyx_rds \
+    --group-name $RDS_NAME \
     --ip-permissions IpProtocol=tcp,FromPort=5432,ToPort=5432,IpRanges="[{CidrIp=${IP_ADDRESS}/32,Description='${SG_DESCRIPTION}'}]"
 
 cd $WORKING_DIR || exit 1
