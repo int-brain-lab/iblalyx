@@ -21,6 +21,7 @@ COL_NAMES = [
     'Host_Id', 'Signature_Version', 'Cipher_Suite', 'Authentication_Type', 'Host_Header',
     'TLS_version', 'Access_Point_ARN', 'ACL_Required'
 ]
+N_FIELDS = len(COL_NAMES)
 """str: default remote log location, can be found in server access logging config page."""
 REMOTE_LOG_LOCATION = 'info/ibl-brain-wide-map-public/logs/server-access-logs/'
 LOCAL_LOG_LOCATION = Path.home().joinpath('s3_logs')
@@ -245,7 +246,13 @@ def read_remote_logs(date_range=None, log_location=REMOTE_LOG_LOCATION, s3_bucke
     log_files = tqdm(_iter_logs(log_location, date_range, s3_bucket=s3_bucket), unit=' files')
     logs = (pd.read_csv(log, sep=' ', header=None) for log in log_files)
     df = pd.concat(logs, ignore_index=True)
-    df.columns = COL_NAMES
+    try:
+        df.columns = COL_NAMES
+    except ValueError as ex:
+        if re.search(rf'Expected axis has {N_FIELDS + 1} elements, new values have {N_FIELDS} elements', str(ex)):
+            df = fix_extra_column_entries(df)
+        else:
+            raise ex
     return df
 
 
@@ -288,15 +295,53 @@ def read_remote_logs_robust(date_range=None, log_location=REMOTE_LOG_LOCATION, s
             # Parser expects N columns of nth row <= N columns of 1st row.
             # If there's a column mismatch, attempt to parse each row individually.
             # NB: To be extra safe we search for the expected column mismatch in the error str.
-            n_fields = len(COL_NAMES)
-            if re.search(rf'Expected {n_fields - 1} fields in line \d+, saw {n_fields}', str(ex)):
+            if (re.search(rf'Expected {N_FIELDS - 1} fields in line \d+, saw {N_FIELDS}', str(ex)) or
+               re.search(rf'Expected {N_FIELDS} fields in line \d+, saw {N_FIELDS + 1}', str(ex))):
                 rows = map(StringIO, logstr[i].strip().split('\n'))
                 rows = (pd.read_csv(row, sep=' ', header=None) for row in rows)
                 dfs.append(pd.concat(rows, ignore_index=True))  # concat handles missing columns
             else:
                 raise ex
     df = pd.concat(dfs, ignore_index=True)
+    try:
+        df.columns = COL_NAMES
+    except ValueError as ex:
+        if re.search(rf'Expected axis has {N_FIELDS + 1} elements, new values have {N_FIELDS} elements', str(ex)):
+            df = fix_extra_column_entries(df)
+        else:
+            raise ex
+
+    return df
+
+
+def fix_extra_column_entries(df):
+    """
+    Some logs (particurlarly in Feb 2024) have an extra column, this seems to be column 10. This code finds the rows
+    that have this extra column, removes it and shifts the entries such that they match the rest of the dataframe. We
+    also remove the redundant last column that was added to ensure the dataframe has the same number of columns as
+    COL_NAMES
+    Parameters
+    ----------
+    df : pandas Dataframe
+        The dataframe containing the access log entries
+
+    Returns
+    -------
+    pandas Dataframe
+        The dataframe with fixed columns
+    """
+    probs = df[df[24].str.contains('ibl-brain-wide-map-public')]
+    idx = probs.index.values
+    # Assert that all of column 10 has this same extra value and drop the column
+    assert all(probs[10].values == 'HTTP/1.1"')
+    probs = probs.drop(columns=[10])
+    # Assert that the last column in the original df is empty and drop this column
+    assert all(df[27].isna() | df[27].str.contains('-'))
+    df = df.drop(columns=[27])
+    # Assign the adjusted values to the problematic indices
+    df.iloc[idx] = probs
     df.columns = COL_NAMES
+
     return df
 
 
@@ -349,6 +394,8 @@ def prepare_for_parquet(df):
     for col in ('Object_Size', 'Turn_Around_Time', 'Total_Time'):
         df.loc[df[col] == '-', col] = np.nan
         df[col] = df[col].astype(float)
+    # In some instance the http status is given as a string, convert to int
+    df['HTTP_status'] = df['HTTP_status'].astype(int)
     df.loc[df.ACL_Required.isin(('-', np.nan)), 'ACL_Required'] = pd.NA
     return df
 

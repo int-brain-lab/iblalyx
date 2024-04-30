@@ -212,6 +212,9 @@ def consolidate_logs(boto_session=None, date='last_month', ipinfo_token=None, pr
         ip_details_ = None
 
     if unique_ips.any():
+        if '-' in unique_ips:
+            print(f"Removing unknown IP with address '-'")
+            unique_ips = np.setdiff1d(unique_ips, np.array('-'), assume_unique=True)
         print(f'Querying location for {unique_ips.size} IPs')
         ip_details = ip_info(unique_ips, wait=None, token=ipinfo_token)
         ip_details = pd.DataFrame(ip_details).set_index('ip')
