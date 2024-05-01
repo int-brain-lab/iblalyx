@@ -59,7 +59,7 @@ First authenticate, this assumes that the profile `ucl` is set up in the AWS CLI
 
 
 ## AWS instance creation process
-- Create a new EC2 instance, with a volume of a few GB
+- Create a new EC2 instance, with a volume of a few GB (easiest is to use the templates for alyx-prod or openalyx)
 - Update mbox ssh config file with the new instance IP
 - Connect to the instance from mbox
 - Clone IBL alyx repository and create the environment file with secrets:
@@ -68,9 +68,9 @@ First authenticate, this assumes that the profile `ucl` is set up in the AWS CLI
    cd iblalyx/deploy
    cp environment_template.env environment.env
    ```
-- Run the bootstrap script to prepare the instance
+- Run the bootstrap script to prepare the instance, need to specify the hostname and the rds security group name
     ```
-    sudo bash alyx_ec2_bootstrap.sh alyx-prod
+    sudo bash alyx_ec2_bootstrap.sh alyx-prod alyx_rds
     ```
 -   create and start the container services:
     ```

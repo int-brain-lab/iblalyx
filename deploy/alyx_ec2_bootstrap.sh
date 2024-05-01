@@ -25,6 +25,14 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
+# check on arguments passed, at least one is required to pick build env
+if [ -z "$2" ]; then
+    echo "Error: No argument supplied, script requires second argument for rds security group (alyx_rds, openalyx_backend)"
+    exit 1
+fi
+
+
+
 # Set vars
 HOSTNAME=$1
 RDS_NAME=$2
@@ -70,7 +78,7 @@ apt-get install -y \
 echo "Testing docker..."
 docker run hello-world
 
-echo "Adding IP Address to 'alyx_rds' security group with unique description..."
+echo "Adding IP Address to '${RDS_NAME}' security group with unique description..."
 aws ec2 authorize-security-group-ingress \
     --region=$EC2_REGION \
     --group-name $RDS_NAME \
