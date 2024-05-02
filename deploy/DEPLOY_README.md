@@ -49,7 +49,10 @@ First authenticate, this assumes that the profile `ucl` is set up in the AWS CLI
    aws --profile ucl ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/p4h6o9n8
    docker push public.ecr.aws/p4h6o9n8/alyx:latest
    ```
-   
+
+Note for the above command to work you need aws cli v2 installed (use aws --version to find current version). If necessary, follow
+[these](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) to update.
+
 3. Update and start/restart the container on EC2
    ```
    docker pull public.ecr.aws/p4h6o9n8/alyx:latest
