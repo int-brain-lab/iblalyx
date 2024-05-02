@@ -31,6 +31,12 @@ if (database_secret := os.getenv("DATABASE_SECRET", None)) is not None:
     db_url = json.loads(database_secret)["DATABASE_URL"]
     DATABASES = {"default": dj_database_url.parse(db_url)}
 
+# %% S3 access to write cache tables
+# the s3 access details are provided in the form of a JSON string. The variable looks like:
+# S3_ACCESS={"access_key":"xxxxx", "secret_key":"xxxxx", "region":"us-east-1"}
+if (s3_credentials := os.getenv("S3_ACCESS", None)) is not None:
+    S3_ACCESS = json.loads(s3_credentials)
+
 en_formats.DATETIME_FORMAT = "d/m/Y H:i"
 DATE_INPUT_FORMATS = ('%d/%m/%Y',)
 
@@ -69,7 +75,10 @@ LOGGING = {
     'handlers': {
         'file': {
             'level': LOG_LEVEL,
-            'class': 'logging.FileHandler',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOG_FOLDER_ROOT.joinpath('django.log'),
+            'maxBytes': 16777216,
+            'backupCount': 5,
             'formatter': 'simple'
         },
         'console': {
@@ -79,8 +88,10 @@ LOGGING = {
         },
         'json_file': {
             'level': LOG_LEVEL,
-            'class': 'logging.FileHandler',
+            'class': 'logging.handlers.RotatingFileHandler',
             'filename': LOG_FOLDER_ROOT.joinpath('django.json'),
+            'maxBytes': 16777216,
+            'backupCount': 5,
             'formatter': 'json_formatter',
         },
     },

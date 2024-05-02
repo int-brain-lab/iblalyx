@@ -49,7 +49,10 @@ First authenticate, this assumes that the profile `ucl` is set up in the AWS CLI
    aws --profile ucl ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/p4h6o9n8
    docker push public.ecr.aws/p4h6o9n8/alyx:latest
    ```
-   
+
+Note for the above command to work you need aws cli v2 installed (use aws --version to find current version). If necessary, follow
+[these](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) to update.
+
 3. Update and start/restart the container on EC2
    ```
    docker pull public.ecr.aws/p4h6o9n8/alyx:latest
@@ -59,7 +62,7 @@ First authenticate, this assumes that the profile `ucl` is set up in the AWS CLI
 
 
 ## AWS instance creation process
-- Create a new EC2 instance, with a volume of a few GB
+- Create a new EC2 instance, with a volume of a few GB (easiest is to use the templates for alyx-prod or openalyx)
 - Update mbox ssh config file with the new instance IP
 - Connect to the instance from mbox
 - Clone IBL alyx repository and create the environment file with secrets:
@@ -68,9 +71,9 @@ First authenticate, this assumes that the profile `ucl` is set up in the AWS CLI
    cd iblalyx/deploy
    cp environment_template.env environment.env
    ```
-- Run the bootstrap script to prepare the instance
+- Run the bootstrap script to prepare the instance, need to specify the hostname and the rds security group name
     ```
-    sudo bash alyx_ec2_bootstrap.sh alyx-prod
+    sudo bash alyx_ec2_bootstrap.sh alyx-prod alyx_rds
     ```
 -   create and start the container services:
     ```
