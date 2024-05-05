@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 # script to prepare a newly launched instance to run the ibl alyx docker image
 # the hostname should be either of (alyx-prod, alyx-dev, openalyx), this is important for automated certificate renewals
 # the rds_name should either be alyx_rds (for alyx-prod or alyx-dev) or openalyx_backend (for openalyx)
@@ -69,14 +70,11 @@ echo "Update apt package index, install awscli docker, and allow apt to use a re
 apt-get -qq update
 apt-get install -y \
   awscli \
-  apache2 \
   ca-certificates \
   containerd.io \
   docker-ce \
   docker-ce-cli \
   gnupg
-
-snap install --classic certbot
 
 echo "Testing docker..."
 docker run hello-world
