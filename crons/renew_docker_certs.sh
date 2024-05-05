@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 # A script to renew let's encrypt certificates from within a restricted dockerized AWS EC2 instance
 # $1 determines the environment (alyx-prod, alyx-dev, openalyx)
 
