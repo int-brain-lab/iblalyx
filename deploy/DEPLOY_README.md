@@ -32,7 +32,11 @@ docker compose restart
 2. **Push the container to ECR**
 3. **Update the container on EC2**
 
-### Detailed instructions:
+### Detailed instructions (local or mbox):
+Those instructions show how to
+1. build a container and test it locally
+2. push it to ECR
+3. update the container on an EC2 instance running the image.
 
 1. Build the container locally and test it
     ```
