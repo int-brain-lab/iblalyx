@@ -44,7 +44,7 @@ IP_ADDRESS=$(ip route get 8.8.8.8 | awk -F"src " 'NR==1{split($2,a," ");print a[
 DATE_TIME=$(date +"%Y-%m-%d %T")
 SG_DESCRIPTION="${HOSTNAME}, ec2 instance, created: ${DATE_TIME}"
 # At 01:30 on day-of-month 1 and 15
-CERTBOT_CRON="30 1 1,15 * * docker exec alyx /bin/bash /home/ubuntu/iblalyx/crons/renew_docker_certs.sh ${HOSTNAME} > ${LOG_DIR}/cert_renew.log 2>&1"
+CERTBOT_CRON="30 1 1,15 * * docker exec alyx /bin/bash /home/iblalyx/crons/renew_docker_certs.sh ${HOSTNAME} > ${LOG_DIR}/cert_renew.log 2>&1"
 
 echo "Creating relevant directories and log files..."
 dd if=/dev/zero of=/home/ubuntu/spacer.bin bs=1 count=0 seek=1G  # this is a spacer file in case the system runs out of space

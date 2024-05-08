@@ -54,8 +54,8 @@ echo "Attempting to renew certs..."
 certbot --apache --noninteractive --agree-tos --email admin@internationalbrainlab.org -d $ALYX_URL
 
 echo "Copying newly generated certs to AWS S3 bucket..."
-aws s3 cp /etc/letsencrypt/archive/$ALYX_URL/fullchain1.pem s3://alyx-docker/fullchain.pem-$1
-aws s3 cp /etc/letsencrypt/archive/$ALYX_URL/privkey1.pem s3://alyx-docker/privkey.pem-$1
+aws s3 cp /etc/letsencrypt/live/$ALYX_URL/fullchain.pem s3://alyx-docker/fullchain.pem-$1
+aws s3 cp /etc/letsencrypt/live/$ALYX_URL/privkey.pem s3://alyx-docker/privkey.pem-$1
 
 if [ $in_list -eq 0 ]; then
   echo "Reverting security groups for instance..."
