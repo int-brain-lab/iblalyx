@@ -16,14 +16,16 @@ set -e
 TMP_DIR="$HOME"/openalyx_wd  # This will be recreated and later destroyed, make sure you have write access
 SSH_STR=(mbox)  # have to use ssh config file for all the commands below to work
 # whoami ? Julia
-ALYX_DIR=/var/www/alyx/alyx # The alyx installation you are using with public db set up
-ALYX_VENV=/var/www/alyx/alyxvenv  # path of the alyx env
+#ALYX_DIR=/var/www/alyx/alyx # The alyx installation you are using with public db set up
+#ALYX_VENV=/var/www/alyx/alyxvenv  # path of the alyx env
 # whoami ? Olivier
 #ALYX_DIR=/var/www/alyx_local # The alyx installation you are using with public db set up
 #ALYX_VENV=$ALYX_DIR/alyxvenv # The alyx installation you are using with public db set up
-
+# whomai? Parede
+ALYX_DIR=/var/www/alyx-open/alyx
+ALYX_VENV=/var/www/alyx-open/alyxvenv
 # Source alyx env
-source $ALYX_VENV/bin/activate
+source $ALYX_VENV/local/bin/activate
 echo "$(date '+%Y-%m-%d %H:%M:%S') Beginning to create local version of public database"
 # Create a working directory
 echo "... creating working directory $TMP_DIR"
