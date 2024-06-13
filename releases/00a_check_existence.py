@@ -32,7 +32,7 @@ public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    ]
 
 # Select which release you want to check by changing i
-i = 6
+i = -1
 
 # Load datasets and check if they have the FI and AWS file records and both exist
 dset_file = IBL_ALYX_ROOT.joinpath('releases', public_ds_files[i])
@@ -188,7 +188,7 @@ public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    ]
 
 # Chose release with i
-i = 6
+i = -1
 dset_file = IBL_ALYX_ROOT.joinpath('releases', public_ds_files[i])
 datasets = Dataset.objects.filter(pk__in=list(pd.read_parquet(dset_file)['dataset_id']))
 

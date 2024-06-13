@@ -733,4 +733,15 @@ assert set(db_pids) == set(pids)
 
 dset_ids = list(dset_info.index.get_level_values(1))
 df = pd.DataFrame(dset_ids, columns=["dataset_id"])
-df.to_parquet("./2024_Q2_BWM_iblsort.pqt")
+df.to_parquet("./2024_Q2_BWM_iblsort_datasets.pqt")
+
+# make pids/eids sheet
+eids = []
+probes = []
+for pid in pids:
+    eid, probe = one.pid2eid(pid)
+    eids.append(eids)
+    probes.append(probe)
+
+df = pd.DataFrame([eids, probes, pids], columns=["eid", "pid", "probe"])
+df.to_csv("./2024_Q2_BWM_iblsort_eids_pids.csv")
