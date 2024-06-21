@@ -50,8 +50,10 @@ public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2023_Q4_Bruijns_et_al_datasets.pqt',
                    '2023_Q4_IBL_et_al_BWM_2_datasets.pqt',
                    '2023_Q4_IBL_et_al_BWM_passive_datasets.pqt',
-                   '2024_Q2_IBL_et_al_BWM_iblsort_datasets.pqt'
+                   '2024_Q2_IBL_et_al_BWM_iblsort_datasets.pqt',
+                   '2024_Q2_IBL_et_al_RepeatedSite_datasets.pqt',
                    ]
+
 public_ds_tags = [
     "cfc4906a-316e-4150-8222-fe7e7f13bdac",  # "Behaviour Paper", "2021_Q1_IBL_et_al_Behaviour"
     "9dec1de8-389d-40f6-b00b-763e4fda6552",  # "Erdem's paper", "2021_Q2_Varol_et_al"
@@ -66,7 +68,8 @@ public_ds_tags = [
     "a8f643f2-0b71-430f-a57a-485202fba2c1",  # 2023_Q4_Bruijns_et_al
     "7f7cd406-bb25-470f-bae4-55b56c3acac5",  # 2023_Q4_IBL_et_al_BWM_2
     "30734650-65f3-4653-a059-0687ae872c97",  # 2023_Q4_IBL_et_al_BWM_passive
-    "66e0eec0-4ecf-4de8-a84c-a2bd8eda06f4", # 2024_Q2_IBL_et_al_BWM_iblsort
+    "66e0eec0-4ecf-4de8-a84c-a2bd8eda06f4",  # 2024_Q2_IBL_et_al_BWM_iblsort
+    "9fc1593a-c3c1-4dea-8473-0948ed6a2904",  # 2024_Q2_IBL_et_al_RepeatedSite
 ]
 
 # Check that files exist
