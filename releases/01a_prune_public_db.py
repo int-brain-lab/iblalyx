@@ -52,6 +52,7 @@ public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2023_Q4_IBL_et_al_BWM_passive_datasets.pqt',
                    '2024_Q2_IBL_et_al_BWM_iblsort_datasets.pqt',
                    '2024_Q2_IBL_et_al_RepeatedSite_datasets.pqt',
+                   '2024_Q2_Blau_et_al_datasets.pqt',
                    ]
 
 public_ds_tags = [
@@ -70,6 +71,7 @@ public_ds_tags = [
     "30734650-65f3-4653-a059-0687ae872c97",  # 2023_Q4_IBL_et_al_BWM_passive
     "66e0eec0-4ecf-4de8-a84c-a2bd8eda06f4",  # 2024_Q2_IBL_et_al_BWM_iblsort
     "9fc1593a-c3c1-4dea-8473-0948ed6a2904",  # 2024_Q2_IBL_et_al_RepeatedSite
+    "6828217e-6ae0-44ce-9c6a-bd30f6e523a6",  # 2024_Q2_Blau_et_al
 ]
 
 # Check that files exist

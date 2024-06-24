@@ -1,9 +1,6 @@
 import pandas as pd
-from iblutil.numerical import ismember
-from pathlib import Path
-import numpy as np
 
-from data.models import Dataset
+from data.models import Dataset, Tag
 from experiments.models import ProbeInsertion
 from actions.models import Session
 
@@ -189,6 +186,11 @@ new_dids = [str(d.id) for d in new_dsets]
 df = pd.DataFrame(new_dids, columns=['dataset_id'])
 df.to_parquet('./2024_Q2_IBL_et_al_RepeatedSite_datasets.pqt')
 
+# Tag the datasets
+tag, _ = Tag.objects.get_or_create(name="2024_Q2_IBL_et_al_RepeatedSite", protected=True, public=True)
+tag.datasets.set(new_dsets)
+
+
 # Save the sessions and the insertions
 df = pd.DataFrame(
     columns=['eid', 'pid', 'probe_name'],
@@ -197,3 +199,4 @@ df = pd.DataFrame(
              [str(p.name) for p in probes])
 )
 df.to_csv('./2024_Q2_IBL_et_al_RepeatedSite_eids_pids.csv')
+

@@ -30,6 +30,7 @@ public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2023_Q4_IBL_et_al_BWM_passive_datasets.pqt',
                    '2024_Q2_IBL_et_al_BWM_iblsort_datasets.pqt',
                    '2024_Q2_IBL_et_al_RepeatedSite_datasets.pqt',
+                   '2024_Q2_Blau_et_al_datasets.pqt'
                    ]
 
 # Select which release you want to check by changing i
@@ -186,7 +187,8 @@ public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2023_Q4_IBL_et_al_BWM_2_datasets.pqt',
                    '2023_Q4_IBL_et_al_BWM_passive_datasets.pqt',
                    '2024_Q2_IBL_et_al_BWM_iblsort_datasets.pqt',
-                   '2024_Q2_IBL_et_al_RepeatedSite_datasets.pqt'
+                   '2024_Q2_IBL_et_al_RepeatedSite_datasets.pqt',
+                   '2024_Q2_Blau_et_al_datasets.pqt'
                    ]
 
 # Chose release with i
