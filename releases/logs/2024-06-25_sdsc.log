@@ -1,0 +1,8 @@
+2024-06-25 14:08:51 Creating symlinks
+creating symlinks 20000/96502
+creating symlinks 40000/96502
+creating symlinks 60000/96502
+creating symlinks 80000/96502
+2024-06-25 18:10:08 Syncing to public S3 bucket data/
+2024-06-25 19:47:38 Syncing to public S3 bucket aggregates/
+2024-06-25 19:47:51 Finished
