@@ -2,7 +2,7 @@ from actions.models import Session
 from django.db.models import F, Count, Sum, Q
 
 sessions = Session.objects.filter(
-    project__name='ibl_neuropixel_brainwide_01',
+    projects__name='ibl_neuropixel_brainwide_01',
     task_protocol__icontains='ephys')  # 987 sessions
 
 sessions = sessions.annotate(
