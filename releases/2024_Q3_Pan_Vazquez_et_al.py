@@ -42,5 +42,5 @@ tag.datasets.set(dsets)
 # Save dataset IDs for release in public database
 dset_ids = [str(eid) for eid in dsets.values_list('pk', flat=True)]
 df = pd.DataFrame(dset_ids, columns=['dataset_id'])
-df.to_parquet('./2024_Q4_Pan_Vazquez_et_al_datasets.pqt')
+df.to_parquet('./2024_Q3_Pan_Vazquez_et_al_datasets.pqt')
 
