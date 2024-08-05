@@ -37,7 +37,7 @@ fi
 # Set vars
 HOSTNAME=$1
 RDS_NAME=$2
-HOME_DIR=/home/ubuntu
+HOME_DIR=/home/ubuntu  # this is the home directory of the EC2 instance - not the docker
 WORKING_DIR=/home/ubuntu/alyx-docker
 LOG_DIR=/var/log/apache2
 EC2_REGION="eu-west-2"
@@ -46,7 +46,7 @@ DATE_TIME=$(date +"%Y-%m-%d %T")
 SG_DESCRIPTION="${HOSTNAME}, ec2 instance, created: ${DATE_TIME}"
 
 CRONTAB="# At 01:30 on day-of-month 1 and 15 we renew certificates
-30 1 1,15 * * docker exec alyx /bin/bash ${HOME_DIR}/iblalyx/crons/renew_docker_certs.sh ${HOSTNAME} > ${LOG_DIR}/cert_renew.log 2>&1
+30 1 1,15 * * docker exec alyx /bin/bash /home/iblalyx/crons/renew_docker_certs.sh ${HOSTNAME} > ${LOG_DIR}/cert_renew.log 2>&1
 # at 10am on Monday we rotate logs
 0 10 * * 1 logrotate -vs  ${LOG_DIR}/logrotate.state ${HOME_DIR}/iblalyx/deploy/alyxlogrotate.conf"
 
