@@ -23,7 +23,6 @@ This produces the following files and registers the parquet dataset to Alyx:
 /mnt/ibl/aggregates/Subjects/mrsicflogellab/SWC_022/_ibl_subjectTrials.log.csv
 
 """
-
 import logging
 import hashlib
 from pathlib import Path
@@ -204,11 +203,14 @@ def generate_trials_aggregate(session_tasks: dict, outcomes=None):
 
 class Command(BaseCommand):
     """Generate an aggregate trials dataset for a given subject."""
+
     help = "Generate an aggregate trials dataset for a given subject."
     subject = None
     """subjects.models.Subject: The subject to aggregate."""
     output_path = None
     """pathlib.Path: Where to save the aggregate dataset."""
+    default_revision = None
+    """str | Revision: The default revision to use if the current default dataset is protected."""
 
     def add_arguments(self, parser):
         parser.add_argument('subject', type=str, help='A subject nickname.')
@@ -222,6 +224,10 @@ class Command(BaseCommand):
                             help='The alyx user under which to register the dataset.')
         parser.add_argument('--clobber', action='store_true', default=False,
                             help='If passed, force a regeneration of the dataset.')
+        parser.add_argument('--revision', type=str,
+                            help='The revision name to register dataset under.')
+        parser.add_argument('--default-revision', type=str,
+                            help='The default revision name to use if the current default dataset is protected.')
 
     def handle(self, *_, **options):
         # Unpack options
@@ -233,9 +239,10 @@ class Command(BaseCommand):
         elif verbosity > 1:
             logger.setLevel(logging.DEBUG)
 
-        dry, subject, user = options['dryrun'], options['subject'], options['alyx_user']
+        dry, subject, user, revision = options['dryrun'], options['subject'], options['alyx_user'], options['revision']
         self.subject = Subject.objects.get(nickname=subject)
         self.output_path = options['output_path']
+        self.default_revision = options['default_revision']
         query = self.query_sessions(self.subject)
         # Create sessions dataframe
         fields = ('id', 'start_time', 'number')
@@ -312,7 +319,7 @@ class Command(BaseCommand):
 
         # Create dataset
         dset, out_file = self.register_dataset(
-            out_file, file_hash=md5_hash, file_size=file_size, aggregate_hash=aggregate_hash, user=user)
+            out_file, file_hash=md5_hash, file_size=file_size, aggregate_hash=aggregate_hash, user=user, revision=revision)
 
         # Move log file to new revision folder
         if out_file.parent != log_file.parent:
@@ -436,7 +443,7 @@ class Command(BaseCommand):
                     and aggregate_hash == (dset.json or {}).get('aggregate_hash')
                     and file_size == dset.file_size)
             if revision or (dset.is_protected and not unchanged):
-                revision = revision or date.today().isoformat()
+                revision = revision or self.default_revision or date.today().isoformat()
                 assert dset.revision is None or dset.revision.name != revision, \
                     f'Unable to overwrite protected dataset with revision "{revision}".'
                 if isinstance(revision, str):  # user may have already passed in revision obj
