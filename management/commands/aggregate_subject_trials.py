@@ -37,6 +37,7 @@ from one.alf.spec import is_uuid_string
 from iblutil.io import hashfile
 
 import ibllib.pipes.dynamic_pipeline as dyn
+from ibllib import __version__ as ibllib_version
 
 from django.core.management import BaseCommand
 from subjects.models import Subject
@@ -172,7 +173,7 @@ def generate_trials_aggregate(session_tasks: dict, outcomes=None):
         'goCueTrigger_times', 'stimOnTrigger_times', 'stimFreezeTrigger_times', 'stimFreeze_times',
         'stimOffTrigger_times', 'stimOff_times', 'phase', 'position', 'quiescence', 'table'}
     for i, (eid, tasks) in enumerate(session_tasks.items()):
-        logger.info('Session %i/%i: %s', i + 1, len(session_tasks), tasks[0].session_path)
+        logger.info('=== Session %i/%i: %s ===', i + 1, len(session_tasks), tasks[0].session_path)
         for task in tasks:
             proc_number = get_protocol_number(task)
             try:
@@ -272,12 +273,13 @@ class Command(BaseCommand):
 
         if not rerun:
             logger.info('Aggregate hash unchanged; exiting')
-            return
+            return None, None, None
 
         # Generate aggregate trials table
         all_trials, outcomes = generate_trials_aggregate(all_tasks, outcomes)
         outcomes = pd.DataFrame(outcomes, columns=['session', 'task number', 'notes'])
         outcomes.drop_duplicates(['session', 'task number'], keep='last', inplace=True)
+
         # Add start_times column to trials table
         start_times = sessions.astype({'id': str}).set_index('id')['start_time'].rename('session_start_time')
         all_trials = all_trials.merge(start_times, left_on='session', right_index=True, sort=False)
@@ -287,6 +289,7 @@ class Command(BaseCommand):
             logger.warning(('(DRY) ' if dry else '') + 'Output file already exists, overwriting %s', out_file)
         if dry:
             out_file = out_file.with_name(f'{out_file.stem}.DRYRUN{out_file.suffix}')
+
         # Save to disk
         out_file.parent.mkdir(parents=True, exist_ok=True)
         all_trials.to_parquet(out_file)
@@ -294,6 +297,7 @@ class Command(BaseCommand):
         assert (file_size := out_file.stat().st_size) > 0
         assert not pd.read_parquet(out_file).empty, f'Failed to read-after-write {out_file}'
         md5_hash = hashfile.md5(out_file)
+
         # Save outcome log
         log_file = out_file.with_name(f'_ibl_subjectTrials.log{".DRYRUN" if dry else ""}.csv')
         outcomes.to_csv(log_file)
@@ -309,6 +313,11 @@ class Command(BaseCommand):
         # Create dataset
         dset, out_file = self.register_dataset(
             out_file, file_hash=md5_hash, file_size=file_size, aggregate_hash=aggregate_hash, user=user)
+
+        # Move log file to new revision folder
+        if out_file.parent != log_file.parent:
+            log_file = log_file.rename(out_file.with_name(log_file.name))
+
         return dset, out_file, log_file
 
     @staticmethod
@@ -402,7 +411,7 @@ class Command(BaseCommand):
         user : str, User
             The Alyx database user registering the dataset.
         revision : str, Revision
-            The revision name to use for the dataset.
+            The revision name to use for the dataset (NB: do not add pound signs to name).
 
         Returns
         -------
@@ -445,16 +454,27 @@ class Command(BaseCommand):
         dset.version = VERSION
         dset.file_size = file_size
         dset.hash = file_hash
-        dset.user = LabMember.objects.get(username=user) if isinstance(user, str) else user
+        dset.created_by = LabMember.objects.get(username=user) if isinstance(user, str) else user
+        dset.generating_software = 'ibllib ' + ibllib_version
         dset.json = {**(dset.json or {}), 'aggregate_hash': aggregate_hash}
         logger.info(('Created' if is_new else 'Updated') + ' aggregate dataset with UUID %s', dset.pk)
         # Validate dataset
         dset.full_clean()
         dset.save()
 
+        # Set default_dataset field of any other datasets to False
+        (Dataset
+         .objects
+         .filter(
+            name='_ibl_subjectTrials.table.pqt', collection='Subjects', default_dataset=True,
+            dataset_type=DatasetType.objects.get(name='subjectTrials.table'), object_id=self.subject.id)
+         .exclude(pk=dset.pk)
+         .update(default_dataset=False))
+
         out_file = self.output_path.joinpath(dset.collection, self.subject.lab.name, self.subject.nickname)
         if dset.revision:
-            out_file /= dset.revision.name
+            out_file /= f'#{dset.revision.name}#'
+            out_file.mkdir(exist_ok=True)
         out_file /= alfiles.add_uuid_string('_ibl_subjectTrials.table.pqt', dset.pk)
         if out_file.exists():
             logger.warning('Output file %s already exists, overwriting', out_file)
@@ -463,12 +483,12 @@ class Command(BaseCommand):
         assert out_file.exists(), f'failed to move {file_path} to {out_file}'
 
         # Update file records
-        for repo in map(DataRepository.objects.get, ('aws_aggregates', 'flatiron_aggregates')):
+        rel_path = alfiles.remove_uuid_string(out_file.relative_to(self.output_path)).as_posix()
+        for repo in map(lambda x: DataRepository.objects.get(name=x), ('aws_aggregates', 'flatiron_aggregates')):
             kwargs = {'exists': repo.name.startswith('flatiron')}
             r, r_is_new = FileRecord.objects.update_or_create(
-                dataset=dset, data_repository=repo, relative_path=out_file.relative_to(self.output_path).as_posix(),
-                defaults=kwargs, create_defaults=kwargs)
-            logger.debug(('Created' if r_is_new else 'Updated') + ' file record %s: exists=%s', r.name, r.exists)
+                dataset=dset, data_repository=repo, relative_path=rel_path, defaults=kwargs, create_defaults=kwargs)
+            logger.info(('Created' if r_is_new else 'Updated') + ' file record %s: exists=%s', repo.name, r.exists)
 
         return dset, out_file
 
