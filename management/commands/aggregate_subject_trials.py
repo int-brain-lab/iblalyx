@@ -443,11 +443,6 @@ class Command(BaseCommand):
         """
         Compute subject training criteria dataset
 
-        Creates hash of concatenated dataset UUIDs and their file hashes. The datasets used are the
-        raw settings, raw trials jsonable, experiment description, and extracted trials table. The
-        assumption is that if any of these changes, so should the aggregate table, however the
-        table may require regenerating even when the hash remains the same.
-
         Parameters
         ----------
         trials_table : pathlib.Path or None
