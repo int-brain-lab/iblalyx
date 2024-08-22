@@ -37,6 +37,7 @@ from iblutil.io import hashfile
 
 import ibllib.pipes.dynamic_pipeline as dyn
 from ibllib import __version__ as ibllib_version
+import ibllib.pipes.training_status as ts
 
 from django.core.management import BaseCommand
 from subjects.models import Subject
@@ -201,8 +202,97 @@ def generate_trials_aggregate(session_tasks: dict, outcomes=None):
     return df_trials, outcomes
 
 
+def generate_training_aggregate(training_file, subject, root=ROOT):
+    """
+    Compute training criteria table for a give subject
+
+    Parameters
+    ----------
+    training_file : pathlib.Path
+        The path to the subjectTrials.table file
+    subject : subjects.models.Subject
+        The subject to compute the training criteria for
+    root : pathlib.Path
+        The root folder containing the data.
+
+
+    Returns
+    -------
+    pandas.DataFrame
+        A sorted dataframe with training criteria
+    """
+
+    # Load in the subjectTrials.tabke
+    subj_df = pd.read_parquet(training_file)
+
+    # Find the dates that we need to compute the training status for
+    missing_dates = pd.DataFrame()
+    path2eid = dict()
+    for eid, info in subj_df.groupby('session'):
+        info = info.iloc[0]
+        session_path = root.joinpath(subject.lab.name, 'Subjects', subject.nickname, str(info.session_start_time.date()),
+                                     str(info.session_number).zfill(3))
+        path2eid[str(session_path)] = eid
+        s_df = pd.DataFrame({'date': session_path.parts[-2], 'session_path': str(session_path)}, index=[0])
+        missing_dates = pd.concat([missing_dates, s_df], ignore_index=True)
+
+    missing_dates = missing_dates.sort_values('date')
+
+    df = None
+    # Iterate through the dates to fill up our training dataframe
+    for _, grp in missing_dates.groupby('date'):
+        sess_dicts = ts.get_training_info_for_session(grp.session_path.values, None, force=False)
+        if len(sess_dicts) == 0:
+            continue
+
+        for sess_dict in sess_dicts:
+            if df is None:
+                df = pd.DataFrame.from_dict(sess_dict)
+            else:
+                df = pd.concat([df, pd.DataFrame.from_dict(sess_dict)])
+
+    # Sort values by date and reset the index
+    df = df.sort_values('date')
+    df = df.reset_index(drop=True)
+
+    # Add eids to the subject training table
+    eids = []
+    for sess in df.session_path.values:
+        eids.append(path2eid[str(sess)])
+    df['session'] = eids
+
+    # Now go through the backlog and compute the training status for sessions.
+    # If for example one was missing as it is cumulative
+    # we need to go through and compute all the backlog
+    # Find the earliest date in missing dates that we need to recompute the training status for
+    missing_status = ts.find_earliest_recompute_date(df.drop_duplicates('date').reset_index(drop=True))
+    for missing_date in missing_status:
+        df = ts.compute_training_status(df, missing_date, None, force=False)
+
+    # Add in untrainable or unbiasable
+    df_lim = df.drop_duplicates(subset='session', keep='first')
+    # Detect untrainable
+    un_df = df_lim[df_lim['training_status'] == 'in training'].sort_values('date')
+    if len(un_df) >= 40:
+        sess = un_df.iloc[39].session
+        df.loc[df['session'] == sess, 'training_status'] = 'untrainable'
+
+    # Detect unbiasable
+    un_df = df_lim[df_lim['task_protocol'] == 'biased'].sort_values('date')
+    if len(un_df) >= 40:
+        tr_st = un_df[0:40].training_status.unique()
+        if 'ready4ephysrig' not in tr_st:
+            sess = un_df.iloc[39].session
+            df.loc[df['session'] == sess, 'training_status'] = 'unbiasable'
+
+    # Remove duplicate rows
+    status = df.set_index('date')[['training_status', 'session']].drop_duplicates(subset='training_status',
+                                                                                  keep='first')
+    return status
+
+
 class Command(BaseCommand):
-    """Generate an aggregate trials dataset for a given subject."""
+    """Generate an aggregate trials and optionally training dataset(s) for a given subject."""
 
     help = "Generate an aggregate trials dataset for a given subject."
     subject = None
@@ -211,6 +301,11 @@ class Command(BaseCommand):
     """pathlib.Path: Where to save the aggregate dataset."""
     default_revision = None
     """str | Revision: The default revision to use if the current default dataset is protected."""
+    revision = None
+    """str | Revision: A specific revision to use. Even if the current default dataset is not protected a new dataset
+     will be created with this revision."""
+    user = None
+    """str | User: The user to register the new datasets."""
 
     def add_arguments(self, parser):
         parser.add_argument('subject', type=str, help='A subject nickname.')
@@ -228,6 +323,8 @@ class Command(BaseCommand):
                             help='The revision name to register dataset under.')
         parser.add_argument('--default-revision', type=str,
                             help='The default revision name to use if the current default dataset is protected.')
+        parser.add_argument('--training-status', action='store_true', default=False,
+                            help='If passed, the training status aggregate dataset is computed and registered.')
 
     def handle(self, *_, **options):
         # Unpack options
@@ -239,10 +336,11 @@ class Command(BaseCommand):
         elif verbosity > 1:
             logger.setLevel(logging.DEBUG)
 
-        dry, subject, user, revision = options['dryrun'], options['subject'], options['alyx_user'], options['revision']
+        dry, subject, self.user, self.revision = options['dryrun'], options['subject'], options['alyx_user'], options['revision']
         self.subject = Subject.objects.get(nickname=subject)
         self.output_path = options['output_path']
         self.default_revision = options['default_revision']
+        compute_training_status = options['training_status'] is True
         query = self.query_sessions(self.subject)
         # Create sessions dataframe
         fields = ('id', 'start_time', 'number')
@@ -280,7 +378,12 @@ class Command(BaseCommand):
 
         if not rerun:
             logger.info('Aggregate hash unchanged; exiting')
-            return None, None, None
+            if compute_training_status:
+                # The trials table may not need to be rerun, but we need to check if the training status table exists
+                training_dset, training_out_file = self.handle_training_status(trials_table=None, rerun=rerun, dry=dry)
+                return training_dset, training_out_file, None
+            else:
+                return None, None, None
 
         # Generate aggregate trials table
         all_trials, outcomes = generate_trials_aggregate(all_tasks, outcomes)
@@ -315,17 +418,115 @@ class Command(BaseCommand):
 
         if dry:
             logger.info('Dry run complete: %s aggregate hash = %s', out_file, aggregate_hash)
-            return None, out_file, log_file
+            if compute_training_status:
+                _, training_out_file = self.handle_training_status(trials_table=out_file, rerun=rerun, dry=dry)
+                return None, [out_file, training_out_file], log_file
+            else:
+                return None, out_file, log_file
 
         # Create dataset
         dset, out_file = self.register_dataset(
-            out_file, file_hash=md5_hash, file_size=file_size, aggregate_hash=aggregate_hash, user=user, revision=revision)
+            out_file, file_hash=md5_hash, file_size=file_size, aggregate_hash=aggregate_hash, user=self.user,
+            revision=self.revision)
 
         # Move log file to new revision folder
         if out_file.parent != log_file.parent:
             log_file = log_file.rename(out_file.with_name(log_file.name))
 
-        return dset, out_file, log_file
+        if compute_training_status:
+            training_dset, training_out_file = self.handle_training_status(trials_table=out_file, rerun=rerun, dry=dry)
+            return [dset, training_dset], [out_file, training_out_file], log_file
+        else:
+            return dset, out_file, log_file
+
+    def handle_training_status(self, trials_table=None, rerun=False, dry=False):
+        """
+        Compute subject training criteria dataset
+
+        Creates hash of concatenated dataset UUIDs and their file hashes. The datasets used are the
+        raw settings, raw trials jsonable, experiment description, and extracted trials table. The
+        assumption is that if any of these changes, so should the aggregate table, however the
+        table may require regenerating even when the hash remains the same.
+
+        Parameters
+        ----------
+        trials_table : pathlib.Path or None
+            Path to the subjectTrials.table dataset on disk, the sessions to use in the training status computation
+            are taken from this file
+        rerun : bool
+            Indicates if the subjectTrials table has been newly created
+        dry: bool
+            Runs aggregate table generation without registration. Output file contains "DRYRUN"
+
+        Returns
+        -------
+        Dataset
+            The Dataset record for the aggregate table.
+        pathlib.Path
+            The output file path.
+        """
+
+        # Try except as there are cases where it fails, and we don't want that to stop the trials table registration
+        try:
+            qs = Dataset.objects.filter(
+                name='_ibl_subjectTraining.table.pqt', object_id=self.subject.id, default_dataset=True)
+
+            # If a dataset already exists and rerun is false, we do not do anything
+            if qs.count() > 0 and not rerun:
+                logger.info(f'Training status file exists and rerun is {rerun}; exiting')
+                return None, None
+
+            # Otherwise either the dataset doesn't exist or needs to be recomputed
+            # If the trials table file hasn't just been created we need to find the relevant file
+            if trials_table is None:
+                dset = Dataset.objects.get(name='_ibl_subjectTrials.table.pqt', object_id=self.subject.id,
+                                           default_dataset=True)
+                trials_table = next(Path('/mnt/ibl/aggregates').joinpath(dset.file_records.all()[0].relative_path).
+                                    parent.glob(f'_ibl_subjectTrials.table.{str(dset.id)}.pqt'))
+
+            assert trials_table.exists()
+
+            # Compute the trainin status table
+            training_status = generate_training_aggregate(trials_table, self.subject)
+
+            # Specify the file to save to
+            out_file = self.output_path.joinpath('Subjects', self.subject.lab.name, self.subject.nickname,
+                                                 '_ibl_subjectTraining.table.pqt')
+
+            if out_file.exists():
+                logger.warning(('(DRY) ' if dry else '') + 'Output file already exists, overwriting %s', out_file)
+            if dry:
+                out_file = out_file.with_name(f'{out_file.stem}.DRYRUN{out_file.suffix}')
+
+            # Save the training status to file
+            out_file.parent.mkdir(parents=True, exist_ok=True)
+            training_status.to_parquet(out_file)
+            assert out_file.exists(), f'Failed to save to {out_file}'
+            assert (file_size := out_file.stat().st_size) > 0
+            assert not pd.read_parquet(out_file).empty, f'Failed to read-after-write {out_file}'
+            md5_hash = hashfile.md5(out_file)
+
+            if dry:
+                logger.info('Dry run complete: %s', out_file)
+                return None, out_file
+
+            # Format the training criteria into a dict to update the Subject json
+            criteria_dates, sess = training_status.to_dict().items()
+            trained_criteria = {v.replace(' ', '_'): (k, sess[1][k]) for k, v in criteria_dates[1].items()}
+
+            # Update the json field of the subject with the new training dates
+            self.subject.json = {**(self.subject.json or {}), 'trained_criteria': trained_criteria}
+            self.subject.save()
+
+            # Register the dataset
+            dset, out_file = self.register_dataset(
+                out_file, file_hash=md5_hash, file_size=file_size, user=self.user, revision=self.revision)
+
+        except Exception as err:
+            logger.error(f'Training status aggregate generation failed with error: {err}')
+            dset = out_file = None
+
+        return dset, out_file
 
     @staticmethod
     def files2hash(file_list):
@@ -403,7 +604,7 @@ class Command(BaseCommand):
 
     def register_dataset(self, file_path, file_hash=None, aggregate_hash=None, file_size=None, user='root', revision=None):
         """
-        Register an aggregate trials table dataset.
+        Register an aggregate subject table dataset.
 
         Parameters
         ----------
@@ -430,10 +631,14 @@ class Command(BaseCommand):
         if not file_path.exists():
             raise FileNotFoundError(file_path)
         assert all((self.output_path, self.subject)), 'subject and output path must be set'
+
+        # Get the alf object from the filename
+        alf_object = alfiles.filename_parts(file_path.name, as_dict=True)['object']
+
         # Get or create the dataset
         dset, is_new = Dataset.objects.get_or_create(
-            name='_ibl_subjectTrials.table.pqt', collection='Subjects', default_dataset=True,
-            dataset_type=DatasetType.objects.get(name='subjectTrials.table'),
+            name=f'_ibl_{alf_object}.table.pqt', collection='Subjects', default_dataset=True,
+            dataset_type=DatasetType.objects.get(name=f'{alf_object}.table'),
             data_format=DataFormat.objects.get(name='parquet'), object_id=self.subject.id)
 
         # Check if unchanged; whether new revision is required
@@ -451,8 +656,8 @@ class Command(BaseCommand):
                 logger.info('Creating new dataset with "%s" revision', revision.name)
                 # Create new dataset; leave the old untouched (save method handles change of default dataset field)
                 dset = Dataset.objects.create(
-                    name='_ibl_subjectTrials.table.pqt', collection='Subjects', default_dataset=True,
-                    dataset_type=DatasetType.objects.get(name='subjectTrials.table'),
+                    name=f'_ibl_{alf_object}.table.pqt', collection='Subjects', default_dataset=True,
+                    dataset_type=DatasetType.objects.get(name=f'{alf_object}.table'),
                     data_format=DataFormat.objects.get(name='parquet'), content_object=self.subject, revision=revision
                 )
                 is_new = True
@@ -463,7 +668,8 @@ class Command(BaseCommand):
         dset.hash = file_hash
         dset.created_by = LabMember.objects.get(username=user) if isinstance(user, str) else user
         dset.generating_software = 'ibllib ' + ibllib_version
-        dset.json = {**(dset.json or {}), 'aggregate_hash': aggregate_hash}
+        if aggregate_hash is not None:
+            dset.json = {**(dset.json or {}), 'aggregate_hash': aggregate_hash}
         logger.info(('Created' if is_new else 'Updated') + ' aggregate dataset with UUID %s', dset.pk)
         # Validate dataset
         dset.full_clean()
@@ -473,8 +679,8 @@ class Command(BaseCommand):
         (Dataset
          .objects
          .filter(
-            name='_ibl_subjectTrials.table.pqt', collection='Subjects', default_dataset=True,
-            dataset_type=DatasetType.objects.get(name='subjectTrials.table'), object_id=self.subject.id)
+            name=f'_ibl_{alf_object}.table.pqt', collection='Subjects', default_dataset=True,
+            dataset_type=DatasetType.objects.get(name=f'{alf_object}.table'), object_id=self.subject.id)
          .exclude(pk=dset.pk)
          .update(default_dataset=False))
 
@@ -482,7 +688,7 @@ class Command(BaseCommand):
         if dset.revision:
             out_file /= f'#{dset.revision.name}#'
             out_file.mkdir(exist_ok=True)
-        out_file /= alfiles.add_uuid_string('_ibl_subjectTrials.table.pqt', dset.pk)
+        out_file /= alfiles.add_uuid_string(f'_ibl_{alf_object}.table.pqt', dset.pk)
         if out_file.exists():
             logger.warning('Output file %s already exists, overwriting', out_file)
         logger.info('%s -> %s', file_path, out_file)
