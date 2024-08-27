@@ -6,6 +6,9 @@ to the alyx data app management commands folder:
 >>> basedir="/home/datauser/Documents/github"
 >>> ln -s "$basedir/iblalyx/management/commands/aggregate_subject_trials.py" \
 ... "$basedir/alyx/alyx/data/management/commands/aggregate_subject_trials.py"
+>>> ln -s "$basedir/iblalyx/management/one_django.py" \
+... "$basedir/alyx/alyx/data/management/one_django.py"
+
 
 Examples
 --------
@@ -43,6 +46,7 @@ from subjects.models import Subject
 from actions.models import Session
 from misc.models import LabMember
 from data.models import Dataset, DataRepository, FileRecord, DataFormat, DatasetType, Revision
+from .. import OneSDSC
 
 logger = logging.getLogger('ibllib')
 ROOT = Path('/mnt/ibl')
@@ -84,7 +88,7 @@ def get_protocol_number(task):
     return n
 
 
-def load_pipeline_tasks(subject, sessions, root, outcomes=None):
+def load_pipeline_tasks(subject, sessions, root, outcomes=None, one=None):
     """
     Instantiate all trials-related pipeline tasks for a given set of sessions.
 
@@ -98,6 +102,9 @@ def load_pipeline_tasks(subject, sessions, root, outcomes=None):
         The root folder containing the data.
     outcomes : list of tuple
         An optional list to append to.
+    one : one.api.One
+        An instance of ONE to use by the data handler for loading the input datasets. On SDSC this
+        creates symlinks of the default revisions.
 
     Returns
     -------
@@ -135,6 +142,9 @@ def load_pipeline_tasks(subject, sessions, root, outcomes=None):
             # Ensure input files exist
             task.location = task.machine = 'sdsc'
             task.get_signatures()
+            task.one = one
+            task.data_handler = task.get_data_handler()
+            task.data_handler.setUp()
             inputs_present, inputs = task.assert_expected_inputs(raise_error=False)
             proc_number = get_protocol_number(task)
             if not inputs_present:
@@ -254,7 +264,7 @@ class Command(BaseCommand):
         # First checking number of sessions, then number of input files, then input file sizes, then the hashes
         qs = Dataset.objects.filter(
             name='_ibl_subjectTrials.table.pqt', object_id=self.subject.id, default_dataset=True)
-        all_tasks, input_files, outcomes = load_pipeline_tasks(subject, sessions, options['data_path'])
+        all_tasks, input_files, outcomes = load_pipeline_tasks(subject, sessions, options['data_path'], one=OneSDSC())
         rerun = options['clobber'] is True or qs.count() == 0
         if rerun:
             logger.info('Forcing re-run' if options['clobber'] else 'No previous aggregate dataset')
@@ -279,6 +289,8 @@ class Command(BaseCommand):
                         logger.info('Aggregate hash changed')
 
         if not rerun:
+            for task in all_tasks:
+                task.cleanUp()
             logger.info('Aggregate hash unchanged; exiting')
             return None, None, None
 
@@ -291,6 +303,10 @@ class Command(BaseCommand):
         start_times = sessions.astype({'id': str}).set_index('id')['start_time'].rename('session_start_time')
         all_trials = all_trials.merge(start_times, left_on='session', right_index=True, sort=False)
         assert set(all_trials.columns) == set(EXPECTED_KEYS), 'unexpected columns in aggregate trials table'
+
+        # Clean up all symlinks made by the data handler
+        for task in all_tasks:
+            task.cleanUp()
 
         if out_file.exists():
             logger.warning(('(DRY) ' if dry else '') + 'Output file already exists, overwriting %s', out_file)
