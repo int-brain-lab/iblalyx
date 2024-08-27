@@ -75,8 +75,7 @@ if __name__ == '__main__':
     logger.info(f'Processing {subjects.count()} subjects')
     # Arguments to pass to management command handler
     kwargs = dict(
-        verbosity=1, dryrun=False, alyx_user='miles', output_path=OUTPUT_PATH, clobber=False, data_path=ROOT,
-        default_revision=None, revision=None, training_status=False)
+        dry=False, user='miles', output_path=OUTPUT_PATH, clobber=False, data_path=ROOT, training_status=False)
 
     for i, sub in enumerate(subjects):
         nickname = sub.nickname

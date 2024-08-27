@@ -3,7 +3,7 @@
 This command is currently set up to run on the Flatiron datauser account. To install, set up a link
 to the alyx data app management commands folder:
 
->>> basedir="/home/datauser/Documents/github"
+>>> basedir="/home/datauser/Documents/PYTHON"
 >>> ln -s "$basedir/iblalyx/management/commands/aggregate_subject_trials.py" \
 ... "$basedir/alyx/alyx/data/management/commands/aggregate_subject_trials.py"
 >>> ln -s "$basedir/iblalyx/management/one_django.py" \
@@ -31,6 +31,7 @@ import hashlib
 from pathlib import Path
 from datetime import date
 from collections import defaultdict
+from itertools import chain
 
 import pandas as pd
 from one.alf.io import AlfBunch
@@ -46,7 +47,7 @@ from subjects.models import Subject
 from actions.models import Session
 from misc.models import LabMember
 from data.models import Dataset, DataRepository, FileRecord, DataFormat, DatasetType, Revision
-from .. import OneSDSC
+from data.management.one_django import OneDjango
 
 logger = logging.getLogger('ibllib')
 ROOT = Path('/mnt/ibl')
@@ -249,10 +250,12 @@ class Command(BaseCommand):
         elif verbosity > 1:
             logger.setLevel(logging.DEBUG)
 
-        dry, subject, user, revision = options['dryrun'], options['subject'], options['alyx_user'], options['revision']
+        self.default_revision = options.pop('default_revision')
+        self.run(options['subject'], user=options.pop('alyx_user'), dry=options.pop('dryrun'), **options)
+
+    def run(self, subject, revision=None, output_path=OUTPUT_PATH, data_path=ROOT, dry=True, clobber=False, user='root'):
         self.subject = Subject.objects.get(nickname=subject)
-        self.output_path = options['output_path']
-        self.default_revision = options['default_revision']
+        self.output_path = output_path
         query = self.query_sessions(self.subject)
         # Create sessions dataframe
         fields = ('id', 'start_time', 'number')
@@ -264,10 +267,10 @@ class Command(BaseCommand):
         # First checking number of sessions, then number of input files, then input file sizes, then the hashes
         qs = Dataset.objects.filter(
             name='_ibl_subjectTrials.table.pqt', object_id=self.subject.id, default_dataset=True)
-        all_tasks, input_files, outcomes = load_pipeline_tasks(subject, sessions, options['data_path'], one=OneSDSC())
-        rerun = options['clobber'] is True or qs.count() == 0
+        all_tasks, input_files, outcomes = load_pipeline_tasks(subject, sessions, data_path, one=OneDjango())
+        rerun = clobber is True or qs.count() == 0
         if rerun:
-            logger.info('Forcing re-run' if options['clobber'] else 'No previous aggregate dataset')
+            logger.info('Forcing re-run' if clobber else 'No previous aggregate dataset')
         else:
             # Attempt to load
             old_aggregate = alfiles.add_uuid_string(out_file, qs.first().id)
@@ -289,7 +292,7 @@ class Command(BaseCommand):
                         logger.info('Aggregate hash changed')
 
         if not rerun:
-            for task in all_tasks:
+            for task in chain.from_iterable(all_tasks.values()):
                 task.cleanUp()
             logger.info('Aggregate hash unchanged; exiting')
             return None, None, None
@@ -303,10 +306,6 @@ class Command(BaseCommand):
         start_times = sessions.astype({'id': str}).set_index('id')['start_time'].rename('session_start_time')
         all_trials = all_trials.merge(start_times, left_on='session', right_index=True, sort=False)
         assert set(all_trials.columns) == set(EXPECTED_KEYS), 'unexpected columns in aggregate trials table'
-
-        # Clean up all symlinks made by the data handler
-        for task in all_tasks:
-            task.cleanUp()
 
         if out_file.exists():
             logger.warning(('(DRY) ' if dry else '') + 'Output file already exists, overwriting %s', out_file)
@@ -328,6 +327,10 @@ class Command(BaseCommand):
         # Create aggregate hash
         successful_sessions = outcomes['session'][outcomes['notes'] == 'SUCCESS'].unique().tolist()
         aggregate_hash = self.make_aggregate_hash(successful_sessions, input_files=input_files)
+
+        # Clean up all symlinks made by the data handler
+        for task in chain.from_iterable(all_tasks.values()):
+            task.cleanUp()
 
         if dry:
             logger.info('Dry run complete: %s aggregate hash = %s', out_file, aggregate_hash)
