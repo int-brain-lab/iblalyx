@@ -222,7 +222,7 @@ def generate_training_aggregate(training_file, subject, root=ROOT):
         A sorted dataframe with training criteria
     """
 
-    # Load in the subjectTrials.tabke
+    # Load in the subjectTrials.table
     subj_df = pd.read_parquet(training_file)
 
     # Find the dates that we need to compute the training status for
@@ -381,9 +381,9 @@ class Command(BaseCommand):
             if compute_training_status:
                 # The trials table may not need to be rerun, but we need to check if the training status table exists
                 training_dset, training_out_file = self.handle_training_status(trials_table=None, rerun=rerun, dry=dry)
-                return training_dset, training_out_file, None
+                return (None, training_dset), (None, training_out_file), None
             else:
-                return None, None, None
+                return (None, None), (None, None), None
 
         # Generate aggregate trials table
         all_trials, outcomes = generate_trials_aggregate(all_tasks, outcomes)
@@ -416,13 +416,14 @@ class Command(BaseCommand):
         successful_sessions = outcomes['session'][outcomes['notes'] == 'SUCCESS'].unique().tolist()
         aggregate_hash = self.make_aggregate_hash(successful_sessions, input_files=input_files)
 
+        if compute_training_status:
+            training_dset, training_out_file = self.handle_training_status(trials_table=out_file, rerun=rerun, dry=dry)
+        else:
+            training_dset = training_out_file = None
+
         if dry:
             logger.info('Dry run complete: %s aggregate hash = %s', out_file, aggregate_hash)
-            if compute_training_status:
-                _, training_out_file = self.handle_training_status(trials_table=out_file, rerun=rerun, dry=dry)
-                return None, [out_file, training_out_file], log_file
-            else:
-                return None, out_file, log_file
+            return (None, None), (out_file, training_out_file), log_file
 
         # Create dataset
         dset, out_file = self.register_dataset(
@@ -433,11 +434,7 @@ class Command(BaseCommand):
         if out_file.parent != log_file.parent:
             log_file = log_file.rename(out_file.with_name(log_file.name))
 
-        if compute_training_status:
-            training_dset, training_out_file = self.handle_training_status(trials_table=out_file, rerun=rerun, dry=dry)
-            return [dset, training_dset], [out_file, training_out_file], log_file
-        else:
-            return dset, out_file, log_file
+        return (dset, training_dset), (out_file, training_out_file), log_file
 
     def handle_training_status(self, trials_table=None, rerun=False, dry=False):
         """
@@ -476,12 +473,12 @@ class Command(BaseCommand):
             if trials_table is None:
                 dset = Dataset.objects.get(name='_ibl_subjectTrials.table.pqt', object_id=self.subject.id,
                                            default_dataset=True)
-                trials_table = next(Path('/mnt/ibl/aggregates').joinpath(dset.file_records.all()[0].relative_path).
-                                    parent.glob(f'_ibl_subjectTrials.table.{str(dset.id)}.pqt'))
+                trials_table = self.output_path.joinpath(
+                    alfiles.add_uuid_string(dset.file_records.all()[0].relative_path, dset.pk))
 
             assert trials_table.exists()
 
-            # Compute the trainin status table
+            # Compute the training status table
             training_status = generate_training_aggregate(trials_table, self.subject)
 
             # Specify the file to save to
