@@ -3,9 +3,12 @@
 This command is currently set up to run on the Flatiron datauser account. To install, set up a link
 to the alyx data app management commands folder:
 
->>> basedir="/home/datauser/Documents/github"
+>>> basedir="/home/datauser/Documents/PYTHON"
 >>> ln -s "$basedir/iblalyx/management/commands/aggregate_subject_trials.py" \
 ... "$basedir/alyx/alyx/data/management/commands/aggregate_subject_trials.py"
+>>> ln -s "$basedir/iblalyx/management/one_django.py" \
+... "$basedir/alyx/alyx/data/management/one_django.py"
+
 
 Examples
 --------
@@ -28,6 +31,7 @@ import hashlib
 from pathlib import Path
 from datetime import date
 from collections import defaultdict
+from itertools import chain
 
 import pandas as pd
 from one.alf.io import AlfBunch
@@ -44,6 +48,7 @@ from subjects.models import Subject
 from actions.models import Session
 from misc.models import LabMember
 from data.models import Dataset, DataRepository, FileRecord, DataFormat, DatasetType, Revision
+from data.management.one_django import OneDjango
 
 logger = logging.getLogger('ibllib')
 ROOT = Path('/mnt/ibl')
@@ -85,7 +90,7 @@ def get_protocol_number(task):
     return n
 
 
-def load_pipeline_tasks(subject, sessions, root, outcomes=None):
+def load_pipeline_tasks(subject, sessions, root, outcomes=None, one=None):
     """
     Instantiate all trials-related pipeline tasks for a given set of sessions.
 
@@ -99,6 +104,9 @@ def load_pipeline_tasks(subject, sessions, root, outcomes=None):
         The root folder containing the data.
     outcomes : list of tuple
         An optional list to append to.
+    one : one.api.One
+        An instance of ONE to use by the data handler for loading the input datasets. On SDSC this
+        creates symlinks of the default revisions.
 
     Returns
     -------
@@ -136,6 +144,9 @@ def load_pipeline_tasks(subject, sessions, root, outcomes=None):
             # Ensure input files exist
             task.location = task.machine = 'sdsc'
             task.get_signatures()
+            task.one = one
+            task.data_handler = task.get_data_handler()
+            task.data_handler.setUp()
             inputs_present, inputs = task.assert_expected_inputs(raise_error=False)
             proc_number = get_protocol_number(task)
             if not inputs_present:
@@ -336,11 +347,14 @@ class Command(BaseCommand):
         elif verbosity > 1:
             logger.setLevel(logging.DEBUG)
 
-        dry, subject, self.user, self.revision = options['dryrun'], options['subject'], options['alyx_user'], options['revision']
+        self.default_revision = options.pop('default_revision')
+        self.run(options['subject'], user=options.pop('alyx_user'), dry=options.pop('dryrun'), **options)
+
+    def run(self, subject, revision=None, output_path=OUTPUT_PATH, data_path=ROOT, dry=True, clobber=False, user='root', training_status=False):
         self.subject = Subject.objects.get(nickname=subject)
-        self.output_path = options['output_path']
-        self.default_revision = options['default_revision']
-        compute_training_status = options['training_status'] is True
+        self.user = user
+        self.revision = revision 
+        self.output_path = output_path
         query = self.query_sessions(self.subject)
         # Create sessions dataframe
         fields = ('id', 'start_time', 'number')
@@ -352,10 +366,10 @@ class Command(BaseCommand):
         # First checking number of sessions, then number of input files, then input file sizes, then the hashes
         qs = Dataset.objects.filter(
             name='_ibl_subjectTrials.table.pqt', object_id=self.subject.id, default_dataset=True)
-        all_tasks, input_files, outcomes = load_pipeline_tasks(subject, sessions, options['data_path'])
-        rerun = options['clobber'] is True or qs.count() == 0
+        all_tasks, input_files, outcomes = load_pipeline_tasks(subject, sessions, data_path, one=OneDjango())
+        rerun = clobber is True or qs.count() == 0
         if rerun:
-            logger.info('Forcing re-run' if options['clobber'] else 'No previous aggregate dataset')
+            logger.info('Forcing re-run' if clobber else 'No previous aggregate dataset')
         else:
             # Attempt to load
             old_aggregate = alfiles.add_uuid_string(out_file, qs.first().id)
@@ -377,6 +391,8 @@ class Command(BaseCommand):
                         logger.info('Aggregate hash changed')
 
         if not rerun:
+            for task in chain.from_iterable(all_tasks.values()):
+                task.cleanUp()
             logger.info('Aggregate hash unchanged; exiting')
             if compute_training_status:
                 # The trials table may not need to be rerun, but we need to check if the training status table exists
@@ -415,6 +431,10 @@ class Command(BaseCommand):
         # Create aggregate hash
         successful_sessions = outcomes['session'][outcomes['notes'] == 'SUCCESS'].unique().tolist()
         aggregate_hash = self.make_aggregate_hash(successful_sessions, input_files=input_files)
+
+        # Clean up all symlinks made by the data handler
+        for task in chain.from_iterable(all_tasks.values()):
+            task.cleanUp()
 
         if compute_training_status:
             training_dset, training_out_file = self.handle_training_status(trials_table=out_file, rerun=rerun, dry=dry)
