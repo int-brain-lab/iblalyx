@@ -233,16 +233,16 @@ def generate_training_aggregate(training_file, subject, root=ROOT):
         A sorted dataframe with training criteria
     """
 
-    # Load in the subjectTrials.table
+    # Load in the subjectTrials.tabke
     subj_df = pd.read_parquet(training_file)
 
     # Find the dates that we need to compute the training status for
     missing_dates = pd.DataFrame()
     path2eid = dict()
     for eid, info in subj_df.groupby('session'):
-        info = info.iloc[0]
-        session_path = root.joinpath(subject.lab.name, 'Subjects', subject.nickname, str(info.session_start_time.date()),
-                                     str(info.session_number).zfill(3))
+        sess = Session.objects.get(id=eid)
+        session_path = root.joinpath(subject.lab.name, 'Subjects', subject.nickname, str(sess.start_time.date()),
+                                     str(sess.number).zfill(3))
         path2eid[str(session_path)] = eid
         s_df = pd.DataFrame({'date': session_path.parts[-2], 'session_path': str(session_path)}, index=[0])
         missing_dates = pd.concat([missing_dates, s_df], ignore_index=True)
