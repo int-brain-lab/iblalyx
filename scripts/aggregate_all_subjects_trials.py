@@ -75,14 +75,14 @@ if __name__ == '__main__':
     logger.info(f'Processing {subjects.count()} subjects')
     # Arguments to pass to management command handler
     kwargs = dict(
-        dry=False, user='miles', output_path=OUTPUT_PATH, clobber=False, data_path=ROOT, training_status=False)
+        dry=False, user='root', output_path=OUTPUT_PATH, clobber=False, data_path=ROOT, compute_training_status=True)
 
     for i, sub in enumerate(subjects):
         nickname = sub.nickname
         logger.info('=============== Processing %s (%i/%i) ===============', nickname, i, subjects.count())
         with LogToFile(logger, logdir / nickname):
             try:
-                dset, out_file, log_file = Command().handle(subject=nickname, **kwargs)
+                *_, log_file = Command().handle(subject=nickname, **kwargs)
             except Exception as ex:
                 logger.error(ex)
         # Move log file to the location of the output dataset

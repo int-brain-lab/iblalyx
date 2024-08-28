@@ -348,12 +348,14 @@ class Command(BaseCommand):
             logger.setLevel(logging.DEBUG)
 
         self.default_revision = options.pop('default_revision')
-        self.run(options['subject'], user=options.pop('alyx_user'), dry=options.pop('dryrun'), **options)
+        self.run(options['subject'], user=options.pop('alyx_user'), dry=options.pop('dryrun'),
+                 compute_training_status=options.pop('training_status'), **options)
 
-    def run(self, subject, revision=None, output_path=OUTPUT_PATH, data_path=ROOT, dry=True, clobber=False, user='root', training_status=False):
+    def run(self, subject, revision=None, output_path=OUTPUT_PATH, data_path=ROOT,
+            dry=True, clobber=False, user='root', compute_training_status=False):
         self.subject = Subject.objects.get(nickname=subject)
         self.user = user
-        self.revision = revision 
+        self.revision = revision
         self.output_path = output_path
         query = self.query_sessions(self.subject)
         # Create sessions dataframe
