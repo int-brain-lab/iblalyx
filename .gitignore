@@ -4,4 +4,4 @@
 /.idea/*
 /deployment_app/environment.env
 /deploy/environment.env
-
+/deploy/alyx_ec2_bootstrap_install.log

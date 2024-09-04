@@ -55,6 +55,8 @@ dd if=/dev/zero of=/home/ubuntu/spacer.bin bs=1 count=0 seek=1G  # this is a spa
 mkdir -p $LOG_DIR
 chown -R www-data:www-data $LOG_DIR
 mkdir -p $WORKING_DIR
+chmod 600 ${HOME_DIR}/iblalyx/deploy/alyxlogrotate.conf
+chown root:root ${HOME_DIR}/iblalyx/deploy/alyxlogrotate.conf
 
 echo "Setting hostname of instance..."
 hostnamectl set-hostname "$1"
