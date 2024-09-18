@@ -48,7 +48,8 @@ task_criteria['_task_passed_trial_checks'] = {"NOT_SET": 0}
 
 
 def threshold(thresholds, qc_value):
-
+    if qc_value is None:
+        return 'NOT_SET'
     if 'PASS' in thresholds.keys() and qc_value >= thresholds['PASS']:
         return 'PASS'
     if 'WARNING' in thresholds.keys() and qc_value >= thresholds['WARNING']:
