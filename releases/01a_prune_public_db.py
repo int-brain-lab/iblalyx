@@ -273,7 +273,6 @@ Note.objects.using('public').all().delete()
 # actions
 ProcedureType.objects.using('public').all().delete()
 VirusInjection.objects.using('public').all().delete()
-ChronicRecording.objects.using('public').all().delete()
 Surgery.objects.using('public').all().delete()
 Notification.objects.using('public').all().delete()
 NotificationRule.objects.using('public').all().delete()

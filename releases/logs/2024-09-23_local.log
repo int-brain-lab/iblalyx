@@ -1,0 +1,215 @@
+2024-09-23 15:59:09 Beginning to create local version of public database
+... creating working directory /home/ibladmin/openalyx_wd
+... copying latest backup of production database
+... destroying local public database
+... rebuilding local public database from production
+ set_config 
+------------
+ 
+(1 row)
+
+ setval 
+--------
+      2
+(1 row)
+
+ setval 
+--------
+      2
+(1 row)
+
+ setval 
+--------
+ 478463
+(1 row)
+
+ setval 
+--------
+    145
+(1 row)
+
+ setval 
+--------
+    135
+(1 row)
+
+ setval 
+--------
+  82688
+(1 row)
+
+ setval 
+--------
+  79499
+(1 row)
+
+ setval 
+--------
+ 240931
+(1 row)
+
+ setval 
+--------
+   4698
+(1 row)
+
+ setval 
+--------
+   3516
+(1 row)
+
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+     18
+(1 row)
+
+ setval 
+--------
+   3349
+(1 row)
+
+ setval 
+--------
+      2
+(1 row)
+
+ setval 
+--------
+   1469
+(1 row)
+
+ setval 
+--------
+    304
+(1 row)
+
+ setval 
+--------
+ 372618
+(1 row)
+
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+ 195501
+(1 row)
+
+ setval 
+--------
+     76
+(1 row)
+
+ setval 
+--------
+    117
+(1 row)
+
+ setval  
+---------
+ 3453399
+(1 row)
+
+ setval 
+--------
+   7011
+(1 row)
+
+  setval  
+----------
+ 23590162
+(1 row)
+
+ setval 
+--------
+ 651227
+(1 row)
+
+ setval 
+--------
+     34
+(1 row)
+
+ setval 
+--------
+     78
+(1 row)
+
+ setval 
+--------
+   1205
+(1 row)
+
+ setval 
+--------
+   3284
+(1 row)
+
+ setval 
+--------
+  43467
+(1 row)
+
+ setval  
+---------
+ 4685590
+(1 row)
+
+ setval 
+--------
+    111
+(1 row)
+
+ setval 
+--------
+    119
+(1 row)
+
+ setval 
+--------
+    144
+(1 row)
+
+ setval 
+--------
+   2547
+(1 row)
+
+No changes detected
+Operations to perform:
+  Apply all migrations: actions, admin, auth, authtoken, contenttypes, data, experiments, jobs, misc, reversion, sessions, subjects
+Running migrations:
+  Applying data.0021_alter_datarepository_timezone... OK
+  Applying misc.0011_alter_lab_timezone... OK
+... pruning local public database
+Dataset IDs from files: ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt', '2021_Q2_Varol_et_al_datasets.pqt', '2021_Q3_Whiteway_et_al_datasets.pqt', '2021_Q2_PreRelease_datasets.pqt', '2022_Q2_IBL_et_al_RepeatedSite_datasets.pqt', '2022_Q3_IBL_et_al_DAWG_datasets.pqt', '2022_Q4_IBL_et_al_BWM_datasets.pqt', '2023_Q1_Mohammadi_et_al_datasets.pqt', '2023_Q1_Biderman_Whiteway_et_al_datasets.pqt', '2023_Q3_Findling_Hubert_et_al_datasets.pqt', '2023_Q4_Bruijns_et_al_datasets.pqt', '2023_Q4_IBL_et_al_BWM_2_datasets.pqt', '2023_Q4_IBL_et_al_BWM_passive_datasets.pqt', '2024_Q2_IBL_et_al_BWM_iblsort_datasets.pqt', '2024_Q2_IBL_et_al_RepeatedSite_datasets.pqt', '2024_Q2_Blau_et_al_datasets.pqt', '2024_Q3_Pan_Vazquez_et_al_datasets.pqt']
+Tags to keep: ['cfc4906a-316e-4150-8222-fe7e7f13bdac', '9dec1de8-389d-40f6-b00b-763e4fda6552', 'c8f0892a-a95b-4181-b8e6-d5d31cb97449', 'dcd8b2e5-3a32-41b4-ac15-085a208a4466', '05fbaa4e-681d-41c5-ae53-072cb96f4c0a', '1f2c5034-b31b-4c23-be93-c4a66c8c9eb1', '4df91a7a-faac-4894-800e-b306cafe9a8c', '9cba03f8-f491-43b2-9686-45309aee8657', '4984ea79-b162-49cc-8660-0dc6bbb7a5ff', '0f146f03-8dfe-44d6-84ef-e8fd24762fb2', 'a8f643f2-0b71-430f-a57a-485202fba2c1', '7f7cd406-bb25-470f-bae4-55b56c3acac5', '30734650-65f3-4653-a059-0687ae872c97', '66e0eec0-4ecf-4de8-a84c-a2bd8eda06f4', '9fc1593a-c3c1-4dea-8473-0948ed6a2904', '6828217e-6ae0-44ce-9c6a-bd30f6e523a6', '89b582ed-54d1-4b03-96a7-9ddb369cd07d']
+
+
+Starting to prune public database
+...pruning datasets
+...pruning sessions
+...pruning subjects
+...pruning projects
+...pruning labs and labmembers, anonymizing lab members
+...pruning probe insertions
+...pruning cage, weight, water and food info
+...deleting some tables
+Finished pruning database
+
+... creating sql dump of local public database
+... copying sql dump to mbox as backup
+2024-09-23 16:19:51 Finished creating local version of public database
