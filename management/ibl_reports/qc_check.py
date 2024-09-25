@@ -179,7 +179,8 @@ def qc_summary(qc_data):
         return data_dict
 
     data_dict = {}
-    data_dict['Task QC'] = [qc_data.get('task', 'NOT_SET'), 0, 0, 0]
+    task_key = next((k for k, _ in qc_data.items() if k.startswith('task')), 'task')
+    data_dict['Task QC'] = [qc_data.get(task_key, 'NOT_SET'), 0, 0, 0]
     data_dict['Video Body QC'] = [qc_data.get('videoBody', 'NOT_SET'), 0, 0, 0]
     data_dict['Video Left QC'] = [qc_data.get('videoLeft', 'NOT_SET'), 0, 0, 0]
     data_dict['Video Right QC'] = [qc_data.get('videoRight', 'NOT_SET'), 0, 0, 0]
