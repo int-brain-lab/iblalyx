@@ -222,7 +222,8 @@ def plot_task_qc_eid(request, eid):
     col, bord, thres, outcome, labels, vals = qc_check.get_task_qc_colours(task)
 
     task_dict = {}
-    task_dict[''] = {'title': f'Task QC: {extended_qc.get("task", "Not computed")}',
+    task_key = next((k for k, _ in extended_qc.items() if k.startswith('task')), 'task')
+    task_dict[''] = {'title': f'Task QC: {extended_qc.get(task_key, "Not computed")}',
                      'thresholds': thres,
                      'outcomes': outcome,
                      'data': {
