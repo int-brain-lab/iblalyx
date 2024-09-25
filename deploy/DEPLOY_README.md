@@ -22,7 +22,7 @@ Restart the docker compose gracefully
 ```shell
 exit
 cd ~/iblalyx/deploy
-docker compose restart
+sudo docker compose restart
 ```
 
 ## Container release process
@@ -61,7 +61,7 @@ Note for the above command to work you need aws cli v2 installed (use aws --vers
    ```
    docker pull public.ecr.aws/p4h6o9n8/alyx:latest
    cd ~/iblalyx/deploy
-   docker compose up
+   sudo docker compose up
    ```
 
 
