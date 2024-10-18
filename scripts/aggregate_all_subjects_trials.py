@@ -3,6 +3,7 @@
 Must be run within the alyx environment.
 """
 import os
+import sys
 import argparse
 import django
 import logging
@@ -11,6 +12,11 @@ from pathlib import Path
 
 import pandas as pd
 from iblutil.util import log_to_file
+
+if __name__ == '__main__' and not os.environ.get('DJANGO_SETTINGS_MODULE'):
+    sys.path.insert(0, '.')
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'alyx.settings')
+    django.setup()
 
 from django.db.models import Count, Q
 from actions.models import Session
@@ -40,10 +46,6 @@ class LogToFile:
 
 
 if __name__ == '__main__':
-    # Initialize Django apps
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'alyx.settings')
-    django.setup()
-
     parser = argparse.ArgumentParser(
         prog='SubjectsTrialsAggregates', description='Generate subject trials aggregate tables for all subjects.',
         epilog='See also: iblalyx/management/commands/aggregate_subject_trials.py')
@@ -75,18 +77,18 @@ if __name__ == '__main__':
     logger.info(f'Processing {subjects.count()} subjects')
     # Arguments to pass to management command handler
     kwargs = dict(
-        dry=False, user='root', output_path=OUTPUT_PATH, clobber=False, data_path=ROOT, compute_training_status=True)
+        dryrun=False, alyx_user='root', output_path=OUTPUT_PATH, clobber=False, data_path=ROOT, training_status=True)
 
     for i, sub in enumerate(subjects):
         nickname = sub.nickname
         logger.info('=============== Processing %s (%i/%i) ===============', nickname, i, subjects.count())
         with LogToFile(logger, logdir / nickname):
             try:
-                *_, log_file = Command().handle(subject=nickname, **kwargs)
+                *_, log_file = Command().handle(nickname, **kwargs)
+                # Move log file to the location of the output dataset
+                shutil.move(logdir.joinpath(nickname), log_file.parent / log_file.stem)  # _ibl_subjectTrials.log
+                outcomes = pd.read_csv(log_file, index_col='Unnamed: 0')
+                logger.info('%i/%i sessions successfully processed for %s',
+                            sum(~outcomes.notes.isin(('no trials tasks for this session', 'SUCCESS'))), len(outcomes), nickname)
             except Exception as ex:
-                logger.error(ex)
-        # Move log file to the location of the output dataset
-        shutil.move(logdir.joinpath(nickname), log_file.parent / log_file.stem)  # _ibl_subjectTrials.log
-        outcomes = pd.read_csv(log_file, index_col='Unnamed: 0')
-        logger.info('%i/%i sessions successfully processed for %s',
-                    sum(~outcomes.notes.isin(('no trials tasks for this session', 'SUCCESS'))), len(outcomes), nickname)
+                logger.exception('Failed for subject "%s"', nickname)
