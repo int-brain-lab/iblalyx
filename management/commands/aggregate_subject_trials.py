@@ -337,9 +337,9 @@ class Command(BaseCommand):
         parser.add_argument('--training-status', action='store_true', default=False,
                             help='If passed, the training status aggregate dataset is computed and registered.')
 
-    def handle(self, *_, **options):
+    def handle(self, *args, **options):
         # Unpack options
-        verbosity = options.pop('verbosity')
+        verbosity = options.pop('verbosity', 1)
         if verbosity < 1:
             logger.setLevel(logging.WARNING)
         elif verbosity == 1:
@@ -347,8 +347,9 @@ class Command(BaseCommand):
         elif verbosity > 1:
             logger.setLevel(logging.DEBUG)
 
-        self.default_revision = options.pop('default_revision')
-        self.run(options['subject'], user=options.pop('alyx_user'), dry=options.pop('dryrun'),
+        self.default_revision = options.pop('default_revision', None)
+        subject = args[0] if len(args) else options['subject']
+        self.run(subject, user=options.pop('alyx_user'), dry=options.pop('dryrun'),
                  compute_training_status=options.pop('training_status'), **options)
 
     def run(self, subject, revision=None, output_path=OUTPUT_PATH, data_path=ROOT,

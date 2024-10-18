@@ -26,7 +26,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from iblutil.util import flatten
+from iblutil.util import flatten, ensure_list
 from one import util
 from one.alf.spec import QC, is_uuid, is_uuid_string, is_session_path
 from one.api import OneAlyx, One
@@ -299,7 +299,7 @@ class OneDjango(OneAlyx):
         sessions = Session.objects.select_related('lab', 'subject')
         return_list = not isinstance(path_obj, (str, Path))
         ret = []
-        for session_path in map(alfiles.get_session_path, util.ensure_list(path_obj)):
+        for session_path in map(alfiles.get_session_path, ensure_list(path_obj)):
             if not session_path:
                 raise Session.DoesNotExist(f'Invalid session: {path_obj}')
             lab, subject, session_date, number = alfiles.session_path_parts(session_path)
