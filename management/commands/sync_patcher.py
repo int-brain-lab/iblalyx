@@ -1,6 +1,21 @@
 """Script to query datasets that need to be synced from the s3 patcher to Flatiron.
 Currently expected to run on SDSC with access to /mnt/ibl Flatiron directory.
+
+This command is currently set up to run on the Flatiron datauser account. To install, set up a link
+to the alyx data app management commands folder:
+>>> basedir="/home/datauser/Documents/PYTHON"
+>>> ln -s "$basedir/iblalyx/management/commands/sync_patcher.py"
+"$basedir/alyx/alyx/data/management/commands/sync_patcher.py"
+Examples
+--------
+Run in dry mode
+>>> python manage.py sync_patcher --dryrun > /home/datauser/ibl_logs/sync_patcher.log 2>&1
+Run script
+>>> python manage.py sync_patcher
+Force the overwrite of already existing files on flatiron (Run with extreme caution!!!!!)
+>>> python manage.py sync_patcher --force True
 """
+
 import time
 from dateutil.relativedelta import relativedelta as rd
 from subprocess import Popen, PIPE, STDOUT
