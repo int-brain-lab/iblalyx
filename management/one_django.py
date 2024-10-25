@@ -35,7 +35,8 @@ import one.params
 from one.converters import ConversionMixin
 
 from actions.models import Session
-from actions.serializers import SessionDetailSerializer
+from actions.serializers import SessionDetailSerializer, SessionListSerializer
+from actions.views import SessionFilter
 from misc import views as mv
 
 _logger = logging.getLogger(__name__)
@@ -210,6 +211,48 @@ class OneDjango(OneAlyx):
         # Return only the relative path
         return datasets if details else datasets['rel_path'].sort_values().values.tolist()
 
+    def search(self, details=False, query_type=None, **kwargs):
+        query_type = query_type or self.mode
+        if query_type != 'remote':
+            return One.search(self, details=details, query_type=query_type, **kwargs)
+        search_terms = list(SessionFilter.get_filters().keys())
+        params = {'django': kwargs.pop('django', '')}
+        for key, value in sorted(kwargs.items()):
+            field = util.autocomplete(key, search_terms)  # Validate and get full name
+            # check that the input matches one of the defined filters
+            if field == 'date_range':
+                params[field] = ','.join(x.date().isoformat() for x in util.validate_date_range(value))
+            elif field == 'dataset':
+                if not isinstance(value, str):
+                    raise TypeError(
+                        '"dataset" parameter must be a string. For lists use "datasets"')
+                query = f'data_dataset_session_related__name__icontains,{value}'
+                params['django'] += (',' if params['django'] else '') + query
+            elif field == 'laboratory':
+                params['lab'] = value
+            else:
+                params[field] = value
+        print(params['date_range'])
+        session_filter = SessionFilter(data=params)
+        qs = session_filter.qs
+        ses = [SessionListSerializer(s, context={'request': None}).data
+               for s in SessionListSerializer.setup_eager_loading(qs)]
+        # Update cache table with results
+        if len(ses) != 0:
+            self._update_sessions_table(ses)
+
+        eids = [x['id'] for x in ses]
+        if not details:
+            return eids
+
+        for s in ses:
+            s['date'] = datetime.fromisoformat(s['start_time']).date()
+
+        return eids, ses
+
+    def search_insertions(self, details=False, query_type=None, **kwargs):
+        raise NotImplementedError
+
     def ref2eid(self, ref):
         """
         Returns experiment uuid, given one or more experiment references.
@@ -336,8 +379,3 @@ class OneDjango(OneAlyx):
 
         r = OneDjango.path2django(path_obj)
         return [s.pk for s in r] if isinstance(r, list) else r.pk
-
-    def search(self, details=False, query_type=None, **kwargs):
-        if (query_type or self.mode) == 'remote':
-            raise NotImplementedError
-        return One.search(self, details=details, query_type='local', **kwargs)
