@@ -32,7 +32,7 @@ from one.alf.spec import QC, is_uuid, is_uuid_string, is_session_path
 from one.api import OneAlyx, One
 import one.alf.path as alfiles
 import one.params
-from one.converters import ConversionMixin
+from one.converters import ConversionMixin, ses2records
 
 from actions.models import Session
 from actions.serializers import SessionDetailSerializer, SessionListSerializer
@@ -200,7 +200,7 @@ class OneDjango(OneAlyx):
             return self._cache['datasets'].iloc[0:0] if details else []  # Return empty
         session = Session.objects.get(pk=eid)
         data = SessionDetailSerializer(session, context={'request': None}).data
-        session, datasets = util.ses2records(data)
+        session, datasets = ses2records(data)
         # Add to cache tables
         self._update_cache_from_records(sessions=session, datasets=datasets.copy())
         if datasets is None or datasets.empty:
