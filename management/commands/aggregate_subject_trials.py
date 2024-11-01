@@ -680,7 +680,7 @@ class Command(BaseCommand):
         # Update fields with file info and move file to new location
         dset.version = VERSION
         dset.file_size = file_size
-        dset.hash = file_hash
+        dset.hash = file_hash or ''
         dset.created_by = LabMember.objects.get(username=user) if isinstance(user, str) else user
         dset.generating_software = 'ibllib ' + ibllib_version
         if aggregate_hash is not None:
