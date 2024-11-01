@@ -15,7 +15,7 @@ import numpy as np
 import pyarrow as pa
 import boto3
 from botocore.exceptions import ClientError
-from one.alf.files import get_session_path
+from one.alf.path import get_session_path
 
 from . import io as s3io
 

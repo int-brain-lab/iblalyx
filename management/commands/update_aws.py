@@ -10,7 +10,7 @@ import uuid
 from pathlib import Path
 from functools import partial
 
-from one.alf.files import folder_parts, get_session_path, get_alf_path, add_uuid_string
+from one.alf.path import folder_parts, get_session_path, get_alf_path, add_uuid_string
 import pandas as pd
 from django.db.models import Q, OuterRef
 from django.core.paginator import Paginator

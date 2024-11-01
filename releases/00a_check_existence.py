@@ -167,7 +167,7 @@ print(f'Exists on AWS: {len(exist)}')
 # Check that files also indeed exist on SDSC. Run this in django shell
 from pathlib import Path
 import pandas as pd
-from one.alf.files import add_uuid_string
+from one.alf.path import add_uuid_string
 from data.models import DataRepository, Dataset
 
 # Make sure iblalyx is up to date before running this!

@@ -30,7 +30,7 @@ from iblutil.util import flatten, ensure_list
 from one import util
 from one.alf.spec import QC, is_uuid, is_uuid_string, is_session_path
 from one.api import OneAlyx, One
-import one.alf.files as alfiles
+import one.alf.path as alfiles
 import one.params
 from one.converters import ConversionMixin
 
