@@ -6,7 +6,7 @@ import datetime
 
 from tqdm import tqdm
 from iblutil.io import hashfile
-from one.alf.files import add_uuid_string
+from one.alf.path import add_uuid_string
 from django.db.models import Prefetch, Q
 from django.core.management import BaseCommand
 

@@ -7,7 +7,7 @@ from itertools import chain
 
 import numpy as np
 from one.api import ONE
-from one.alf.files import get_alf_path, add_uuid_string, session_path_parts
+from one.alf.path import get_alf_path, add_uuid_string, session_path_parts
 from one.alf.io import iter_sessions
 from one.alf import spec
 from one.alf.cache import iter_datasets

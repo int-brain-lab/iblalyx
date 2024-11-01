@@ -35,7 +35,7 @@ from itertools import chain
 
 import pandas as pd
 from one.alf.io import AlfBunch
-import one.alf.files as alfiles
+import one.alf.path as alfiles
 from one.alf.spec import is_uuid_string
 from iblutil.io import hashfile
 

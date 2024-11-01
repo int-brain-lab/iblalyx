@@ -2,7 +2,7 @@
 from datetime import date
 from collections import defaultdict
 
-import one.alf.files as alfiles
+import one.alf.path as alfiles
 
 from subjects.models import Subject
 from actions.models import Session

@@ -4,7 +4,7 @@ from pathlib import Path
 from django.db.models import Count, Q
 import globus_sdk
 
-import one.alf.files as af
+import one.alf.path as af
 from data.models import Dataset, FileRecord, DataRepository
 
 from data.transfers import _filename_from_file_record, globus_transfer_client
