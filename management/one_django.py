@@ -22,9 +22,18 @@ import logging
 import packaging
 import warnings
 from pathlib import Path
+import io
+import urllib.parse
+from inspect import unwrap
+from functools import partial
 
 import numpy as np
 import pandas as pd
+from django.urls import resolve
+from django.urls.exceptions import Resolver404
+from django.http import HttpRequest, QueryDict
+from requests.models import Request, Response
+from requests.utils import default_user_agent
 
 from iblutil.util import flatten, ensure_list
 from one import util
@@ -33,25 +42,128 @@ from one.api import OneAlyx, One
 import one.alf.path as alfiles
 import one.params
 from one.converters import ConversionMixin
+from one.webclient import AlyxClient, _cache_response
 
 from actions.models import Session
 from actions.serializers import SessionDetailSerializer, SessionListSerializer
 from actions.views import SessionFilter
 from misc import views as mv
+from misc.models import LabMember
 
 _logger = logging.getLogger(__name__)
 CACHE_DIR = Path('/mnt/sdceph/users/ibl/data')
 CACHE_DIR_FI = Path('/mnt/ibl')
 
 
+class AlyxDjango(AlyxClient):
+
+    @_cache_response
+    def _generic_request(self, reqfunction, rest_query, data=None, files=None):
+        fcn = unwrap(super()._generic_request)
+        return fcn(self, partial(self._dispath, reqfunction), rest_query, data, files)
+
+    @staticmethod
+    def _prepare_request(method, url, headers, data, files):
+        # Building a client-side Request object is not really necessary,
+        # however this does change the content type based on the input args.
+        # Modified content type probably doesn't matter as we set the POST and FILES
+        # directly instead of decoding
+        req = Request(
+            method=method.__name__.upper(),
+            url=url,
+            headers=headers,
+            files=files,
+            data=data or {},
+            json=None,
+            params={}
+        )
+        request = req.prepare()
+
+        # Build HttpRequest by setting correct fields
+        parsed = urllib.parse.urlparse(url)
+        if parsed.params:
+            raise NotImplementedError
+        headers = {k.upper().replace('-', '_'): v for k, v in (request.headers or {}).items()}
+        if 'ACCEPT' in headers:  # must start with HTTP
+            headers['HTTP_ACCEPT'] = headers.pop('ACCEPT')
+        req = HttpRequest()
+        req.method = request.method
+        req.path = parsed.path
+        req.GET = QueryDict(query_string=parsed.query)
+        req._set_content_type_params(headers)  # Set content_type, content_params, and encoding
+        req._dont_enforce_csrf_checks = True  # We're not using security cookies
+        body = request.body if isinstance(request.body, bytes) else (request.body or '').encode()
+        req._stream = io.BytesIO(body)
+        req._read_started = False
+        if files:
+            req.FILES = req._files = files
+        req.POST = req._post = data or QueryDict()
+        req.META = {
+            'SERVER_NAME': parsed.netloc.split(':')[0], 'SERVER_PORT': parsed.port,
+            'SERVER_PROTOCOL': parsed.scheme.upper(), 'REQUEST_METHOD': 'GET',
+            'QUERY_STRING': parsed.query, 'REQUEST_URI': url[url.index(parsed.netloc) + len(parsed.netloc):],
+            'HTTP_USER_AGENT': 'AlyxDjango/1.0.0 ' + default_user_agent(), **headers}
+
+        # Authenticate with token
+        req.user = LabMember.objects.get(auth_token=req.META['AUTHORIZATION'].split()[-1])
+        return req
+
+    @staticmethod
+    def _dispath(method, url, stream=True, headers=None, data=None, files=None):
+        request = AlyxDjango._prepare_request(method, url, headers, data, files)
+
+        # Resolve path to get view class
+        """
+        /subjects ok
+        /subjects/ fail
+        /subjects/?nickname=SP060 fail (detail)
+        /subjects?nickname=SP060 (detail)
+        /docs fail
+        /docs/ ok
+        """
+        try:
+            match = resolve(request.path)
+        except Resolver404:
+            match = resolve(request.path + '/')
+        request.resolver_match = match
+
+        # Instantiate View instance
+        view = match.func.view_class.as_view(**match.func.view_initkwargs)
+
+        # Dispatch request
+        t0 = datetime.now()
+        response = view(request, *match.args, **match.kwargs)
+        rendered = response.render()
+
+        # Convert Django HttpResponse to requests Response object
+        r = Response()
+        r.status_code = rendered.status_code
+        r.reason = rendered.reason_phrase
+        # Total elapsed time of the request (approximately)
+        r.elapsed = datetime.now() - t0
+        r._content = rendered.content
+        r.cookies = rendered.cookies
+        r.url = url
+        r.headers = rendered.headers
+        # r.links = rendered.data.links
+        r.streaming = rendered.streaming
+        return r
+
+
 class OneDjango(OneAlyx):
 
-    def __init__(self, *args, cache_dir=CACHE_DIR_FI, uuid_filenames=False, **kwargs):
+    def __init__(self, *, cache_dir=CACHE_DIR_FI, mode='auto', wildcards=True,
+                 tables_dir=None, uuid_filenames=False, **kwargs):
         """ONE with direct Django queries."""
-        if not kwargs.get('tables_dir'):
+        if not tables_dir:
             # Ensure parquet tables downloaded to separate location to the dataset repo
-            kwargs['tables_dir'] = one.params.get_cache_dir()  # by default this is user downloads
-        super().__init__(*args, cache_dir=cache_dir, **kwargs)
+            tables_dir = one.params.get_cache_dir()  # by default this is user downloads
+        # Load Alyx Web client
+        self._web_client = AlyxDjango(cache_dir=cache_dir, **kwargs)
+        self._search_endpoint = 'sessions'
+        # get parameters override if inputs provided
+        super(OneAlyx, self).__init__(
+            cache_dir=cache_dir, mode=mode, wildcards=wildcards, tables_dir=tables_dir)
         # assign property here as it is set by the parent OneAlyx class at init
         self.uuid_filenames = uuid_filenames
 
@@ -232,7 +344,7 @@ class OneDjango(OneAlyx):
                 params['lab'] = value
             else:
                 params[field] = value
-        print(params['date_range'])
+
         session_filter = SessionFilter(data=params)
         qs = session_filter.qs
         ses = [SessionListSerializer(s, context={'request': None}).data
