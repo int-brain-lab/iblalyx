@@ -34,9 +34,10 @@ from django.urls.exceptions import Resolver404
 from django.http import HttpRequest, QueryDict
 from requests.models import Request, Response
 from requests.utils import default_user_agent
+from packaging import version
 
 from iblutil.util import flatten, ensure_list
-from one import util
+from one import util, __version__ as one_version
 from one.alf.spec import QC, is_uuid, is_uuid_string, is_session_path
 from one.api import OneAlyx, One
 import one.alf.path as alfiles
@@ -98,8 +99,10 @@ class AlyxDjango(AlyxClient):
         if files:
             req.FILES = req._files = files
         req.POST = req._post = data or QueryDict()
+        default_port = {'https': 443, 'http': 80}
+        port_no = parsed.port or default_port.get(parsed.scheme)
         req.META = {
-            'SERVER_NAME': parsed.netloc.split(':')[0], 'SERVER_PORT': parsed.port,
+            'SERVER_NAME': parsed.netloc.split(':')[0], 'SERVER_PORT': port_no,
             'SERVER_PROTOCOL': parsed.scheme.upper(), 'REQUEST_METHOD': 'GET',
             'QUERY_STRING': parsed.query, 'REQUEST_URI': url[url.index(parsed.netloc) + len(parsed.netloc):],
             'HTTP_USER_AGENT': 'AlyxDjango/1.0.0 ' + default_user_agent(), **headers}
@@ -298,13 +301,14 @@ class OneDjango(OneAlyx):
 
     def list_datasets(
             self, eid=None, filename=None, collection=None, revision=None, qc=QC.FAIL,
-            ignore_qc_not_set=False, details=False, query_type=None, **kwargs
+            ignore_qc_not_set=False, details=False, query_type=None, keep_eid_index=False
     ) -> Union[np.ndarray, pd.DataFrame]:
         filters = dict(
             collection=collection, filename=filename, revision=revision,
             qc=qc, ignore_qc_not_set=ignore_qc_not_set)
         if (query_type or self.mode) != 'remote':
-            return One.list_datasets(self, eid, details=details, query_type=query_type, **filters)
+            return One.list_datasets(
+                self, eid, details=details, query_type=query_type, keep_eid_index=keep_eid_index, **filters)
         if not eid:
             raise NotImplementedError
         eid = self.to_eid(eid)  # endure UUID
@@ -318,8 +322,9 @@ class OneDjango(OneAlyx):
         if datasets is None or datasets.empty:
             return self._cache['datasets'].iloc[0:0] if details else []  # Return empty
         assert set(datasets.index.unique('eid')) == {str(eid)}
-        datasets = util.filter_datasets(
-            datasets.droplevel('eid'), assert_unique=False, wildcards=self.wildcards, **filters)
+        if not keep_eid_index:
+            datasets = datasets.droplevel('eid')
+        datasets = util.filter_datasets(datasets, assert_unique=False, wildcards=self.wildcards, **filters)
         # Return only the relative path
         return datasets if details else datasets['rel_path'].sort_values().values.tolist()
 
@@ -350,7 +355,7 @@ class OneDjango(OneAlyx):
         ses = [SessionListSerializer(s, context={'request': None}).data
                for s in SessionListSerializer.setup_eager_loading(qs)]
         # Update cache table with results
-        if len(ses) != 0:
+        if len(ses) != 0 and version.parse(one_version) >= version.parse('3'):
             self._update_sessions_table(ses)
 
         eids = [x['id'] for x in ses]
