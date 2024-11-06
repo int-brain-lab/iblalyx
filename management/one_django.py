@@ -465,7 +465,7 @@ class OneDjango(OneAlyx):
             lab, subject, session_date, number = alfiles.session_path_parts(session_path)
             args = {'subject__nickname': subject, 'start_time__date': date.fromisoformat(session_date), 'number': int(number)}
             if lab:
-                args['lab'] = lab
+                args['lab__name'] = lab
             session = sessions.get(**args)
             ret.append(session)
         return ret if return_list else ret[0]
