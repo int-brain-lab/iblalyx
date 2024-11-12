@@ -32,6 +32,7 @@ import pandas as pd
 from django.urls import resolve
 from django.urls.exceptions import Resolver404
 from django.http import HttpRequest, QueryDict
+from django.db import connection
 from requests.models import Request, Response
 from requests.utils import default_user_agent
 from packaging import version
@@ -131,7 +132,11 @@ class AlyxDjango(AlyxClient):
         request.resolver_match = match
 
         # Instantiate View instance
-        view = match.func.view_class.as_view(**match.func.view_initkwargs)
+        if hasattr(match.func, 'view_class'):
+            view = match.func.view_class.as_view(**match.func.view_initkwargs)
+        else:
+            # e.g. ProtectedFileViewSet
+            view = partial(match.func, **match.func.initkwargs)
 
         # Dispatch request
         t0 = datetime.now()
@@ -169,6 +174,11 @@ class OneDjango(OneAlyx):
             cache_dir=cache_dir, mode=mode, wildcards=wildcards, tables_dir=tables_dir)
         # assign property here as it is set by the parent OneAlyx class at init
         self.uuid_filenames = uuid_filenames
+
+    def __repr__(self):
+        db_info = connection.settings_dict
+        db = '%s@%s:%s' % (db_info['NAME'], db_info['HOST'], db_info['PORT'])
+        return f'OneDjango ({"off" if self.offline else "on"}line, {db})'
 
     def load_cache(self, tables_dir=None, clobber=False, tag=None):
         """
