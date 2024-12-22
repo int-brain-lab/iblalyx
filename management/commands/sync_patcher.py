@@ -169,9 +169,14 @@ class Command(BaseCommand):
                 logger.debug(' '.join(cmd))
                 t0 = time.time()
                 process = Popen(cmd, stdout=PIPE, stderr=STDOUT)
-                with process.stdout:
-                    log_subprocess_output(process.stdout, log_fcn, cmd=cmd)
-                assert process.wait() == 0
+                return_code = process.wait()
+                if return_code != 0:
+                    with process.stderr:
+                        log_subprocess_output(process.stderr, logger.error, cmd=cmd)
+                    raise RuntimeError(f'Command {cmd} failed with return code {return_code}')
+                else:
+                    with process.stdout:
+                        log_subprocess_output(process.stdout, logger.info, cmd=cmd)
 
                 if not dry:
                     exists = Path(dst_file).exists()
