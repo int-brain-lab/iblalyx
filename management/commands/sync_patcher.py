@@ -64,13 +64,14 @@ class Command(BaseCommand):
                                  'specified command without actually running them.')
 
     def handle(self, *_, **options):
-        # TODO Check logging works from outside main Alyx package
         verbosity = options.pop('verbosity')
         if verbosity < 1:
             logger.setLevel(logging.WARNING)
         elif verbosity == 1:
+            logging.getLogger().setLevel(logging.INFO)
             logger.setLevel(logging.INFO)
         elif verbosity > 1:
+            logging.getLogger().setLevel(logging.DEBUG)
             logger.setLevel(logging.DEBUG)
 
         dry = options.pop('dryrun')
