@@ -211,8 +211,8 @@ class Command(BaseCommand):
                         # If the aws file record exists upload the file from S3 patcher to S3 directly
                         fr_aws = FileRecord.objects.filter(dataset=dset, data_repository__name__icontains='aws').first()
                         if fr_aws is not None:
-                            src_file = 's3://ibl-brain-wide-map-private/data' + lab_path + dset_path
-                            run_aws_command(cmd= ['aws', 's3', 'sync', src_file, '--profile', 'ibladmin'])
+                            dst_file = 's3://ibl-brain-wide-map-private/data' + lab_path + dset_path
+                            run_aws_command(cmd= ['aws', 's3', 'sync', src_file, dst_file, '--profile', 'ibladmin'])
                             fr_aws.exists = True
                             fr_aws.save()
                         # this deletes the file records from the local servers and from the S3 patcher
