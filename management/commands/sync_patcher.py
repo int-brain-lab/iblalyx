@@ -31,9 +31,11 @@ from data.models import DataRepository, Dataset, FileRecord
 logger = logging.getLogger('data.transfers').getChild('aws')
 
 
-def log_subprocess_output(pipe, log_function=logger.info):
+def log_subprocess_output(pipe, log_function=logger.info, cmd=None):
     for line in iter(pipe.readline, b''):
         log_function(line.decode().strip())
+    if cmd is not None:
+        log_function(f'Original command: {cmd}')
 
 
 def format_seconds(seconds):
@@ -168,7 +170,7 @@ class Command(BaseCommand):
                 t0 = time.time()
                 process = Popen(cmd, stdout=PIPE, stderr=STDOUT)
                 with process.stdout:
-                    log_subprocess_output(process.stdout, log_fcn)
+                    log_subprocess_output(process.stdout, log_fcn, cmd=cmd)
                 assert process.wait() == 0
 
                 if not dry:
