@@ -15,8 +15,9 @@ Examples
 --------
 The command has 2 modes: list, and sync.
 
-List the files to be synced and deleted: no action will be performed
+List the files to be synced and deleted: no action will be performed, log level can be set to DEBUG
 >>> python manage.py sync_patcher list
+>>> python manage.py sync_patcher list --verbosity 2
 Run in dry mode: this will still invoke AWS commands in dry mode, and no copy will occur
 >>> python manage.py sync_patcher sync --dryrun
 Run the synchronization
@@ -112,7 +113,7 @@ class Command(BaseCommand):
         )
         total_size = 0
         for stat in session_stats:
-            logger.info(f"Session {stat['session']}: {stat['dataset_count']} datasets, "
+            logger.info(f"Session {stat['session']} : {stat['dataset_count']} datasets, "
                         f"{stat['total_size'] / (1024 ** 3):.2f} GB total")
             total_size += stat['total_size']
         logger.info(f'{qs.count()} files are due to be processed, representing {total_size / (1024 ** 3):.2f} GB total')
@@ -194,7 +195,7 @@ class Command(BaseCommand):
                                 f'set force=True to overwrite')
                     continue
                 # Build up the aws command
-                cmd = ['aws', 's3', 'cp', src_file, dst_file, '--profile', 'ibladmin', '--no-progress']
+                cmd = ['aws', 's3', 'cp', src_file, dst_file, '--profile', 'ucl', '--no-progress']
                 if dry:
                     cmd.append('--dryrun')
                 t0 = time.time()
@@ -217,14 +218,10 @@ class Command(BaseCommand):
                             Q(data_repository__name__startswith='flatiron') |
                             Q(data_repository__name__startswith='aws')
                         )
-                        run_aws_command(cmd= ['aws', 's3', 'rm', src_file, '--profile', 'ibladmin'])
+                        run_aws_command(cmd= ['aws', 's3', 'rm', src_file, '--profile', 'ucl'])
                         logger.debug(f'Deleting file records {frs.values_list("data_repository__name")}')
                         frs.delete()
                     else:
                         logger.error(f'File for {str(dset.id)} was not transferred')
 
         logger.debug('Datasets sync took ' + format_seconds(time.time() - t0))
-
-    @staticmethod
-    def delete(paginated_query, force=False, dry=False):
-        return
