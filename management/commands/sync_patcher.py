@@ -208,20 +208,27 @@ class Command(BaseCommand):
                         logger.info(f'Updating flatiron file record for {str(dset.id)} to True')
                         fr_flatiron.exists = True
                         fr_flatiron.save()
-                        # If the aws file record exists set it to False so the sync is re-initiated
+                        # If the aws file record exists upload the file from S3 patcher to S3 directly
                         fr_aws = FileRecord.objects.filter(dataset=dset, data_repository__name__icontains='aws').first()
                         if fr_aws is not None:
-                            fr_aws.exists = False
+                            src_file = 's3://ibl-brain-wide-map-private/data' + lab_path + dset_path
+                            run_aws_command(cmd= ['aws', 's3', 'sync', src_file, '--profile', 'ibladmin'])
+                            fr_aws.exists = True
                             fr_aws.save()
                         # this deletes the file records from the local servers and from the S3 patcher
                         frs = dset.file_records.all().exclude(
                             Q(data_repository__name__startswith='flatiron') |
                             Q(data_repository__name__startswith='aws')
                         )
-                        run_aws_command(cmd= ['aws', 's3', 'rm', src_file, '--profile', 'ucl'])
-                        logger.debug(f'Deleting file records {frs.values_list("data_repository__name")}')
                         frs.delete()
+                        logger.debug(f'Deleting file records {frs.values_list("data_repository__name")}')
+                        # Delete the file from S3 patcher bucket
+                        run_aws_command(cmd= ['aws', 's3', 'rm', src_file, '--profile', 'ucl'])
+                        # Makes sure the last modified date is updated
+                        dset.save()
                     else:
                         logger.error(f'File for {str(dset.id)} was not transferred')
 
         logger.debug('Datasets sync took ' + format_seconds(time.time() - t0))
+
+
