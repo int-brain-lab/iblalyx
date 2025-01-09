@@ -223,7 +223,7 @@ class Command(BaseCommand):
                         frs.delete()
                         logger.debug(f'Deleting file records {frs.values_list("data_repository__name")}')
                         # Delete the file from S3 patcher bucket
-                        run_aws_command(cmd= ['aws', 's3', 'rm', src_file, '--profile', 'ucl'])
+                        run_aws_command(cmd= ['aws', 's3', 'rm', src_file, '--profile', 'ibladmin'])
                         # Makes sure the last modified date is updated
                         dset.save()
                     else:
