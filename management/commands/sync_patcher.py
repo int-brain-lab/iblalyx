@@ -195,7 +195,7 @@ class Command(BaseCommand):
                                 f'set force=True to overwrite')
                     continue
                 # Build up the aws command
-                cmd = ['aws', 's3', 'cp', src_file, dst_file, '--profile', 'ucl', '--no-progress']
+                cmd = ['aws', 's3', 'cp', src_file, dst_file, '--profile', 'ibladmin', '--no-progress']
                 if dry:
                     cmd.append('--dryrun')
                 t0 = time.time()
