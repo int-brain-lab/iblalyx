@@ -83,7 +83,7 @@ class Command(BaseCommand):
     def last_sync(filepath=None):
         """Load sync times history"""
         sync_times = filepath or sync_times_file
-        loader = partial(pd.read_csv, parse_dates=[0, 1], infer_datetime_format=True)
+        loader = partial(pd.read_csv, parse_dates=[0, 1])
         if not sync_times.exists() or (syncs := loader(sync_times)).empty:
             syncs = pd.DataFrame(columns=('start', 'end'))
         return syncs
@@ -115,7 +115,7 @@ class Command(BaseCommand):
                     last_sync = pd.Timestamp.now() - pd.Timedelta(weeks=2)
                 else:
                     last_sync = sync_times.loc[~sync_times.end.isna(), 'start'].iloc[-1]
-                query.add(Q(dataset__auto_datetime__gt=last_sync.floor(freq='T')), Q.OR)
+                query.add(Q(dataset__auto_datetime__gt=last_sync.floor(freq='min')), Q.OR)
             else:
                 raise ValueError(f'Unknown kwarg "{k}"')
         # relevant fields to select
@@ -169,7 +169,7 @@ class Command(BaseCommand):
             df = df.rename(fields_map, axis=1).set_index('eid')
             counts['total'] += len(df)
             # Sync is done and the session level
-            for eid, rec in df.groupby('eid', axis=0):
+            for eid, rec in df.groupby('eid'):
                 logger.info(f'Updating session {eid}')
                 counts['sessions'] += 1
                 session_path = next(map(get_session_path, rec['file_path'].values))
