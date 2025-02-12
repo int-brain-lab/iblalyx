@@ -6,12 +6,16 @@ The `management` folder is meant to populate an alyx django application to be us
 In practice a symlink sends the ibl.py file and the private package _ibl to the alyx app via the following command on the server:
 
 ```
-ln -s ~/iblalyx/management/commands/_ibl /var/www/alyx-main/alyx/data/management/commands/_ibl
-ln -s ~/iblalyx/management/commands/ibl.py /var/www/alyx-main/alyx/data/management/commands/ibl.py
+ROOT_APP=~/iblalyx
+ROOT_ALYX=/var/www/alyx-main/alyx
+
+ln -s $ROOT_APP/management/commands/_ibl $ROOT_ALYX/data/management/commands/_ibl
+ln -s  $ROOT_APP/management/commands/ibl.py $ROOT_ALYX/data/management/commands/ibl.py
+ln -s  $ROOT_APP/management/commands/sync_patcher.py $ROOT_ALYX/data/management/commands/sync_patcher.py
 
 # to link the ibl_reports page
-ln -s ~/iblalyx/management/ibl_reports /var/www/alyx-main/alyx/ibl_reports
-ln -s ~/iblalyx/management/ibl_reports/templates /var/www/alyx-main/alyx/templates/ibl_reports
+ln -s  $ROOT_APP/management/ibl_reports $ROOT_ALYX/ibl_reports
+ln -s  $ROOT_APP/management/ibl_reports/templates $ROOT_ALYX//templates/ibl_reports
 ```
 
 ## Commands
