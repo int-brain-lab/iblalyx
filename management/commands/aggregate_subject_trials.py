@@ -33,10 +33,12 @@ from datetime import date
 from collections import defaultdict
 from itertools import chain
 
+import numpy as np
 import pandas as pd
 from one.alf.io import AlfBunch
 import one.alf.path as alfiles
 from one.alf.spec import is_uuid_string
+from one.alf.cache import SESSIONS_COLUMNS
 from iblutil.io import hashfile
 
 import ibllib.pipes.dynamic_pipeline as dyn
@@ -44,6 +46,7 @@ from ibllib import __version__ as ibllib_version
 import ibllib.pipes.training_status as ts
 
 from django.core.management import BaseCommand
+from django.contrib.postgres.aggregates import ArrayAgg
 from subjects.models import Subject
 from actions.models import Session
 from misc.models import LabMember
@@ -146,7 +149,7 @@ def load_pipeline_tasks(subject, sessions, root, outcomes=None, one=None):
             task.get_signatures()
             task.one = one
             task.data_handler = task.get_data_handler()
-            task.data_handler.setUp()
+            task.data_handler.setUp(task)
             inputs_present, inputs = task.assert_expected_inputs(raise_error=False)
             proc_number = get_protocol_number(task)
             if not inputs_present:
@@ -233,7 +236,7 @@ def generate_training_aggregate(training_file, subject, root=ROOT):
         A sorted dataframe with training criteria
     """
 
-    # Load in the subjectTrials.tabke
+    # Load in the subjectTrials.table
     subj_df = pd.read_parquet(training_file)
 
     # Find the dates that we need to compute the training status for
@@ -278,7 +281,7 @@ def generate_training_aggregate(training_file, subject, root=ROOT):
     # Find the earliest date in missing dates that we need to recompute the training status for
     missing_status = ts.find_earliest_recompute_date(df.drop_duplicates('date').reset_index(drop=True))
     for missing_date in missing_status:
-        df = ts.compute_training_status(df, missing_date, None, force=False)
+        df, _, _, _ = ts.compute_training_status(df, missing_date, None, force=False)
 
     # Add in untrainable or unbiasable
     df_lim = df.drop_duplicates(subset='session', keep='first')
@@ -300,6 +303,57 @@ def generate_training_aggregate(training_file, subject, root=ROOT):
     status = df.set_index('date')[['training_status', 'session']].drop_duplicates(subset='training_status',
                                                                                   keep='first')
     return status
+
+
+def generate_session_aggregate(training_file):
+    """
+    Compute sessions table for a given subject
+
+    Parameters
+    ----------
+    training_file : pathlib.Path
+        The path to the subjectTrials.table file
+
+    Returns
+    -------
+    pandas.DataFrame
+        A dataframe with session metadata
+    """
+
+    trials_table = pd.read_parquet(training_file)
+    sessions = trials_table.session.unique()
+
+    fields = ('id', 'lab__name', 'subject__nickname', 'start_time__date',
+              'number', 'task_protocol', 'all_projects')
+
+    query = (Session
+             .objects
+             .filter(id__in=sessions)
+             .select_related('subject', 'lab')
+             .prefetch_related('projects')
+             .annotate(all_projects=ArrayAgg('projects__name'))
+             .order_by('-start_time', 'subject__nickname', '-number'))
+
+    if query.count() == 0:
+        return pd.DataFrame(columns=SESSIONS_COLUMNS).set_index('id')
+
+    df = pd.DataFrame.from_records(query.values(*fields).distinct())
+
+    # Rename, sort fields
+    df['all_projects'] = df['all_projects'].map(lambda x: ','.join(filter(None, set(x))))
+    # task_protocol & projects columns may be empty; ensure None -> ''
+    # id UUID objects -> str; not supported by parquet
+    df = (
+        (df
+         .rename(lambda x: x.split('__')[0], axis=1)
+         .rename({'start_time': 'date', 'all_projects': 'projects'}, axis=1)
+         .dropna(subset=['number', 'date', 'subject', 'lab'])  # Remove dud or base sessions
+         .sort_values(['date', 'subject', 'number'], ascending=False)
+         .astype({'number': np.uint16, 'task_protocol': str, 'projects': str, 'id': str}))
+    )
+    df.set_index('id', inplace=True)
+
+    return df
 
 
 class Command(BaseCommand):
@@ -349,8 +403,10 @@ class Command(BaseCommand):
 
         self.default_revision = options.pop('default_revision', None)
         subject = args[0] if len(args) else options['subject']
-        self.run(subject, user=options.pop('alyx_user'), dry=options.pop('dryrun'),
-                 compute_training_status=options.pop('training_status'), **options)
+        dsets, files, log = self.run(subject, user=options.pop('alyx_user'), dry=options.pop('dryrun'),
+                                     compute_training_status=options.pop('training_status'), **options)
+
+        return dsets, files, log
 
     def run(self, subject, revision=None, output_path=OUTPUT_PATH, data_path=ROOT,
             dry=True, clobber=False, user='root', compute_training_status=False):
@@ -439,6 +495,9 @@ class Command(BaseCommand):
         for task in chain.from_iterable(all_tasks.values()):
             task.cleanUp()
 
+        # Create the session table
+        session_dset, session_out_file = self.handle_session_table(trials_table=out_file, rerun=rerun, dry=dry)
+
         if compute_training_status:
             training_dset, training_out_file = self.handle_training_status(trials_table=out_file, rerun=rerun, dry=dry)
         else:
@@ -446,7 +505,7 @@ class Command(BaseCommand):
 
         if dry:
             logger.info('Dry run complete: %s aggregate hash = %s', out_file, aggregate_hash)
-            return (None, None), (out_file, training_out_file), log_file
+            return (None, None, None), (out_file, training_out_file, session_out_file), log_file
 
         # Create dataset
         dset, out_file = self.register_dataset(
@@ -457,7 +516,7 @@ class Command(BaseCommand):
         if out_file.parent != log_file.parent:
             log_file = log_file.rename(out_file.with_name(log_file.name))
 
-        return (dset, training_dset), (out_file, training_out_file), log_file
+        return (dset, training_dset, session_dset), (out_file, training_out_file, session_out_file), log_file
 
     def handle_training_status(self, trials_table=None, rerun=False, dry=False):
         """
@@ -539,6 +598,60 @@ class Command(BaseCommand):
 
         except Exception as err:
             logger.error(f'Training status aggregate generation failed with error: {err}')
+            dset = out_file = None
+
+        return dset, out_file
+
+    def handle_session_table(self, trials_table=None, rerun=False, dry=False):
+        try:
+            qs = Dataset.objects.filter(
+                name='_ibl_subjectSessions.table.pqt', object_id=self.subject.id, default_dataset=True)
+
+            # If a dataset already exists and rerun is false, we do not do anything
+            if qs.count() > 0 and not rerun:
+                logger.info(f'Session table file exists and rerun is {rerun}; exiting')
+                return None, None
+
+            # Otherwise either the dataset doesn't exist or needs to be recomputed
+            # If the trials table file hasn't just been created we need to find the relevant file
+            if trials_table is None:
+                dset = Dataset.objects.get(name='_ibl_subjectTrials.table.pqt', object_id=self.subject.id,
+                                           default_dataset=True)
+                trials_table = self.output_path.joinpath(
+                    alfiles.add_uuid_string(dset.file_records.all()[0].relative_path, dset.pk))
+
+            assert trials_table.exists()
+
+            # Generate the subject sessions table
+            sessions_table = generate_session_aggregate(trials_table)
+
+            # Specify the file to save to
+            out_file = self.output_path.joinpath('Subjects', self.subject.lab.name, self.subject.nickname,
+                                                 '_ibl_subjectSessions.table.pqt')
+
+            if out_file.exists():
+                logger.warning(('(DRY) ' if dry else '') + 'Output file already exists, overwriting %s', out_file)
+            if dry:
+                out_file = out_file.with_name(f'{out_file.stem}.DRYRUN{out_file.suffix}')
+
+            # Save the training status to file
+            out_file.parent.mkdir(parents=True, exist_ok=True)
+            sessions_table.to_parquet(out_file)
+            assert out_file.exists(), f'Failed to save to {out_file}'
+            assert (file_size := out_file.stat().st_size) > 0
+            assert not pd.read_parquet(out_file).empty, f'Failed to read-after-write {out_file}'
+            md5_hash = hashfile.md5(out_file)
+
+            if dry:
+                logger.info('Dry run complete: %s', out_file)
+                return None, out_file
+
+            # Register the dataset
+            dset, out_file = self.register_dataset(
+                out_file, file_hash=md5_hash, file_size=file_size, user=self.user, revision=self.revision)
+
+        except Exception as err:
+            logger.error(f'Session table aggregate generation failed with error: {err}')
             dset = out_file = None
 
         return dset, out_file
