@@ -79,8 +79,9 @@ subjects = ['NYU-12', 'NYU-14', 'NYU-20', 'IBL-T3', 'IBL-T1', 'IBL-T4',
 subj = Subject.objects.filter(nickname__in=subjects)
 agg_trials = Dataset.objects.filter(object_id__in=subj, name='_ibl_subjectTrials.table.pqt', default_dataset=True)
 agg_training = Dataset.objects.filter(object_id__in=subj, name='_ibl_subjectTraining.table.pqt', default_dataset=True)
+agg_sessions = Dataset.objects.filter(object_id__in=subj, name='_ibl_subjectSessions.table.pqt', default_dataset=True)
 
-dsets = dsets | agg_trials | agg_training
+dsets = dsets | agg_trials | agg_training | agg_sessions
 dsets = dsets.distinct()
 
 # Tagging in production database
