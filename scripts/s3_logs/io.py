@@ -394,6 +394,11 @@ def prepare_for_parquet(df):
     for col in ('Object_Size', 'Turn_Around_Time', 'Total_Time'):
         df.loc[df[col] == '-', col] = np.nan
         df[col] = df[col].astype(float)
+
+    # In some instances there is no http status code for example for the operation REST.COPY.OBJECT_GET
+    # For these we set the http_status to -1
+    df.loc[df.HTTP_status == '-', 'HTTP_status'] = -1
+
     # In some instance the http status is given as a string, convert to int
     df['HTTP_status'] = df['HTTP_status'].astype(int)
     df.loc[df.ACL_Required.isin(('-', np.nan)), 'ACL_Required'] = pd.NA
