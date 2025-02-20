@@ -1,4 +1,4 @@
-# this creates the tags on the main database before release
+# this creates the tags on the main database before release - run on MBOX
 from data.models import Dataset, Tag
 import pandas as pd
 import ibl_reports.views
@@ -26,7 +26,7 @@ public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2024_Q2_IBL_et_al_RepeatedSite_datasets.pqt',
                    '2024_Q2_Blau_et_al_datasets.pqt',
                    '2024_Q3_Pan_Vazquez_et_al_datasets.pqt',
-                   '2025_Q1_IBL_et_al_BWM_wheel_patch.pqt',
+                   '2025_Q1_IBL_et_al_BWM_wheel_patch_datasets.pqt',
                    ]
 
 public_ds_tags = [
@@ -51,7 +51,7 @@ public_ds_tags = [
     ]
 
 
-for pdn, tagid in zip(public_ds_files, public_ds_tags):
+for pdn, tagid in zip(reversed(public_ds_files), reversed(public_ds_tags)):
     pdf = IBL_ALYX_ROOT.joinpath('releases', pdn)
     tag = Tag.objects.get(id=tagid)
     datasets = Dataset.objects.filter(pk__in=list(pd.read_parquet(pdf)['dataset_id']))

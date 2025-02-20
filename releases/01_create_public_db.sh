@@ -10,22 +10,16 @@ set -e
 # * Make sure you have the correct database set up as 'public' in the alyx installation you use
 # * Make sure all involved databases are on the same branch and commit (production, public, local install)
 # * Record the output of this script in a log file (and submit these logs to github for the record later)
-# * Adjust the variables below according to your setup (any changes here should also be made in 02_upload_public_db.sh)
+# * Adjust the variables in the .env file according to your setup (see the .env_template file for the variables)
 
-# Variables
-TMP_DIR="$HOME"/openalyx_wd  # This will be recreated and later destroyed, make sure you have write access
-SSH_STR=(mbox)  # have to use ssh config file for all the commands below to work
-# whoami ? Julia
-#ALYX_DIR=/var/www/alyx/alyx # The alyx installation you are using with public db set up
-#ALYX_VENV=/var/www/alyx/alyxvenv  # path of the alyx env
-# whoami ? Olivier
-#ALYX_DIR=/var/www/alyx_local # The alyx installation you are using with public db set up
-#ALYX_VENV=$ALYX_DIR/alyxvenv # The alyx installation you are using with public db set up
-# whomai? Parede
-ALYX_DIR=/var/www/alyx-open/alyx
-ALYX_VENV=/var/www/alyx-open/alyxvenv
-# Source alyx env
-source $ALYX_VENV/local/bin/activate
+# Source env variables and alyx env
+source .env
+source $ALYX_VENV/bin/activate
+
+# checking connection to database and settings
+python $ALYX_DIR/alyx/manage.py check
+python $ALYX_DIR/alyx/manage.py showmigrations
+
 echo "$(date '+%Y-%m-%d %H:%M:%S') Beginning to create local version of public database"
 # Create a working directory
 echo "... creating working directory $TMP_DIR"

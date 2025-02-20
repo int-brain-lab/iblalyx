@@ -54,7 +54,7 @@ public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2024_Q2_IBL_et_al_RepeatedSite_datasets.pqt',
                    '2024_Q2_Blau_et_al_datasets.pqt',
                    '2024_Q3_Pan_Vazquez_et_al_datasets.pqt',
-                   '2025_Q1_IBL_et_al_BWM_wheel_patch.pqt',
+                   '2025_Q1_IBL_et_al_BWM_wheel_patch_datasets.pqt',
                    ]
 
 public_ds_tags = [

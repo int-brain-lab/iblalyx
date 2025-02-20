@@ -8,7 +8,6 @@ set -e
 ALYX_DIR="$HOME"/Documents/PYTHON/alyx/alyx
 
 # Activate alyx env
-# source $ALYX_DIR/alyxvenv/bin/activate   # environment has moved
 echo "$(date '+%Y-%m-%d %H:%M:%S') Creating symlinks"
 # Create all missing symlinks in /mnt/ibl/public for the public database
 "$HOME"/Documents/PYTHON/alyx/alyx/alyxvenv/bin/python $ALYX_DIR/manage.py shell < 03a_symlinks.py
