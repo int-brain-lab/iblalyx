@@ -25,7 +25,8 @@ public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2024_Q2_IBL_et_al_BWM_iblsort_datasets.pqt',
                    '2024_Q2_IBL_et_al_RepeatedSite_datasets.pqt',
                    '2024_Q2_Blau_et_al_datasets.pqt',
-                   '2024_Q3_Pan_Vazquez_et_al_datasets.pqt'
+                   '2024_Q3_Pan_Vazquez_et_al_datasets.pqt',
+                   '2025_Q1_IBL_et_al_BWM_wheel_patch.pqt',
                    ]
 
 public_ds_tags = [
@@ -46,6 +47,7 @@ public_ds_tags = [
     "9fc1593a-c3c1-4dea-8473-0948ed6a2904",  # 2024_Q2_IBL_et_al_RepeatedSite
     "6828217e-6ae0-44ce-9c6a-bd30f6e523a6",  # 2024_Q2_Blau_et_al
     "89b582ed-54d1-4b03-96a7-9ddb369cd07d",  # 2024_Q3_Pan_Vazquez_et_al
+    "3faeb797-0d60-4595-86f4-2712265e6291",  # 2025_Q1_IBL_et_al_BWM_wheel_patch
     ]
 
 
