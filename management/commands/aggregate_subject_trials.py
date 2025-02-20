@@ -796,6 +796,7 @@ class Command(BaseCommand):
         dset.hash = file_hash or ''
         dset.created_by = LabMember.objects.get(username=user) if isinstance(user, str) else user
         dset.generating_software = 'ibllib ' + ibllib_version
+        dset.content_object = self.subject
         if aggregate_hash is not None:
             dset.json = {**(dset.json or {}), 'aggregate_hash': aggregate_hash}
         logger.info(('Created' if is_new else 'Updated') + ' aggregate dataset with UUID %s', dset.pk)
