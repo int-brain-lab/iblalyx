@@ -212,6 +212,8 @@ def generate_trials_aggregate(session_tasks: dict, outcomes=None):
             # trials['session_start_time'] = info.start_time
             all_trials.append(trials)
             outcomes.append((eid, proc_number, 'SUCCESS'))
+            if getattr(task, 'extractor') is not None:
+                del(task.extractor)
     df_trials = pd.concat(all_trials, ignore_index=True)
     return df_trials, outcomes
 
