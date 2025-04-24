@@ -23,6 +23,16 @@ s['experimental'] = tot - s['ephys'] - s['video'] - s['extracted']
 
 
 
+# %% To run on
+# 24th of April 2025
+s = {'ephys': 150.062254512266,
+ 'video': 91.17344583453541,
+ 'extracted': 14.164533004191071,
+ 'experimental': 71.56434932810953
+}
+
+
+
 import seaborn as sns
 sns.set_theme()
 
