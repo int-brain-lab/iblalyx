@@ -22,15 +22,12 @@ try:
 except ImportError:
     from .settings_lab_template import *  # noqa
 
-
 # %% Databases
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
-# the database details are provided in the form of a JSON string. The variable looks like:
-# DATABASE_SECRET={"DATABASE_URL":"postgres://pguser:pgpassword@pghost:pgport/pgdbname"}
-if (database_secret := os.getenv("DATABASE_SECRET", None)) is not None:
-    db_url = json.loads(database_secret)["DATABASE_URL"]
-    DATABASES = {"default": dj_database_url.parse(db_url)}
-
+# the database details are provided in the form of an URL. The Url looks like::
+# "postgres://${POSTGRES_DB}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"
+database_url = f"postgres://{os.getenv('POSTGRES_DB')}:{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('POSTGRES_HOST')}:{os.getenv('POSTGRES_PORT')}/{os.getenv('POSTGRES_DB')}"
+DATABASES = {"default": dj_database_url.parse(database_url)}
 # %% S3 access to write cache tables
 # the s3 access details are provided in the form of a JSON string. The variable looks like:
 # S3_ACCESS={"access_key":"xxxxx", "secret_key":"xxxxx", "region":"us-east-1"}
