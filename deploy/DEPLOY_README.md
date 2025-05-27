@@ -27,41 +27,18 @@ sudo docker compose restart
 
 ## Container release process
 
-### Outline of the process:
-1. **Build the container locally and test it**
-2. **Push the container to ECR**
-3. **Update the container on EC2**
 
-### Detailed instructions (local or mbox):
-Those instructions show how to
-1. build a container and test it locally
-2. push it to ECR
-3. update the container on an EC2 instance running the image.
-
-1. Build the container locally and test it
-    ```
-    cd ./deploy/container
-   ./buildrunlocal.sh
-   ```
-This will fist build the docker image, and then run it locally. 
-The container runs a Django development server available at `localhost:8000`.
-
-2. Push the container to ECR. We store this container in Elastic Container Registry (ECR) for public images.
-
-First authenticate, this assumes that the profile `ucl` is set up in the AWS CLI.
-   ```
-   aws --profile ucl ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/p4h6o9n8
-   docker push public.ecr.aws/p4h6o9n8/alyx:latest
-   ```
 
 Note for the above command to work you need aws cli v2 installed (use aws --version to find current version). If necessary, follow
 [these](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) to update.
 
-3. Update and start/restart the container on EC2
+On a fresh new EC2 instance.
    ```
-   docker pull public.ecr.aws/p4h6o9n8/alyx:latest
+   mkdir -p ~/Documents/PYTHON/iblalyx/deploy
+   git clone https://github.com/int-brain-lab/iblalyx.git
+   
    cd ~/iblalyx/deploy
-   sudo docker compose up
+   ansible-playbook ansible_setup_alyx_server.yml
    ```
 
 
