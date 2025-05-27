@@ -554,14 +554,6 @@ class GalleryPlotsOverview(LoginRequiredMixin, ListView):
         return self.f.qs
 
 
-def _get_plot_options():
-    plot_options = []
-    plot_types = Note.objects.all().filter(json__tag="## report ##").values_list("text", flat=True).distinct()
-    for ip, pl in enumerate(plot_types):
-        plot_options.append((ip, pl))
-    return plot_options
-
-
 class GalleryFilter(django_filters.FilterSet):
     """
     Class that filters over Notes queryset.
@@ -588,6 +580,13 @@ class GalleryFilter(django_filters.FilterSet):
         (1, 'Fail'),
     )
 
+    @staticmethod
+    def _get_plot_options():
+        plot_options = []
+        plot_types = Note.objects.all().filter(json__tag="## report ##").values_list("text", flat=True).distinct()
+        for ip, pl in enumerate(plot_types):
+            plot_options.append((ip, pl))
+        return plot_options
 
     id = django_filters.CharFilter(label='Experiment ID/ Probe ID', method='filter_id', lookup_expr='startswith')
     plot = django_filters.ChoiceFilter(choices=_get_plot_options(), label='Plot Type', method='filter_plot')
