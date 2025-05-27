@@ -11,6 +11,7 @@ from django.db.models.functions import Coalesce, Cast
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.postgres.fields import JSONField, ArrayField
 from django.core.files.storage import default_storage
+from django.utils.functional import lazy
 
 from experiments.models import TrajectoryEstimate, ProbeInsertion
 from misc.models import Note, Lab
@@ -589,7 +590,7 @@ class GalleryFilter(django_filters.FilterSet):
         return plot_options
 
     id = django_filters.CharFilter(label='Experiment ID/ Probe ID', method='filter_id', lookup_expr='startswith')
-    plot = django_filters.ChoiceFilter(choices=_get_plot_options(), label='Plot Type', method='filter_plot')
+    plot = django_filters.ChoiceFilter(choices=lazy(_get_plot_options, list)(), label='Plot Type', method='filter_plot')
     lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')
     project = django_filters.ModelChoiceFilter(queryset=Project.objects.all(), label='Project', method='filter_project')
     repeated = django_filters.ChoiceFilter(choices=REPEATEDSITE, label='Location', method='filter_repeated')
