@@ -27,37 +27,16 @@ sudo docker compose restart
 
 ## Container release process
 
+On a fresh new EC2 instance setup the system by installing docker, git etc...
+```shell
+
+mkdir -p ~/Documents/PYTHON/iblalyx/deploy
+git clone https://github.com/int-brain-lab/iblalyx.git
+
+sudo apt-get install ansible
+cd ~/iblalyx/deploy
+ansible-playbook ansible_setup_alyx_server.yml
+```
 
 
-Note for the above command to work you need aws cli v2 installed (use aws --version to find current version). If necessary, follow
-[these](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) to update.
-
-On a fresh new EC2 instance.
-   ```
-   mkdir -p ~/Documents/PYTHON/iblalyx/deploy
-   git clone https://github.com/int-brain-lab/iblalyx.git
-   
-   cd ~/iblalyx/deploy
-   ansible-playbook ansible_setup_alyx_server.yml
-   ```
-
-
-## AWS instance creation process
-- Create a new EC2 instance, with a volume of a few GB (easiest is to use the templates for alyx-prod or openalyx)
-- Update mbox ssh config file with the new instance IP
-- Connect to the instance from mbox
-- Clone IBL alyx repository and create the environment file with secrets:
-   ```
-   git clone https://github.com/int-brain-lab/iblalyx.git
-   cd iblalyx/deploy
-   cp environment_template.env environment.env
-   ```
-- Run the bootstrap script to prepare the instance, need to specify the hostname and the rds security group name
-    ```
-    sudo bash alyx_ec2_bootstrap.sh alyx-prod alyx_rds
-    ```
--   create and start the container services:
-    ```
-    cd ~/iblalyx/deploy
-    sudo docker compose up
-    ```
+ vi ~/Documents/PYTHON/alyx/deploy/.env

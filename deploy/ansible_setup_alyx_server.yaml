@@ -1,7 +1,7 @@
 # ansible-playbook prepare_instance.yml
 ---
 - name: Install Git and clone repositories
-  hosts: all
+  hosts: localhost
   become: yes
   vars:
     repo_dir: /home/ubuntu/Documents/PYTHON
@@ -17,69 +17,37 @@
         state: present
         update_cache: yes
 
-    - name: Ensure repo_dir exists
-      file:
-        path: "{{ repo_dir }}"
-        state: directory
-        mode: '0755'
-        owner: ubuntu
-        group: ubuntu
-      become: yes
-
-    - name: Clone repositories
-      git:
-        repo: "{{ item.url }}"
-        dest: "{{ repo_dir }}/{{ item.name }}"
-        version: master
-        update: yes
+    - name: Check if repositories exist
+      stat:
+        path: "{{ repo_dir }}/{{ item.name }}/.git"
       loop: "{{ repos }}"
+      register: repo_stats
+
+    - name: Clone repositories that don't exist
+      git:
+        repo: "{{ item.item.url }}"
+        dest: "{{ repo_dir }}/{{ item.item.name }}"
+        version: master
+      loop: "{{ repo_stats.results }}"
+      when: not item.stat.exists
       become_user: ubuntu
 
 - name: Install Docker
-  import_playbook: "{{ repo_dir }}/iblalyx/deploy/linux_server/setup_alyx_server.yml"
+  vars:
+    repo_dir: /home/ubuntu/Documents/PYTHON
+  import_playbook: "{{ repo_dir }}/iblsre/servers/ansible/docker-setup.yaml"
 
 - name: Prepare Linux instance for Alyx
-  hosts: all
   become: yes
+  hosts: localhost
   vars:
     repo_dir: /home/ubuntu/Documents/PYTHON
     log_dir: /var/log/apache2
     hostname: "{{ ansible_hostname }}"
     ip_address: "{{ ansible_default_ipv4.address }}"
     date_time: "{{ ansible_date_time.iso8601 }}"
-    repos:
-      - { name: 'alyx', url: 'https://github.com/cortex-lab/alyx.git' }
-      - { name: 'iblalyx', url: 'https://github.com/int-brain-lab/iblalyx.git' }
 
   tasks:
-    - name: Ensure git is installed
-      apt:
-        name: git
-        state: present
-        update_cache: yes
-
-    - name: Ensure repo_dir exists
-      file:
-        path: "{{ repo_dir }}"
-        state: directory
-        mode: '0755'
-        owner: ubuntu
-        group: ubuntu
-      become: yes
-
-    - name: Clone repositories
-      git:
-        repo: "{{ item.url }}"
-        dest: "{{ repo_dir }}/{{ item.name }}"
-        version: master
-        update: yes
-      loop: "{{ repos }}"
-      become_user: ubuntu
-
-    - name: Check if Docker is installed
-      command: docker run hello-world
-      changed_when: false
-
     - name: Create spacer file
       command: dd if=/dev/zero of=/home/ubuntu/spacer.bin bs=1 count=0 seek=1G
       args:
@@ -93,9 +61,11 @@
         group: www-data
         mode: '0755'
 
-    - name: Set permissions on logrotate config
-      file:
-        path: "{{ repo_dir }}/iblalyx/deploy/alyxlogrotate.conf"
+    - name: Copy logrotate config to log directory
+      copy:
+        src: "{{ repo_dir }}/iblalyx/deploy/alyxlogrotate.conf"
+        dest: "{{ log_dir }}/alyxlogrotate.conf"
+        remote_src: yes
         owner: root
         group: root
         mode: '0600'
@@ -116,14 +86,14 @@
           day: "1,15"
           month: "*"
           weekday: "*"
-          job: "docker exec alyx /bin/bash /home/iblalyx/crons/renew_docker_certs.sh {{ hostname }} > {{ log_dir }}/cert_renew.log 2>&1"
+          job: "docker exec alyx /bin/bash {{ repo_dir }}/iblalyx/crons/renew_docker_certs.sh {{ hostname }} > {{ log_dir }}/cert_renew.log 2>&1"
         - name: Rotate logs
           minute: "0"
           hour: "10"
           day: "*"
           month: "*"
           weekday: "1"
-          job: "logrotate -vs {{ log_dir }}/logrotate.state {{ repo_dir }}/iblalyx/deploy/alyxlogrotate.conf"
+          job: "logrotate -vs {{ log_dir }}/logrotate.state {{ log_dir }}/alyxlogrotate.conf"
 
     - name: Add alias to .bashrc
       blockinfile:
