@@ -1131,5 +1131,16 @@
       "description": "All session data included in the subjectTrials table for a given subject, contains the columns lab, session date, session number, task protocol and project",
       "filename_pattern": ""
     }
+  },
+  {
+    "model": "data.datasettype",
+    "pk": "fbc8bd72-953c-4fb1-97ab-ef24f462a2c3",
+    "fields": {
+      "json": null,
+      "name": "_ibl_optoStimulation.intervals",
+      "created_by": null,
+      "description": "Time in seconds, relative to the session start, of the onset and offset of the opto stimulation.",
+      "filename_pattern": "*optostimulation.intervals*.npy"
+    }
   }
 ]
