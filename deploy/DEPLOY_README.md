@@ -47,14 +47,12 @@ docker run \
   --name alyx_certbot \
   -v /etc/letsencrypt:/etc/apache2/ssl \
   internationalbrainlab/alyx_apache:latest \
+  certbot --apache --noninteractive --agree-tos --email admin@internationalbrainlab.org -d test.alyx.internationalbrainlab.org"
   /bin/bash
   
   
-  apt-get update && apt-get install -y python3-certbot-apache && 
   
-  
-  certbot --apache --noninteractive --agree-tos --email admin@internationalbrainlab.org -d test.alyx.internationalbrainlab.org
-  certbot certonly --standalone -noninteractive --agree-tos --email admin@internationalbrainlab.org -d test.alyx.internationalbrainlab.org
+docker exec -it alyx certbot --apache --noninteractive --agree-tos --email admin@internationalbrainlab.org -d test.alyx.internationalbrainlab.org
 
 ```
 
