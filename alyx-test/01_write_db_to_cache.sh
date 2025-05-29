@@ -1,3 +1,5 @@
 #!/bin/bash
+#./01_write_db_to_cache.sh /home/ubuntu/current_database.sql
 set -e
-/usr/bin/pg_dump -cOx -U ibl_user -h localhost -d ibl_test -f /var/www/alyx-test/data/alyx_full.sql
+docker exec -e PGPASSWORD=postgres alyx_postgres sh -c '/usr/bin/pg_dump -cOx -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -f /home/alyx_test.sql'
+docker cp alyx_postgres:/home/alyx_test.sql $1

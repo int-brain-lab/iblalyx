@@ -7,7 +7,7 @@ services:
       - "443:443"
       - "${DB_PORT:-5432}:${DB_PORT:-5432}"
       - "80:80"
-    env_file: ~/Documents/PYTHON/alyx/deploy/.env
+    env_file: .env
     command: >
       bash -c "python /var/www/alyx/alyx/manage.py collectstatic --noinput &&
                /usr/sbin/apache2ctl -DFOREGROUND"
@@ -16,12 +16,13 @@ services:
       - /var/log/apache2:/var/log/apache2
       - /var/log/alyx:/var/log/alyx
       - /etc/letsencrypt:/etc/apache2/ssl
+      - ${DJANGO_MEDIA_ROOT:-~/media}:/var/www/alyx/alyx/media
     depends_on:
       - postgres
   postgres:
     image: postgres:17
     container_name: alyx_postgres
-    env_file: ~/Documents/PYTHON/alyx/deploy/.env
+    env_file: .env
     volumes:
       - alyx_postgres:/var/lib/postgresql/data
     expose:

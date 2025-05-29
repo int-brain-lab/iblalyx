@@ -95,3 +95,14 @@
           # IBL Alias
           alias docker-bash='docker exec -it alyx_apache /bin/bash'
         marker: "# {mark} ANSIBLE MANAGED BLOCK - IBL ALIAS"
+
+    - name: Create media and tables directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "ubuntu"
+        group: "ubuntu"
+        mode: '0755'
+      loop:
+        - /home/ubuntu/media
+        - /home/ubuntu/tables

@@ -1,19 +1,14 @@
 #!/bin/bash
 set -e
-set -a; source /var/www/alyx/deploy/.env; set +a
-# Delete the full dev database
-whoami
-psql -q -U ibl_user -h localhost -d ibl_test -c "drop schema public cascade"
-psql -q -U ibl_user -h localhost -d ibl_test -c "create schema public"
-# Loads the main database into the dev one
-psql -h localhost -U ibl_user -d ibl_test -f /var/www/alyx-test/data/alyx_full.sql
-# activate environment
-source /var/www/alyx-test/.venv/bin/activate
-cd /var/www/alyx-test/alyx
-# django migrations
-./manage.py makemigrations
-./manage.py migrate
-../scripts/load-init-fixtures.sh
-# permissions
-./manage.py set_db_permissions
-./manage.py set_user_permissions
+# Loads the database into the postgres container and into postgres
+docker cp ~/alyx_test.sql alyx_postgres:/home
+docker exec -e PGPASSWORD=postgres alyx_postgres sh -c 'psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -c "drop schema public cascade"'
+docker exec -e PGPASSWORD=postgres alyx_postgres sh -c 'psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -c "create schema public"'
+docker exec -e PGPASSWORD=postgres alyx_postgres sh -c 'psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -f /home/alyx_test.sql'
+
+# apply migrations and load init fixtures to stay up to date with alyx
+docker exec -it alyx_apache python manage.py check
+docker exec -it alyx_apache python manage.py migrate
+docker exec -it alyx_apache /var/www/alyx/scripts/load-init-fixtures.sh
+docker exec -it alyx_apache python manage.py set_db_permissions
+docker exec -it alyx_apache python manage.py set_user_permissions

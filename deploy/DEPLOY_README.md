@@ -32,20 +32,4 @@ sudo docker compose restart
 
 ```shell
 
-docker run \
-  -it \
-  --rm \
-  --name alyx_certbot \
-  -v /etc/letsencrypt:/etc/apache2/ssl \
-  internationalbrainlab/alyx_apache:latest \
-  certbot --apache --noninteractive --agree-tos --email admin@internationalbrainlab.org -d test.alyx.internationalbrainlab.org"
-  /bin/bash
-  
-  
-  
-docker exec -it alyx certbot --apache --noninteractive --agree-tos --email admin@internationalbrainlab.org -d test.alyx.internationalbrainlab.org
-
-```
-
-
- vi ~/Documents/PYTHON/alyx/deploy/.env
+vi ~/Documents/PYTHON/alyx/deploy/.env
