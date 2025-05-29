@@ -27,16 +27,7 @@ sudo docker compose restart
 
 ## Container release process
 
-On a fresh new EC2 instance setup the system by installing docker, git etc...
-```shell
 
-mkdir -p ~/Documents/PYTHON/iblalyx/deploy
-git clone https://github.com/int-brain-lab/iblalyx.git
-
-sudo apt-get install ansible
-cd ~/iblalyx/deploy
-ansible-playbook ansible_setup_alyx_server.yml
-```
 
 
 ```shell

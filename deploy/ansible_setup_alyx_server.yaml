@@ -80,13 +80,6 @@
         weekday: "{{ item.weekday }}"
         job: "{{ item.job }}"
       loop:
-        - name: Renew certificates
-          minute: "30"
-          hour: "1"
-          day: "1,15"
-          month: "*"
-          weekday: "*"
-          job: "docker exec alyx /bin/bash {{ repo_dir }}/iblalyx/crons/renew_docker_certs.sh {{ hostname }} > {{ log_dir }}/cert_renew.log 2>&1"
         - name: Rotate logs
           minute: "0"
           hour: "10"
