@@ -6,9 +6,9 @@
   vars:
     repo_dir: /home/ubuntu/Documents/PYTHON
     repos:
-      - { name: 'alyx', url: 'https://github.com/cortex-lab/alyx.git' }
-      - { name: 'iblalyx', url: 'https://github.com/int-brain-lab/iblalyx.git' }
-      - { name: 'iblsre', url: 'https://github.com/int-brain-lab/iblsre.git' }
+      - { name: 'alyx', url: 'https://github.com/cortex-lab/alyx.git', app_repo_version: 'deploy' }
+      - { name: 'iblalyx', url: 'https://github.com/int-brain-lab/iblalyx.git', app_repo_version: 'deploy' }
+      - { name: 'iblsre', url: 'https://github.com/int-brain-lab/iblsre.git', app_repo_version: 'main' }
 
   tasks:
     - name: Ensure git is installed
@@ -17,19 +17,13 @@
         state: present
         update_cache: yes
 
-    - name: Check if repositories exist
-      stat:
-        path: "{{ repo_dir }}/{{ item.name }}/.git"
-      loop: "{{ repos }}"
-      register: repo_stats
-
     - name: Clone repositories that don't exist
-      git:
-        repo: "{{ item.item.url }}"
-        dest: "{{ repo_dir }}/{{ item.item.name }}"
-        version: master
-      loop: "{{ repo_stats.results }}"
-      when: not item.stat.exists
+      ansible.builtin.git:
+        repo: "{{ item.url }}"
+        dest: "{{ repo_dir }}/{{ item.name }}"
+        version: "{{ item.app_repo_version }}"
+        update: yes
+      loop: "{{ repos }}"
       become_user: ubuntu
 
 - name: Install Docker
