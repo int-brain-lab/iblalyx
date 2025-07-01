@@ -172,6 +172,7 @@ class OneDjango(OneAlyx):
         # get parameters override if inputs provided
         super(OneAlyx, self).__init__(
             cache_dir=cache_dir, mode=mode, wildcards=wildcards, tables_dir=tables_dir)
+        self._web_client._rest_cache_dir = self._tables_dir / '.rest'
         # assign property here as it is set by the parent OneAlyx class at init
         self.uuid_filenames = uuid_filenames
 
