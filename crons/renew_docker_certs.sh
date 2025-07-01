@@ -36,7 +36,12 @@ fi
 echo "ALYX_URL set to ${ALYX_URL}"
 
 echo "Retrieving instance-id from local metadata..."
-EC2_INSTANCE_ID=$(wget -q -O - http://169.254.169.254/latest/meta-data/instance-id)
+if [ -z $EC2_INSTANCE_ID ]
+then
+  die() { status=$1; shift; echo "FATAL: $*"; exit $status; }
+  EC2_INSTANCE_ID="`wget -q -O - http://169.254.169.254/latest/meta-data/instance-id || die "wget instance-id has failed: $?\"`"
+fi
+
 echo "EC2_INSTANCE_ID found: ${EC2_INSTANCE_ID}"
 
 echo "Retrieving list of security groups attached to this instance..."
