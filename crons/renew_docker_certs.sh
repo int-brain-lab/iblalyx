@@ -74,7 +74,7 @@ else
     email="$APACHE_SERVER_ADMIN"
 fi
 
-certbot --apache --noninteractive --agree-tos --email "$email" -d $ALYX_URL
+certbot --apache --noninteractive --agree-tos --email "$email" -d $ALYX_URL -v
 
 # check if bucket exists, if not skip copy
 if aws s3 ls "s3://alyx-docker/" > /dev/null 2>&1; then

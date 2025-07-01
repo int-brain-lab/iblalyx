@@ -22,11 +22,12 @@ if [ ! -f /etc/letsencrypt/live/$APACHE_SERVER_NAME/fullchain.pem ] || [ ! -f /e
         -keyout /etc/letsencrypt/live/$APACHE_SERVER_NAME/apache-selfsigned.key \
         -out /etc/letsencrypt/live/$APACHE_SERVER_NAME/apache-selfsigned.crt \
         -subj "/C=GB/ST=London/L=London/O=IBL/OU=IT/CN=${APACHE_SERVER_NAME}" &&
-
     # Generate a new SSL certificate using certbot
     # TODO Hostname variable should be set in the environment
     # Start apache server
     apache2ctl start
+    rm -rf /etc/letsencrypt/live/$APACHE_SERVER_NAME
+
     /bin/bash /home/iblalyx/crons/renew_docker_certs.sh
     
     # Restart apache server to apply the new certificate
