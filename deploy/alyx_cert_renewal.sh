@@ -18,10 +18,10 @@ if [ ! -f /etc/letsencrypt/live/$1/fullchain.pem ] || [ ! -f /etc/letsencrypt/li
     # Generate a new SSL certificate using certbot
     # TODO Hostname variable should be set in the environment
     # Start apache server
-    sudo apache2ctl start
-    /bin/bash ../crons/renew_docker_certs.sh
+    apache2ctl start
+    /bin/bash /home/iblalyx/crons/renew_docker_certs.sh
     
     # Restart apache server to apply the new certificate
-    sudo apache2ctl stop
+    apache2ctl stop
     a2enmod ssl
 fi
