@@ -11,7 +11,7 @@ if [ "$APACHE_SERVER_NAME" = "localhost" ]; then
 fi
 
 # Fist check if the certificate files exist
-if [ ! -f /etc/letsencrypt/live/$1/fullchain.pem ] || [ ! -f /etc/letsencrypt/live/$1/privkey.pem ] && [ -n $CERTBOG_SG ]; then
+if [ ! -f /etc/letsencrypt/live/$1/fullchain.pem ] || [ ! -f /etc/letsencrypt/live/$1/privkey.pem ] && [ -n $CERTBOT_SG ]; then
     echo "SSL certificate files do not exist. Proceeding with certificate generation"
     # Deactivate SSL module if it is enabled
     a2dismod ssl
