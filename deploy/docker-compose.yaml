@@ -10,7 +10,9 @@ services:
     env_file: .env
     command: >
       bash -c "python /var/www/alyx/alyx/manage.py collectstatic --noinput &&
-               /bin/bash ./alyx_cert_renewal.sh &&
+               cd /home/iblalyx && git checkout deploy && git pull &&
+               envsubst < /var/www/alyx/deploy/docker/000-default-conf-alyx > /etc/apache2/sites-available/000-default.conf &&
+               /bin/bash /home/iblalyx/deploy/alyx_cert_renewal.sh &&
                /usr/sbin/apache2ctl -DFOREGROUND"
     restart: always
     volumes:
