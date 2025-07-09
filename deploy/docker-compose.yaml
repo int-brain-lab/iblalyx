@@ -10,16 +10,14 @@ services:
     env_file: .env
     command: >
       bash -c "python /var/www/alyx/alyx/manage.py collectstatic --noinput &&
-               cd /home/iblalyx && git checkout deploy && git pull &&
-               envsubst < /var/www/alyx/deploy/docker/000-default-conf-alyx > /etc/apache2/sites-available/000-default.conf &&
-               /bin/bash /home/iblalyx/deploy/alyx_cert_renewal.sh &&
+               /bin/bash /home/iblalyx/deploy/alyx_issue_ssl.sh &&
                /usr/sbin/apache2ctl -DFOREGROUND"
     restart: always
     volumes:
       - /var/log/apache2:/var/log/apache2
       - /var/log/alyx:/var/log/alyx
       - /etc/letsencrypt:/etc/apache2/ssl
-      - ${DJANGO_MEDIA_ROOT:-~/media}:/var/www/alyx/alyx/media
+      - ${DJANGO_MEDIA_ROOT:-~/uploaded}:/var/www/alyx/alyx/uploaded
     depends_on:
       - postgres
   postgres:
