@@ -49,13 +49,11 @@ def get_data_status(dsets, exp_dsets, title):
             n_exp_dsets += 1
             datasets.append(dset_data)
 
-
     data = {'dsets': datasets,
             'n_dsets': n_dsets,
             'n_exp_dsets': n_exp_dsets,
             'critical': missing,
             'title': title}
-
 
     return data
 
@@ -115,7 +113,7 @@ def raw_behaviour_data_status(datasets, session):
 
 def trial_data_status(datasets, session):
     # First check if trials table exists
-    data = get_data_status(datasets,  [('trials.table', 'alf', True)], 'Trial data')
+    data = get_data_status(datasets, [('trials.table', 'alf', True)], 'Trial data')
     # If no, check if individual datasets exist
     if data['critical'] is True:
         data = get_data_status(datasets, expected_data.TRIALS, 'Trial data')
@@ -201,6 +199,7 @@ def raw_video_data_status(datasets, session):
     data['tasks'] = get_tasks(expected_data.RAW_VIDEO_TASKS, session)
 
     return data
+
 
 def video_data_status(datasets, probe):
 
