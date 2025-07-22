@@ -413,31 +413,6 @@ class GallerySessionQcView(LoginRequiredMixin, ListView):
 
         return qs
 
-
-class GallerySubPlotSessionView(LoginRequiredMixin, ListView):
-    template_name = 'ibl_reports/gallery_subplots.html'
-    login_url = LOGIN_URL
-    plot_type = None
-
-    def get_context_data(self, **kwargs):
-        # need to find number of probes
-        # need to arrange the photos in the order they expected, if None we just have an empty card
-        context = super(GallerySubPlotSessionView, self).get_context_data(**kwargs)
-        probes = {}
-        probes[''] = data_check.get_plots(context['object_list'], self.plot_type)
-
-        context['session'] = Session.objects.all().get(id=self.eid)
-        context['devices'] = probes
-        context['plot_type'] = self.plot_type
-        return context
-
-    def get_queryset(self):
-        self.eid = self.kwargs.get('eid', None)
-        qs = Note.objects.all().filter(object_id=self.eid)
-
-        return qs
-
-
 class GallerySessionView(LoginRequiredMixin, ListView):
     login_url = LOGIN_URL
     template_name = 'ibl_reports/gallery_subplots.html'
@@ -461,7 +436,7 @@ class GallerySessionView(LoginRequiredMixin, ListView):
         self.eid = self.kwargs.get('eid', None)
         pids = ProbeInsertion.objects.all().filter(session=self.eid).values_list('id', flat=True)
         qs = Note.objects.all().filter(Q(object_id=self.eid) | Q(object_id__in=pids),
-                                       json__tag="## report ##")
+                                       json__tag="## report ##").order_by('text')
 
         return qs
 
