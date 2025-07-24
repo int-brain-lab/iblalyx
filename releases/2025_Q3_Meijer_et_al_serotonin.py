@@ -1,6 +1,9 @@
 """
 Data Release request link:
 https://docs.google.com/document/d/1ziHSzUoGWHMi8YU3JtCr2Q8QTlbZUllmtxxarEY9ab4/edit?tab=t.0
+
+- TODO for the trials tables: do a read after write including the laser stimulations
+
 """
 
 from pathlib import Path
@@ -213,3 +216,4 @@ df_datasets.to_parquet(PATH_IBL_ALYX.joinpath('releases', f'{TAG_NAME}.pqt'))
 # Tagging in production database
 # tag, _ = Tag.objects.get_or_create(name="2025_Q3_Meijer_et_al", protected=True, public=True)
 # tag.datasets.set(dsets2tag)
+

@@ -6,6 +6,8 @@ https://doi.org/10.1038/s41593-025-01965-8
 
 https://osf.io/fap2s/wiki/home/
 
+- for the trials tables: do a read after write before
+
 """
 
 # %%
