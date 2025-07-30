@@ -1,3 +1,6 @@
+# %%
+from pathlib import Path
+import os
 import pandas as pd
 from data.models import Tag, Dataset
 from actions.models import Session
@@ -45,7 +48,9 @@ from django.db.models import Q
 the bpod_intervals datasets and resaved. These had to be removed to avoid problems with
 load_object for trials with mismatching dimensions
 """""""""
-
+DRY_RUN = True
+script_dir = Path('/home/olivier/PycharmProjects/alyx_ferret/iblalyx/releases')
+os.chdir(script_dir)
 # Load in previous datasets
 dsets_orig = pd.read_parquet('2023_Q3_Findling_Hubert_et_al_datasets_v1.pqt')
 orig_dsets = Dataset.objects.filter(id__in=dsets_orig.dataset_id.values).distinct()
@@ -80,7 +85,6 @@ def get_video_dsets(label):
         f'{label}ROIMotionEnergy.position.npy',
         f'_iblrig_{label}Camera.raw.mp4'
     ]
-
     return dnames
 
 
@@ -111,10 +115,11 @@ sync_dsets = Dataset.objects.filter(session__in=wfield_eids, collection='raw_eph
 all_dsets = orig_dsets | trials_dsets | wheel_dsets | video_dsets | wfield_dsets | sync_dsets
 all_dsets = all_dsets.distinct()
 
-tag, _ = Tag.objects.get_or_create(name="2023_Q3_Findling_Hubert_et_al", protected=True, public=True)
-tag.datasets.set(all_dsets)
-
 # Save dataset IDs for release in public database
 dset_ids = [str(did) for did in all_dsets.values_list('pk', flat=True)]
 df = pd.DataFrame(dset_ids, columns=['dataset_id'])
 df.to_parquet('2023_Q3_Findling_Hubert_et_al_datasets.pqt')
+
+if DRY_RUN is False:
+    tag, _ = Tag.objects.get_or_create(name="2023_Q3_Findling_Hubert_et_al", protected=True, public=True)
+    tag.datasets.set(all_dsets)

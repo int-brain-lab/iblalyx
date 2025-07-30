@@ -12,6 +12,7 @@ import tqdm
 import pandas as pd
 from data.models import Dataset, Tag
 
+DRY_RUN = True
 PATH_IBL_ALYX = Path('/home/olivier/PycharmProjects/alyx_ferret/iblalyx')
 TAG_NAME = '2025_Q3_Meijer_et_al_serotonin'
 EIDS = [
@@ -214,6 +215,7 @@ df_datasets.to_parquet(PATH_IBL_ALYX.joinpath('releases', f'{TAG_NAME}.pqt'))
 
 
 # Tagging in production database
-# tag, _ = Tag.objects.get_or_create(name="2025_Q3_Meijer_et_al", protected=True, public=True)
-# tag.datasets.set(dsets2tag)
-
+if DRY_RUN is False:
+    dsets2tag = Dataset.objects.filter(id__in=df_datasets['dataset_id'])
+    tag, _ = Tag.objects.get_or_create(name="2025_Q3_Meijer_et_al", protected=True, public=True)
+    tag.datasets.set(dsets2tag)
