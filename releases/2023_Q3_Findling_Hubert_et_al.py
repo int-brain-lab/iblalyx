@@ -1,7 +1,7 @@
 import pandas as pd
 from data.models import Tag, Dataset
 from actions.models import Session
-
+from django.db.models import Q
 
 """""""""
 # OLD CODE
@@ -38,63 +38,76 @@ from actions.models import Session
 # df.to_parquet('2023_Q3_Findling_Hubert_et_al_datasets.pqt')
 
 
-
 """""""""
 # NEW CODE
 # July 2025 renamed previous '2023_Q3_Findling_Hubert_et_al_datasets.pqt' created
-# with old code above to '2023_Q3_Findling_Hubert_et_al_datasets_v1.pqt'
+# with old code above to '2023_Q3_Findling_Hubert_et_al_datasets_v1.pqt' and removed
+the bpod_intervals datasets and resaved. These had to be removed to avoid problems with
+load_object for trials with mismatching dimensions
 """""""""
 
-# Load in previous datasets and remove the bpod_intervals as we don't want to release these anymore otherwise we
-# have problems with load_object for trials with mismatching dimensions
-dset_orig = pd.read_parquet('2023_Q3_Findling_Hubert_et_al_datasets_v1.pqt')
-orig_dsets = Dataset.objects.filter(id__in=dset_orig)
-orig_dsets = orig_dsets.exlcude(name='_ibl_trials.intervals_bpod.npy')
+# Load in previous datasets
+dsets_orig = pd.read_parquet('2023_Q3_Findling_Hubert_et_al_datasets_v1.pqt')
+orig_dsets = Dataset.objects.filter(id__in=dsets_orig.dataset_id.values).distinct()
 
 wfield_eids = pd.read_csv('2023_Q3_Findling_Hubert_et_al_wfield_sessions.csv', index_col=0)['session_id']
 sessions = Session.objects.filter(id__in=wfield_eids)
 
 # Add new trials datasets (these are from a new revision after correcting for probabilityLeft values)
 # Trials data
+
 trials_dtypes = ['trials.goCueTrigger_times', 'trials.stimOff_times', 'trials.table', '_ibl_trials.quiescencePeriod']
-trials_dsets = Dataset.objects.filter(session__in=wfield_eids, dataset_type__name__in=trials_dtypes, default_dataset=True)
+trials_dsets = Dataset.objects.filter(session__in=wfield_eids, dataset_type__name__in=trials_dtypes, default_dataset=True).distinct()
 
 # Passive data
-passive_dtypes = ['_iblrig_RFMapStim.raw','_ibl_passivePeriods.intervalsTable', '_ibl_passiveRFM.times','_ibl_passiveGabor.table', '_ibl_passiveStims.table']
-passive_dsets = Dataset.objects.filter(session__in=wfield_eids, dataset_type__name__in=passive_dtypes, default_dataset=True)
+passive_dtypes = ['_iblrig_RFMapStim.raw', '_ibl_passivePeriods.intervalsTable', '_ibl_passiveRFM.times', '_ibl_passiveGabor.table',
+                  '_ibl_passiveStims.table']
+passive_dsets = Dataset.objects.filter(session__in=wfield_eids, dataset_type__name__in=passive_dtypes, default_dataset=True).distinct()
 
 # Wheel data
 wheel_dtypes = ['wheelMoves.intervals', 'wheelMoves.peakAmplitude', 'wheel.position', 'wheel.timestamps']
-wheel_dsets = Dataset.objects.filter(session__in=wfield_eids, dataset_type__name__in=wheel_dtypes, default_dataset=True)
+wheel_dsets = Dataset.objects.filter(session__in=wfield_eids, dataset_type__name__in=wheel_dtypes, default_dataset=True).distinct()
+
 
 # Video data
-vid_dtypes = ['camera.times', 'camera.dlc', 'camera.features', 'ROIMotionEnergy.position', 'camera.ROIMotionEnergy',
-              'camera.lighteningPose']
+def get_video_dsets(label):
+    dnames = [
+        f'_ibl_{label}Camera.lightningPose.pqt',
+        f'_ibl_{label}Camera.dlc.pqt',
+        f'_ibl_{label}Camera.times.npy',
+        f'_ibl_{label}Camera.features.pqt',
+        f'{label}Camera.ROIMotionEnergy.npy',
+        f'{label}ROIMotionEnergy.position.npy',
+        f'_iblrig_{label}Camera.raw.mp4'
+    ]
+
+    return dnames
+
+
+# Get the video datasets
 video_dsets = Dataset.objects.none()
-for sess in sessions:
-    for cam in ['left', 'right', 'body']:
-        if sess.extended_qc[f'video{cam.capitalize()}'] != 'CRITICAL':
-            video_dsets = video_dsets | Dataset.objects.filter(session=sess,
-                                                               name__icontains=cam,
-                                                               dataset_type__name__in=vid_dtypes,
-                                                               default_dataset=True)
-            video_dsets = video_dsets | Dataset.objects.filter(session=sess, default_dataset=True,
-                                                               name=f'_iblrig_{cam}Camera.raw.mp4')
-# Licks times should be released if either left or right cam or both released
-lick_sess = Session.objects.filter(id__in=video_dsets.values_list('session_id', flat=True))
-for l in lick_sess:
-    if not (l.extended_qc[f'videoLeft'] == 'CRITICAL' and l.extended_qc[f'videoRight'] == 'CRITICAL'):
-        video_dsets = video_dsets | Dataset.objects.filter(session=l, default_dataset=True,
-                                                           dataset_type__name=f'licks.times')
+for cam in ['left', 'right', 'body']:
+    field_name = f"extended_qc__video{cam.capitalize()}"
+    video_eids = sessions.exclude(**{field_name: 'CRITICAL'})
+    dnames = get_video_dsets(cam)
+    dsets = Dataset.objects.filter(session__in=video_eids, name__in=dnames, default_dataset=True).distinct()
+    video_dsets = video_dsets | dsets
+
+# Get the lick datasets
+# If both left and right are critical we do not release the licks
+lick_eids = sessions.exclude(Q(extended_qc__videoLeft='CRITICAL') & Q(extended_qc__videoRight='CRITICAL'))
+dsets = (Dataset.objects.filter(session__in=lick_eids, name='licks.times.npy', default_dataset=True)
+         .exclude(tags__name__icontains='brainwide')).distinct()
+video_dsets = video_dsets | dsets
+video_dsets = video_dsets.distinct()
 
 # Widefield data
-wfield_dsets = Dataset.objects.filter(session__in=wfield_eids, collection='alf/widefield', default_dataset=True)
+wfield_dsets = Dataset.objects.filter(session__in=wfield_eids, collection='alf/widefield', default_dataset=True).distinct()
 
 # Sync data
-sync_dsets = Dataset.objects.filter(session__in=wfield_eids, collection='raw_ephys_data', default_dataset=True)
+sync_dsets = Dataset.objects.filter(session__in=wfield_eids, collection='raw_ephys_data', default_dataset=True).distinct()
 
-
-
+# Get the full set of datasets
 all_dsets = orig_dsets | trials_dsets | wheel_dsets | video_dsets | wfield_dsets | sync_dsets
 all_dsets = all_dsets.distinct()
 
@@ -105,5 +118,3 @@ tag.datasets.set(all_dsets)
 dset_ids = [str(did) for did in all_dsets.values_list('pk', flat=True)]
 df = pd.DataFrame(dset_ids, columns=['dataset_id'])
 df.to_parquet('2023_Q3_Findling_Hubert_et_al_datasets.pqt')
-
-
