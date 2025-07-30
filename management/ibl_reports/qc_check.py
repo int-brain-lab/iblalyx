@@ -247,10 +247,3 @@ def qc_summary(qc_data):
             data_dict[key][3] = None
 
     return data_dict
-
-
-
-
-
-
-

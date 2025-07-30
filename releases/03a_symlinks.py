@@ -5,11 +5,12 @@ This script needs to be run on the SDSC server with alyxvenv activated
 
 from pathlib import Path
 from data.models import Dataset, FileRecord
+import tqdm
 
 datasets = Dataset.objects.using('public').all()
 ndsets = datasets.count()
 # Check that all datasets have an FI file record, otherwise flag
-file_records = FileRecord.objects.using('public').filter(dataset__in=datasets, data_repository__name__startswith='flatiron')
+file_records = FileRecord.objects.using('public').filter(data_repository__name__startswith='flatiron').order_by('-dataset__auto_datetime')
 if file_records.count() == ndsets:
     pass
 else:
@@ -18,8 +19,7 @@ else:
         print(f"...no file record for dataset with ID: {str(diff)}")
 
 # This part remains a loop, didn't find a better solution
-c = 0
-for fr in file_records:
+for fr in tqdm.tqdm(file_records):
     rel_path = fr.data_url.split('public')[1].strip('/')
     source = Path('/mnt/ibl').joinpath(rel_path)
     dest = Path('/mnt/ibl/public').joinpath(rel_path)
@@ -31,6 +31,3 @@ for fr in file_records:
             dest.symlink_to(source)
     else:
         print(f'...source does not exist: {source}')
-    c += 1
-    if c % 20000 == 0:
-        print(f"creating symlinks {c}/{ndsets}")

@@ -1,7 +1,7 @@
 from datetime import date
 import logging
 import time
-import io
+from collections import OrderedDict
 
 import django_filters
 from django.http import HttpResponse, JsonResponse
@@ -130,6 +130,7 @@ class PairedRecordingsView(LoginRequiredMixin, ListView):
 
 class SubqueryArray(Subquery):
     template = 'ARRAY(%(subquery)s)'
+
     @property
     def output_field(self):
         output_fields = [x.output_field for x in self.get_source_expressions()]
@@ -223,19 +224,15 @@ def plot_task_qc_eid(request, eid):
 
     task_dict = {}
     task_key = next((k for k, _ in extended_qc.items() if k.startswith('task')), 'task')
-    task_dict[''] = {'title': f'Task QC: {extended_qc.get(task_key, "Not computed")}',
-                     'thresholds': thres,
-                     'outcomes': outcome,
-                     'data': {
-                         'labels': list(labels),
-                         'datasets': [{
-                             'backgroundColor': col,
-                             'borderColor': bord,
-                             'borderWidth': 3,
-                             'data': vals,
-                         }]
-                     },
-                     }
+    task_dict[''] = {
+        'title': f'Task QC: {extended_qc.get(task_key, "Not computed")}',
+        'thresholds': thres,
+        'outcomes': outcome,
+        'data': {
+            'labels': list(labels),
+            'datasets': [{'backgroundColor': col, 'borderColor': bord, 'borderWidth': 3, 'data': vals}]
+        }
+    }
 
     return JsonResponse(task_dict)
 
@@ -250,16 +247,13 @@ def plot_video_qc_eid(request, eid):
         video_data, outcome = qc_check.process_video_qc(video)
 
         video_dict[cam] = {
-                        'title': f'Video {cam} QC: {extended_qc.get(f"video{cam}", "Not computed")}',
-                        'thresholds': [],
-                        'outcomes': outcome,
-                        'data': {
-                            'labels': video_data['label'],
-                            'datasets': [{
-                                'backgroundColor': video_data['colour'],
-                                'data': video_data['data'],
-                            }]
-                        },
+            'title': f'Video {cam} QC: {extended_qc.get(f"video{cam}", "Not computed")}',
+            'thresholds': [],
+            'outcomes': outcome,
+            'data': {
+                'labels': video_data['label'],
+                'datasets': [{'backgroundColor': video_data['colour'], 'data': video_data['data']}]
+            }
         }
 
     return JsonResponse(video_dict)
@@ -275,16 +269,13 @@ def plot_dlc_qc_eid(request, eid):
         dlc_data, outcome = qc_check.process_video_qc(dlc)
 
         dlc_dict[cam] = {
-                        'title': f'DLC {cam} QC: {extended_qc.get(f"dlc{cam}", "Not computed")}',
-                        'thresholds': [],
-                        'outcomes': outcome,
-                        'data': {
-                            'labels': dlc_data['label'],
-                            'datasets': [{
-                                'backgroundColor': dlc_data['colour'],
-                                'data': dlc_data['data'],
-                            }]
-                        },
+            'title': f'DLC {cam} QC: {extended_qc.get(f"dlc{cam}", "Not computed")}',
+            'thresholds': [],
+            'outcomes': outcome,
+            'data': {
+                'labels': dlc_data['label'],
+                'datasets': [{'backgroundColor': dlc_data['colour'], 'data': dlc_data['data']}]
+            }
         }
 
     return JsonResponse(dlc_dict)
@@ -422,46 +413,30 @@ class GallerySessionQcView(LoginRequiredMixin, ListView):
 
         return qs
 
-
-class GallerySubPlotSessionView(LoginRequiredMixin, ListView):
-    template_name = 'ibl_reports/gallery_subplots.html'
-    login_url = LOGIN_URL
-    plot_type = None
-
-    def get_context_data(self, **kwargs):
-        # need to find number of probes
-        # need to arrange the photos in the order they expected, if None we just have an empty card
-        context = super(GallerySubPlotSessionView, self).get_context_data(**kwargs)
-        probes = {}
-        probes[''] = data_check.get_plots(context['object_list'], self.plot_type)
-
-        context['session'] = Session.objects.all().get(id=self.eid)
-        context['devices'] = probes
-        context['plot_type'] = self.plot_type
-        return context
-
-    def get_queryset(self):
-        self.eid = self.kwargs.get('eid', None)
-        qs = Note.objects.all().filter(object_id=self.eid)
-
-        return qs
-
-
 class GallerySessionView(LoginRequiredMixin, ListView):
     login_url = LOGIN_URL
-    template_name = 'ibl_reports/gallery_session.html'
+    template_name = 'ibl_reports/gallery_subplots.html'
 
     def get_context_data(self, **kwargs):
         context = super(GallerySessionView, self).get_context_data(**kwargs)
         context['session'] = Session.objects.all().get(id=self.eid)
+
+        objects = {}
+        for note in context['object_list']:
+            obj = note.content_object.name
+            if obj not in objects:
+                objects[obj] = []
+            objects[obj].append(note)
+
+        context['devices'] = OrderedDict(sorted(objects.items(), key=lambda item: str(item[0])))
 
         return context
 
     def get_queryset(self):
         self.eid = self.kwargs.get('eid', None)
         pids = ProbeInsertion.objects.all().filter(session=self.eid).values_list('id', flat=True)
-        qs = Note.objects.all().filter(Q(object_id=self.eid) | Q(object_id__in=pids))
-        qs = qs.filter(json__tag="## report ##")
+        qs = Note.objects.all().filter(Q(object_id=self.eid) | Q(object_id__in=pids),
+                                       json__tag="## report ##").order_by('text')
 
         return qs
 
@@ -531,19 +506,19 @@ class GalleryPlotsOverview(LoginRequiredMixin, ListView):
         qs = Note.objects.all().filter(json__tag="## report ##")
         qs = qs.annotate(lab=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__lab__name'),
                                       Session.objects.filter(id=OuterRef('object_id')).values('lab__name')))
-        qs = qs.annotate(project=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__projects__name'),
-                                          Session.objects.filter(id=OuterRef('object_id')).values('projects__name')))
-        qs = qs.annotate(session=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session'),
-                                          Session.objects.filter(id=OuterRef('object_id')).values('pk'), output_field=UUIDField()))
+        qs = qs.annotate(project=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values(
+            'session__projects__name'), Session.objects.filter(id=OuterRef('object_id')).values('projects__name')))
+        qs = qs.annotate(session=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values(
+            'session'), Session.objects.filter(id=OuterRef('object_id')).values('pk'), output_field=UUIDField()))
 
-        qs = qs.annotate(session_time=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__start_time'),
-                                               Session.objects.filter(id=OuterRef('object_id')).values('start_time')))
+        qs = qs.annotate(session_time=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values(
+            'session__start_time'), Session.objects.filter(id=OuterRef('object_id')).values('start_time')))
 
-        qs = qs.annotate(session_qc=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__qc'),
-                                             Session.objects.filter(id=OuterRef('object_id')).values('qc')))
+        qs = qs.annotate(session_qc=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values(
+            'session__qc'), Session.objects.filter(id=OuterRef('object_id')).values('qc')))
 
-        qs = qs.annotate(behav_qc=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('session__extended_qc__behavior'),
-                                             Session.objects.filter(id=OuterRef('object_id')).values('extended_qc__behavior')))
+        qs = qs.annotate(behav_qc=Coalesce(ProbeInsertion.objects.filter(id=OuterRef('object_id')).values(
+            'session__extended_qc__behavior'), Session.objects.filter(id=OuterRef('object_id')).values('extended_qc__behavior')))
 
         qs = qs.annotate(probe_qc=ProbeInsertion.objects.filter(id=OuterRef('object_id')).values('json__qc'))
 
@@ -589,7 +564,6 @@ class GalleryFilter(django_filters.FilterSet):
         (1, 'Fail'),
     )
 
-
     id = django_filters.CharFilter(label='Experiment ID/ Probe ID', method='filter_id', lookup_expr='startswith')
     plot = django_filters.ChoiceFilter(choices=PLOT_OPTIONS, label='Plot Type', method='filter_plot')
     lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')
@@ -614,7 +588,6 @@ class GalleryFilter(django_filters.FilterSet):
             queryset = queryset.filter(behav_qc=0)
 
         return queryset
-
 
     def filter_critical_qc(self, queryset, name, value):
 

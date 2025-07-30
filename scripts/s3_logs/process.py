@@ -16,6 +16,7 @@ import pyarrow as pa
 import boto3
 from botocore.exceptions import ClientError
 from one.alf.path import get_session_path
+from itertools import zip_longest
 
 from . import io as s3io
 
@@ -415,55 +416,99 @@ def SCGB_renewal():
     py_ver[0].hist()
 
 
-def plot_access():
-    """Plots and stats for the SCGB renewal grant"""
-    start_date = pd.Timestamp.fromisoformat('2022-06-01')
-    columns = [
-        'total_file_access', 'unique_file_access', 'date', 'unique_ips', 'unique_countries',
-        'unique_cities', 'unique_sessions', 'cache_access']
-    download_data = pd.DataFrame(columns=columns)
-    # Download logs for each month
-    for file_obj in s3io.iter_log_tables():
-        table = pa.BufferReader(file_obj.get()['Body'].read())
-        df = pd.read_parquet(table)
 
-        data = {'date': PurePosixPath(file_obj.key).name[:7]}
+def grouper(iterable, n, *, incomplete='fill', fillvalue=None):
+    """Collect data into non-overlapping fixed-length chunks or blocks"""
+    # grouper('ABCDEFG', 3, fillvalue='x') --> ABC DEF Gxx
+    # grouper('ABCDEFG', 3, incomplete='strict') --> ABC DEF ValueError
+    # grouper('ABCDEFG', 3, incomplete='ignore') --> ABC DEF
+    args = [iter(iterable)] * n
+    if incomplete == 'fill':
+        return zip_longest(*args, fillvalue=fillvalue)
+    if incomplete == 'strict':
+        return zip(*args, strict=True)
+    if incomplete == 'ignore':
+        return zip(*args)
+    else:
+        raise ValueError('Expected fill, strict, or ignore')
+
+
+def get_access(YEAR=None, save_path=None, save=False):
+    """
+    Get summary of data for all data or given year
+    :param YEAR:
+    :return:
+    """
+    columns = [
+        'total_file_access', 'unique_file_access', 'total_bytes_sent', 'date', 'unique_ips',
+        'unique_countries', 'unique_cities', 'unique_sessions', 'cache_access']
+    download_data = pd.DataFrame(columns=columns)
+
+    total_unique = {k: set() for k in ['file_access', 'ips', 'countries', 'cities', 'sessions']}
+
+    for log_obj, ip_obj in grouper(s3io.iter_log_tables(), 2):
+        assert 'ibl-brain-wide-map-public' in log_obj.key
+        assert ip_obj is None or 'IP-info' in ip_obj.key
+
+        if YEAR and YEAR not in log_obj.key:
+            continue  # only look at the year
+
+        if save_path is not None:
+            log_obj_path = Path(save_path).joinpath(PurePosixPath(log_obj.key).name)
+            if log_obj_path.exists():
+                df = pd.read_parquet(log_obj_path)
+            else:
+                table = pa.BufferReader(log_obj.get()['Body'].read())
+                df = pd.read_parquet(table)
+                if save:
+                    df.to_parquet(log_obj_path)
+        else:
+            table = pa.BufferReader(log_obj.get()['Body'].read())
+            df = pd.read_parquet(table)
+
+        data = {'date': PurePosixPath(log_obj.key).name[:7]}
         # Print number of files accessed
         file_access = (df['Operation'] == 'REST.GET.OBJECT') & (df['Key'].str.startswith('data/'))
-        print(f'{sum(file_access):,} total downloads for the month of {start_date.strftime("%B")}')
+        print(f'{sum(file_access):,} total downloads for the month of {data["date"]}')
         print(f'{len(df.loc[file_access, "Key"].unique()):,} different datasets downloaded')
         data['total_file_access'] = sum(file_access)
-        data['unique_file_access'] = len(df.loc[file_access, "Key"].unique())
+        data['unique_file_access'] = len(df.loc[file_access, 'Key'].unique())
+        data['total_bytes_sent'] = sum(df.loc[file_access, 'Bytes_Sent'])
 
         # Unique accesses
         unique_ips = df.loc[file_access, 'Remote_IP'].unique()
+        total_unique['ips'].update(unique_ips)
         print(f'Data was accessed from {len(unique_ips)} unique devices')
         data['unique_ips'] = len(unique_ips)
-        _filename = f'{data["date"]}_log_ips.pkl'
-        filename = Path.home().joinpath(_filename)
-        if filename.exists():
-            with open(filename, 'rb') as file:
-                ip_info_map = pickle.load(file)
-        else:
-            ip_info_map = []
-            for ip in unique_ips:
-                sleep(.2)  # pause to avoid DoS
-                ip_info_map.append(ip_info(ip))
-            ip_info_map = {x.pop('ip'): x for x in ip_info_map}
-            with open(filename, 'wb') as file:
-                pickle.dump(ip_info_map, file)
+        if ip_obj:
+            if save_path is not None:
+                ip_obj_path = Path(save_path).joinpath(PurePosixPath(ip_obj.key).name)
+                if ip_obj_path.exists():
+                    ip_info = pd.read_parquet(ip_obj_path)
+                else:
+                    ip_info = pa.BufferReader(ip_obj.get()['Body'].read())
+                    ip_info = pd.read_parquet(ip_info)
+                    if save:
+                        ip_info.to_parquet(ip_obj_path)
+            else:
+                ip_info = pa.BufferReader(ip_obj.get()['Body'].read())
+                ip_info = pd.read_parquet(ip_info)
 
-        unique_cities = set('/'.join((x['city'], x['region'], x['country'])) for x in ip_info_map.values())
-        data['unique_cities'] = len(unique_cities)
-        data['unique_countries'] = len(set(x['country'] for x in ip_info_map.values()))
+            unique_cities = ip_info['city'].str.cat(ip_info[['region', 'country']], sep='/', na_rep='Unknown').unique()
+            total_unique['cities'].update(unique_cities)
+            data['unique_cities'] = len(unique_cities)
+            unique_countries = ip_info['country'].unique()
+            data['unique_countries'] = len(unique_countries)
+            total_unique['countries'].update(unique_countries)
 
         # N sessions accessed
         datasets = df.loc[file_access, 'Key'].unique()
         sessions = set(map(get_session_path, datasets))
         print(f'{len(sessions):,} unique sessions accessed')
         data['unique_sessions'] = len(sessions)
+        total_unique['sessions'].update(sessions)
+        total_unique['file_access'].update(df.loc[file_access, 'Key'].unique())
 
-        print(df.loc[file_access, 'Key'].value_counts())
         # ONE cache downloads
         cache_access = (df['Operation'] == 'REST.GET.OBJECT') & \
                        (df['Key'].str.match(r'caches/openalyx/[a-zA-Z0-9_/]*cache.zip'))
@@ -473,5 +518,60 @@ def plot_access():
 
         download_data = pd.concat([download_data, pd.DataFrame(data, index=[0])])
 
-    download_data.set_index('date').plot(subplots=True)
-    return download_data.set_index('date')
+    print(
+        f'So far data accessed from {len(total_unique["cities"])} different cities '
+        f'across {len(total_unique["countries"])} countries'
+    )
+
+    download_data = download_data.set_index('date')
+
+    return download_data, total_unique
+
+
+def get_file_count_by_ip(save_path=None, save=False):
+
+    all_df = pd.DataFrame()
+    for log_obj, ip_obj in grouper(s3io.iter_log_tables(), 2):
+
+        assert 'ibl-brain-wide-map-public' in log_obj.key
+        assert ip_obj is None or 'IP-info' in ip_obj.key
+
+        if save_path is not None:
+            log_obj_path = Path(save_path).joinpath(PurePosixPath(log_obj.key).name)
+            if log_obj_path.exists():
+                df = pd.read_parquet(log_obj_path)
+            else:
+                table = pa.BufferReader(log_obj.get()['Body'].read())
+                df = pd.read_parquet(table)
+                if save:
+                    df.to_parquet(log_obj_path)
+        else:
+            table = pa.BufferReader(log_obj.get()['Body'].read())
+            df = pd.read_parquet(table)
+
+        # Get number of files accessed
+        file_access = (df['Operation'] == 'REST.GET.OBJECT')
+
+        info = df.loc[file_access, 'Remote_IP'].value_counts()
+        df_ip = pd.DataFrame({'ip': info.index, 'count': info.values,
+                              'date': PurePosixPath(log_obj.key).name[:7] })
+
+        if save_path is not None:
+            ip_obj_path = Path(save_path).joinpath(PurePosixPath(ip_obj.key).name)
+            if ip_obj_path.exists():
+                ip_info = pd.read_parquet(ip_obj_path)
+            else:
+                ip_info = pa.BufferReader(ip_obj.get()['Body'].read())
+                ip_info = pd.read_parquet(ip_info)
+                if save:
+                    ip_info.to_parquet(ip_obj_path)
+        else:
+            ip_info = pa.BufferReader(ip_obj.get()['Body'].read())
+            ip_info = pd.read_parquet(ip_info)
+
+        ip_info = ip_info[['city', 'region', 'country']]
+        ip_info = ip_info.reset_index()
+
+        all_df = pd.concat([all_df, df_ip.merge(ip_info, how='outer', on='ip')])
+
+    return all_df

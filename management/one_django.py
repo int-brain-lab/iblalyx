@@ -160,7 +160,7 @@ class AlyxDjango(AlyxClient):
 
 class OneDjango(OneAlyx):
 
-    def __init__(self, *, cache_dir=CACHE_DIR_FI, mode='auto', wildcards=True,
+    def __init__(self, *, cache_dir=CACHE_DIR_FI, wildcards=True,
                  tables_dir=None, uuid_filenames=False, **kwargs):
         """ONE with direct Django queries."""
         if not tables_dir:
@@ -171,7 +171,8 @@ class OneDjango(OneAlyx):
         self._search_endpoint = 'sessions'
         # get parameters override if inputs provided
         super(OneAlyx, self).__init__(
-            cache_dir=cache_dir, mode=mode, wildcards=wildcards, tables_dir=tables_dir)
+            cache_dir=cache_dir, wildcards=wildcards, tables_dir=tables_dir)
+        self._web_client._rest_cache_dir = self._tables_dir / '.rest'
         # assign property here as it is set by the parent OneAlyx class at init
         self.uuid_filenames = uuid_filenames
 

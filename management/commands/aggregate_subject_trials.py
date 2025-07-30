@@ -51,10 +51,9 @@ from subjects.models import Subject
 from actions.models import Session
 from misc.models import LabMember
 from data.models import Dataset, DataRepository, FileRecord, DataFormat, DatasetType, Revision
-from data.management.one_django import OneDjango
+from data.management.one_django import OneDjango, CACHE_DIR_FI as ROOT
 
 logger = logging.getLogger('ibllib')
-ROOT = Path('/mnt/ibl')
 OUTPUT_PATH = ROOT / 'aggregates'
 VERSION = 1.1  # The dataset version (NB: change after dataset extraction modifications)
 EXPECTED_KEYS = {
@@ -212,6 +211,8 @@ def generate_trials_aggregate(session_tasks: dict, outcomes=None):
             # trials['session_start_time'] = info.start_time
             all_trials.append(trials)
             outcomes.append((eid, proc_number, 'SUCCESS'))
+            if getattr(task, 'extractor') is not None:
+                del(task.extractor)
     df_trials = pd.concat(all_trials, ignore_index=True)
     return df_trials, outcomes
 
@@ -796,6 +797,7 @@ class Command(BaseCommand):
         dset.hash = file_hash or ''
         dset.created_by = LabMember.objects.get(username=user) if isinstance(user, str) else user
         dset.generating_software = 'ibllib ' + ibllib_version
+        dset.content_object = self.subject
         if aggregate_hash is not None:
             dset.json = {**(dset.json or {}), 'aggregate_hash': aggregate_hash}
         logger.info(('Created' if is_new else 'Updated') + ' aggregate dataset with UUID %s', dset.pk)
