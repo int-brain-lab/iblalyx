@@ -23,10 +23,9 @@ In 2023_Q4_IBL_et_al_BWM_passive we only released passive datasets that had all 
 1. Spontaneous activity
 2. Receptive field map
 3. Passive task replay
-In most instances it was the passive task replay that failed extraction. We have decided that it is valuable to release
-the _ibl_passivePeriods.intervalsTable.csv and where available the _iblrig_RFMapStim.raw.bin datasets anyway for people
-who want to do analysis on the spontaneous portion of the task. The sessions that have incomplete passive data have 
-a note associated with them so they can be identified 
+We have decided that it is valuable to release the _ibl_passivePeriods.intervalsTable.csv and where available 
+the rfmap and task replay anyway for people who want to do analysis on the spontaneous portion of the task. 
+The sessions that have incomplete passive data have a note associated with them so they can be identified 
 """
 
 # Note we do this in two steps because some have the '_iblrig_RFMapStim.raw.bin' but not '_ibl_passivePeriods.intervalsTable.csv'
@@ -34,16 +33,20 @@ a note associated with them so they can be identified
 
 # Find the sessions with the passivePeriods dataset that haven't already been released
 dsets = Dataset.objects.filter(session__in=bwm_sess, name='_ibl_passivePeriods.intervalsTable.csv')
-dsets = dsets.exclude(tags__name__icontains='brainwide')
-add_pass_sess = dsets.values_list('session', flat=True).distinct()
+dsets_intervals = dsets.exclude(tags__name__icontains='brainwide')
+add_pass_sess = dsets_intervals.values_list('session', flat=True).distinct()
 
-# Get the relevant datasets
-dnames = [
-    '_ibl_passivePeriods.intervalsTable.csv',
-    '_iblrig_RFMapStim.raw.bin'
-]
+# Find the sessions that we have rfmap data times for and add this dataset as well as the RFMapStim file
+rfmap_dsets = Dataset.objects.filter(session__in=add_pass_sess, name='_ibl_passiveRFM.times.npy')
+rfmap_sess = rfmap_dsets.values_list('session', flat=True).distinct()
 
-dsets_passive = Dataset.objects.filter(session__in=add_pass_sess, name__in=dnames).distinct()
+bin_dsets = Dataset.objects.filter(session__in=rfmap_sess, name='_iblrig_RFMapStim.raw.bin', default_dataset=True)
+
+# Find the task replay datasets
+dnames = ['_ibl_passiveGabor.table.csv', '_ibl_passiveStims.table.csv']
+replay_dsets = Dataset.objects.filter(session__in=add_pass_sess, name__in=dnames, default_dataset=True)
+
+dsets_passive = dsets_intervals | rfmap_dsets | bin_dsets | replay_dsets
 
 
 """
