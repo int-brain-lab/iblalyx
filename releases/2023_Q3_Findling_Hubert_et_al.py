@@ -56,7 +56,7 @@ sessions = Session.objects.filter(id__in=wfield_eids)
 
 # Add new trials datasets (these are from a new revision after correcting for probabilityLeft values)
 # Trials data
-trials_dtypes = ['trials.goCueTrigger_times', 'trials.stimOff_times', 'trials.table', 'trials.quiescencePeriod']
+trials_dtypes = ['trials.goCueTrigger_times', 'trials.stimOff_times', 'trials.table', '_ibl_trials.quiescencePeriod']
 trials_dsets = Dataset.objects.filter(session__in=wfield_eids, dataset_type__name__in=trials_dtypes, default_dataset=True)
 
 # Passive data
