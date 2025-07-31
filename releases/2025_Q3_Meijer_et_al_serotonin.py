@@ -6,15 +6,19 @@ https://docs.google.com/document/d/1ziHSzUoGWHMi8YU3JtCr2Q8QTlbZUllmtxxarEY9ab4/
 
 """
 
+# %%
 from pathlib import Path
 import tqdm
+import sys
 
 import pandas as pd
 from data.models import Dataset, Tag
+import alyx.base
 
-DRY_RUN = True
-PATH_IBL_ALYX = Path('/home/olivier/PycharmProjects/alyx_ferret/iblalyx')
-TAG_NAME = '2025_Q3_Meijer_et_al_serotonin'
+IBL_ALYX_ROOT = Path(alyx.base.__file__).parents[3].joinpath('iblalyx')
+assert IBL_ALYX_ROOT.exists(), 'No IBL_ALYX_ROOT found, it is usually at the same directory level as the alyx repo'
+sys.path.append(str(IBL_ALYX_ROOT.parent))
+
 EIDS = [
     "066bf23b-17a9-4a0a-84ac-097776a2ea4a",
     "08371a0c-22d9-4f6e-ac22-c15788b39180",
@@ -79,9 +83,10 @@ datasets_relative_paths = [
     "alf/_ibl_trials.table.pqt",
     "alf/_ibl_trials.laserStimulation.npy",
     "alf/_ibl_trials.laserProbability.npy",
-    "alf/_ibl_leftCamera.dlc.pqt",
-    "alf/leftCamera.ROIMotionEnergy.npy",
-    "alf/leftROIMotionEnergy.position.npy",
+    "alf/_ibl_wheel.timestamps.npy",
+    "alf/'_ibl_wheel.position.npy",
+    'alf/_ibl_wheelMoves.intervals.npy',
+    'alf/_ibl_wheelMoves.peakAmplitude.npy',
     "alf/probe00/electrodeSites.brainLocationIds_ccf_2017.npy",
     "alf/probe00/electrodeSites.localCoordinates.npy",
     "alf/probe00/electrodeSites.mlapdv.npy",
@@ -181,19 +186,20 @@ datasets_relative_paths = [
     "raw_ephys_data/probe01/_spikeglx_sync.channels.probe01.npy",
     "raw_ephys_data/probe01/_spikeglx_sync.polarities.probe01.npy",
     "raw_ephys_data/probe01/_spikeglx_sync.times.probe01.npy",
-    "raw_video_data/_iblrig_leftCamera.frameData.bin",
-    "raw_video_data/_iblrig_leftCamera.raw.mp4",
 ]
 
-# %%
+# %% Get all of the datasets belonging to the eids above
+
+DRY_RUN = True
+TAG_NAME = '2025_Q3_Meijer_et_al_serotonin'
 all_dids = []
 
 dsets = Dataset.objects.filter(session__in=EIDS)
-columns = ['id', 'session', 'collection', 'name']
+columns = ['id', 'session', 'collection', 'name', 'dataset_type__name']
 df_datasets_all = pd.DataFrame(dsets.values_list(*columns), columns=columns)
 df_datasets_all.set_index('id', inplace=True)
 
-# %% now prune the dataframe
+# %% now prune the dataframe according to the dataset relative paths provided by Guido
 df_datasets_all['release'] = False
 for did, rec in tqdm.tqdm(df_datasets_all.iterrows(), total=len(df_datasets_all)):
     if f'{rec.collection}/{rec["name"]}' in datasets_relative_paths:
@@ -205,16 +211,24 @@ for did, rec in tqdm.tqdm(df_datasets_all.iterrows(), total=len(df_datasets_all)
 
 print(df_datasets_all.release.value_counts())
 
-# %%
+# %% we add the video datasets according to the QC provided
+
+import iblalyx.releases.utils
+dsets_video = iblalyx.releases.utils.get_video_datasets_for_ephys_sessions(EIDS)
+dsets_video = [did for did in dsets_video.values_list('id', flat=True)]
+
+df_datasets_all.loc[dsets_video, 'release'] = True
+print(df_datasets_all.release.value_counts())
+
+# %% Save the current parquet file
 df_datasets = df_datasets_all.loc[df_datasets_all.release, :]
 df_datasets = df_datasets.reset_index().rename(columns={'id': 'dataset_id'}).drop(columns=['release'])
 df_datasets['session'] = df_datasets['session'].astype(str)
 df_datasets['dataset_id'] = df_datasets['dataset_id'].astype(str)
 # Save dataset IDs for release in public database
-df_datasets.to_parquet(PATH_IBL_ALYX.joinpath('releases', f'{TAG_NAME}.pqt'))
+df_datasets.to_parquet(IBL_ALYX_ROOT.joinpath('releases', f'{TAG_NAME}.pqt'))
 
-
-# Tagging in production database
+# %% Tagging in production database
 if DRY_RUN is False:
     dsets2tag = Dataset.objects.filter(id__in=df_datasets['dataset_id'])
     tag, _ = Tag.objects.get_or_create(name="2025_Q3_Meijer_et_al", protected=True, public=True)
