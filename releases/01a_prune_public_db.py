@@ -107,7 +107,7 @@ for fname, tag_id in zip(public_ds_files, public_ds_tags):
     datasets_to_del = datasets_to_del.exclude(pk__in=list(dataset_ids))
 
 # Now delete datasets
-datasets_to_del.delete()
+datasets_to_del.delete(force=True)
 datasets = Dataset.objects.using('public').all()
 
 # Delete tags that aren't in the list above (released datasets might have additional, not-yet-released tags)
