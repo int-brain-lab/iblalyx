@@ -8,9 +8,10 @@ register = template.Library()
 def index(indexable, i):
     return indexable[i]
 
+
 @register.filter(name='zip')
 def zip_lists(a, b):
-  return zip(a, b)
+    return zip(a, b)
 
 
 @register.filter

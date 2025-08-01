@@ -51,10 +51,9 @@ from subjects.models import Subject
 from actions.models import Session
 from misc.models import LabMember
 from data.models import Dataset, DataRepository, FileRecord, DataFormat, DatasetType, Revision
-from data.management.one_django import OneDjango
+from data.management.one_django import OneDjango, CACHE_DIR_FI as ROOT
 
 logger = logging.getLogger('ibllib')
-ROOT = Path('/mnt/ibl')
 OUTPUT_PATH = ROOT / 'aggregates'
 VERSION = 1.1  # The dataset version (NB: change after dataset extraction modifications)
 EXPECTED_KEYS = {

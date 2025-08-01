@@ -212,7 +212,7 @@ class Command(BaseCommand):
                         fr_aws = FileRecord.objects.filter(dataset=dset, data_repository__name__icontains='aws').first()
                         if fr_aws is not None:
                             file_s3_ibl = 's3://ibl-brain-wide-map-private/data' + lab_path + dset_path
-                            run_aws_command(cmd= ['aws', 's3', 'sync', src_file, file_s3_ibl, '--profile', 'ibladmin'])
+                            run_aws_command(cmd= ['aws', 's3', 'cp', src_file, file_s3_ibl, '--profile', 'ibladmin'])
                             fr_aws.exists = True
                             fr_aws.save()
                         # this deletes the file records from the local servers and from the S3 patcher
