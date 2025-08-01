@@ -10,17 +10,17 @@ set -e
 # * Record the output of this script in a log file and submit these logs to github for the record
 # * Adjust the variables in the .env file according to your setup (see the .env_template file for the variables)
 
-source .env
+export $(grep -v '^#' .env | xargs)
 
 # Reset the public database on the RDS instance
 echo "$(date '+%Y-%m-%d %H:%M:%S') Beginning to upload database to openalyx RDS"
 echo "... destroying the openalyx database"
-psql -U $OPENALYX_USER -h $OPENALYX_HOST -d $OPENALYX_NAME -c "drop schema public cascade"
-psql -U $OPENALYX_USER -h $OPENALYX_HOST -d $OPENALYX_NAME -c "create schema public"
+psql -U $OPENALYX_USER -h $OPENALYX_HOST -d $OPENALYX_NAME -p $OPENALYX_PORT -c "drop schema public cascade"
+psql -U $OPENALYX_USER -h $OPENALYX_HOST -d $OPENALYX_NAME -p $OPENALYX_PORT -c "create schema public"
 
 # Load the production alyx sql dump to public db
 echo "... loading pruned database to openalyx"
-psql -q -U $OPENALYX_USER -h $OPENALYX_HOST -d $OPENALYX_NAME -f "$TMP_DIR"/openalyx.sql
+psql -q -U $OPENALYX_USER -h $OPENALYX_HOST -d $OPENALYX_NAME -p $OPENALYX_PORT -f "$TMP_DIR"/openalyx.sql
 
 # Remove tmp directory
 rm -rf "$TMP_DIR"
