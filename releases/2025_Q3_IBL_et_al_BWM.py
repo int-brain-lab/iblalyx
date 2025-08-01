@@ -129,7 +129,7 @@ df_datasets = []
 df_datasets.append(get_passive_datasets())
 df_datasets.append(get_lightening_pose_datasets())
 df_datasets.append(get_saturation_datasets())
-
+df_datasets = pd.concat(df_datasets, axis=0)
 df_datasets.to_parquet(IBL_ALYX_ROOT.joinpath('releases', f'{TAG_NAME}.pqt'))
 
 # %% Tagging in production database

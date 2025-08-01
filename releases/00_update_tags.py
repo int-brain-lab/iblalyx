@@ -1,4 +1,4 @@
-# this creates the tags on the main database before release - run on MBOX
+# %% this creates the tags on the main database before release - run on MBOX
 from data.models import Dataset, Tag
 import pandas as pd
 import ibl_reports.views
@@ -27,6 +27,8 @@ public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2024_Q2_Blau_et_al_datasets.pqt',
                    '2024_Q3_Pan_Vazquez_et_al_datasets.pqt',
                    '2025_Q1_IBL_et_al_BWM_wheel_patch_datasets.pqt',
+                   '2025_Q3_Meijer_et_al_serotonin.pqt',
+                   '2025_Q3_IBL_et_al_BWM.pqt',
                    ]
 
 public_ds_tags = [
@@ -48,6 +50,8 @@ public_ds_tags = [
     "6828217e-6ae0-44ce-9c6a-bd30f6e523a6",  # 2024_Q2_Blau_et_al
     "89b582ed-54d1-4b03-96a7-9ddb369cd07d",  # 2024_Q3_Pan_Vazquez_et_al
     "3faeb797-0d60-4595-86f4-2712265e6291",  # 2025_Q1_IBL_et_al_BWM_wheel_patch
+    "c94baa2d-d627-4a4e-a5c1-eac7efbf644e",  # 2025_Q3_Meijer_et_al
+    "60381f40-ef53-4a83-9a36-ef6548f7e996",  # 2025_Q3_IBL_et_al_BWM.pqt
     ]
 
 
