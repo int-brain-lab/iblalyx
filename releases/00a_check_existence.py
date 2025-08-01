@@ -3,37 +3,23 @@
 1. TO RUN ON MBOX
 --------------
 """
-
-from data.models import Dataset, FileRecord, DataRepository
+import sys
 from pathlib import Path
+
 import pandas as pd
 import boto3
+
 import ibl_reports.views
+from data.models import Dataset, FileRecord, DataRepository
 
 IBL_ALYX_ROOT = Path(ibl_reports.views.__file__).resolve().parents[2]
+sys.path.append(str(IBL_ALYX_ROOT.parent))
+import iblalyx.releases.utils
 
 # Make sure the releases you want to check are in here, you don't have to run this for all the old releases, though
 # doesn't hurt to do it sometimes to make sure nothing has been lost.
 # You can also just create a list of datasets that you want to double check on (specifiy datasets below and skip this)
-public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
-                   '2021_Q2_Varol_et_al_datasets.pqt',
-                   '2021_Q3_Whiteway_et_al_datasets.pqt',
-                   '2021_Q2_PreRelease_datasets.pqt',
-                   '2022_Q2_IBL_et_al_RepeatedSite_datasets.pqt',
-                   '2022_Q3_IBL_et_al_DAWG_datasets.pqt',
-                   '2022_Q4_IBL_et_al_BWM_datasets.pqt',
-                   '2023_Q1_Mohammadi_et_al_datasets.pqt',
-                   '2023_Q1_Biderman_Whiteway_et_al_datasets.pqt',
-                   '2023_Q3_Findling_Hubert_et_al_datasets.pqt',
-                   '2023_Q4_Bruijns_et_al_datasets.pqt',
-                   '2023_Q4_IBL_et_al_BWM_2_datasets.pqt',
-                   '2023_Q4_IBL_et_al_BWM_passive_datasets.pqt',
-                   '2024_Q2_IBL_et_al_BWM_iblsort_datasets.pqt',
-                   '2024_Q2_IBL_et_al_RepeatedSite_datasets.pqt',
-                   '2024_Q2_Blau_et_al_datasets.pqt',
-                   '2024_Q3_Pan_Vazquez_et_al_datasets.pqt',
-                   '2025_Q1_IBL_et_al_BWM_wheel_patch_datasets.pqt',
-                   ]
+public_ds_files = iblalyx.releases.utils.PUBLIC_DS_FILES
 
 # Select which release you want to check by changing i
 i = -1

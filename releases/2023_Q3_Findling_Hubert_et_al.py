@@ -2,9 +2,14 @@
 from pathlib import Path
 import os
 import pandas as pd
+import alyx.base
+
 from data.models import Tag, Dataset
 from actions.models import Session
 from django.db.models import Q
+
+IBL_ALYX_ROOT = Path(alyx.base.__file__).parents[3].joinpath('iblalyx')
+assert IBL_ALYX_ROOT.exists(), 'No IBL_ALYX_ROOT found, it is usually at the same directory level as the alyx repo'
 
 """""""""
 # OLD CODE
@@ -118,7 +123,7 @@ all_dsets = all_dsets.distinct()
 # Save dataset IDs for release in public database
 dset_ids = [str(did) for did in all_dsets.values_list('pk', flat=True)]
 df = pd.DataFrame(dset_ids, columns=['dataset_id'])
-df.to_parquet('2023_Q3_Findling_Hubert_et_al_datasets.pqt')
+df.to_parquet(IBL_ALYX_ROOT.joinpath('2023_Q3_Findling_Hubert_et_al_datasets.pqt'))
 
 if DRY_RUN is False:
     tag, _ = Tag.objects.get_or_create(name="2023_Q3_Findling_Hubert_et_al", protected=True, public=True)
