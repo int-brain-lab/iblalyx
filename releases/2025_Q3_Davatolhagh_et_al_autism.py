@@ -64,4 +64,4 @@ if DRY_RUN is False:
     tag, _ = Tag.objects.get_or_create(name=TAG_NAME, protected=True, public=True)
     tag.datasets.set(dsets2tag)
 
-    df_datasets.to_parquer(IBL_ALYX_ROOT.joinpath(f'releases/{TAG_NAME}_datasets.pqt'))
+    df_datasets.to_parquet(IBL_ALYX_ROOT.joinpath(f'releases/{TAG_NAME}_datasets.pqt'))
