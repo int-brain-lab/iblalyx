@@ -760,13 +760,13 @@ class Command(BaseCommand):
         if not file_path.exists():
             raise FileNotFoundError(file_path)
         assert all((self.output_path, self.subject)), 'subject and output path must be set'
-
+        collection = f'Subjects/{self.subject.lab.name}/{self.subject.nickname}'
         # Get the alf object from the filename
         alf_object = alfiles.filename_parts(file_path.name, as_dict=True)['object']
 
         # Get or create the dataset
         dset, is_new = Dataset.objects.get_or_create(
-            name=f'_ibl_{alf_object}.table.pqt', collection='Subjects', default_dataset=True,
+            name=f'_ibl_{alf_object}.table.pqt', collection=collection, default_dataset=True,
             dataset_type=DatasetType.objects.get(name=f'{alf_object}.table'),
             data_format=DataFormat.objects.get(name='parquet'), object_id=self.subject.id)
 
@@ -785,7 +785,7 @@ class Command(BaseCommand):
                 logger.info('Creating new dataset with "%s" revision', revision.name)
                 # Create new dataset; leave the old untouched (save method handles change of default dataset field)
                 dset = Dataset.objects.create(
-                    name=f'_ibl_{alf_object}.table.pqt', collection='Subjects', default_dataset=True,
+                    name=f'_ibl_{alf_object}.table.pqt', collection=collection, default_dataset=True,
                     dataset_type=DatasetType.objects.get(name=f'{alf_object}.table'),
                     data_format=DataFormat.objects.get(name='parquet'), content_object=self.subject, revision=revision
                 )
@@ -809,12 +809,12 @@ class Command(BaseCommand):
         (Dataset
          .objects
          .filter(
-            name=f'_ibl_{alf_object}.table.pqt', collection='Subjects', default_dataset=True,
+            name=f'_ibl_{alf_object}.table.pqt', collection=collection, default_dataset=True,
             dataset_type=DatasetType.objects.get(name=f'{alf_object}.table'), object_id=self.subject.id)
          .exclude(pk=dset.pk)
          .update(default_dataset=False))
 
-        out_file = self.output_path.joinpath(dset.collection, self.subject.lab.name, self.subject.nickname)
+        out_file = self.output_path.joinpath(collection)
         if dset.revision:
             out_file /= f'#{dset.revision.name}#'
             out_file.mkdir(exist_ok=True)
