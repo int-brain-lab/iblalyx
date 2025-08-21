@@ -410,7 +410,7 @@ class Command(BaseCommand):
         return dsets, files, log
 
     def run(self, subject, revision=None, output_path=OUTPUT_PATH, data_path=ROOT,
-            dry=True, clobber=False, user='root', compute_training_status=False):
+            dry=True, clobber=False, user='root', compute_training_status=False, **kwargs):
         self.subject = Subject.objects.get(nickname=subject)
         self.user = user
         self.revision = revision
