@@ -404,15 +404,14 @@ class Command(BaseCommand):
 
         self.default_revision = options.pop('default_revision', None)
         subject = args[0] if len(args) else options['subject']
-        dsets, files, log = self.run(subject, user=options.pop('alyx_user'), dry=options.pop('dryrun'),
-                                     compute_training_status=options.pop('training_status'), **options)
+        dsets, files, log = self.run(subject, **options)
 
         return dsets, files, log
 
     def run(self, subject, revision=None, output_path=OUTPUT_PATH, data_path=ROOT,
-            dry=True, clobber=False, user='root', compute_training_status=False, **kwargs):
+            dryrun=True, clobber=False, alyx_user='root', training_status=False):
         self.subject = Subject.objects.get(nickname=subject)
-        self.user = user
+        self.user = alyx_user
         self.revision = revision
         self.output_path = output_path
         query = self.query_sessions(self.subject)
@@ -454,9 +453,9 @@ class Command(BaseCommand):
             for task in chain.from_iterable(all_tasks.values()):
                 task.cleanUp()
             logger.info('Aggregate hash unchanged; exiting')
-            if compute_training_status:
+            if training_status:
                 # The trials table may not need to be rerun, but we need to check if the training status table exists
-                training_dset, training_out_file = self.handle_training_status(trials_table=None, rerun=rerun, dry=dry)
+                training_dset, training_out_file = self.handle_training_status(trials_table=None, rerun=rerun, dry=dryrun)
                 return (None, training_dset), (None, training_out_file), None
             else:
                 return (None, None), (None, None), None
@@ -472,8 +471,8 @@ class Command(BaseCommand):
         assert set(all_trials.columns) == set(EXPECTED_KEYS), 'unexpected columns in aggregate trials table'
 
         if out_file.exists():
-            logger.warning(('(DRY) ' if dry else '') + 'Output file already exists, overwriting %s', out_file)
-        if dry:
+            logger.warning(('(DRY) ' if dryrun else '') + 'Output file already exists, overwriting %s', out_file)
+        if dryrun:
             out_file = out_file.with_name(f'{out_file.stem}.DRYRUN{out_file.suffix}')
 
         # Save to disk
@@ -485,7 +484,7 @@ class Command(BaseCommand):
         md5_hash = hashfile.md5(out_file)
 
         # Save outcome log
-        log_file = out_file.with_name(f'_ibl_subjectTrials.log{".DRYRUN" if dry else ""}.csv')
+        log_file = out_file.with_name(f'_ibl_subjectTrials.log{".DRYRUN" if dryrun else ""}.csv')
         outcomes.to_csv(log_file)
 
         # Create aggregate hash
@@ -497,14 +496,14 @@ class Command(BaseCommand):
             task.cleanUp()
 
         # Create the session table
-        session_dset, session_out_file = self.handle_session_table(trials_table=out_file, rerun=rerun, dry=dry)
+        session_dset, session_out_file = self.handle_session_table(trials_table=out_file, rerun=rerun, dry=dryrun)
 
-        if compute_training_status:
-            training_dset, training_out_file = self.handle_training_status(trials_table=out_file, rerun=rerun, dry=dry)
+        if training_status:
+            training_dset, training_out_file = self.handle_training_status(trials_table=out_file, rerun=rerun, dry=dryrun)
         else:
             training_dset = training_out_file = None
 
-        if dry:
+        if dryrun:
             logger.info('Dry run complete: %s aggregate hash = %s', out_file, aggregate_hash)
             return (None, None, None), (out_file, training_out_file, session_out_file), log_file
 
