@@ -403,13 +403,13 @@ class Command(BaseCommand):
             logger.setLevel(logging.DEBUG)
 
         self.default_revision = options.pop('default_revision', None)
-        subject = args[0] if len(args) else options['subject']
-        dsets, files, log = self.run(subject, **options)
+        options['subject'] = args[0] if len(args) else options['subject']
+        dsets, files, log = self.run(**options)
 
         return dsets, files, log
 
     def run(self, subject, revision=None, output_path=OUTPUT_PATH, data_path=ROOT,
-            dryrun=True, clobber=False, alyx_user='root', training_status=False):
+            dryrun=True, clobber=False, alyx_user='root', training_status=False, **kwargs):
         self.subject = Subject.objects.get(nickname=subject)
         self.user = alyx_user
         self.revision = revision
@@ -516,6 +516,7 @@ class Command(BaseCommand):
         if out_file.parent != log_file.parent:
             log_file = log_file.rename(out_file.with_name(log_file.name))
 
+        logger.info('Command run complete')
         return (dset, training_dset, session_dset), (out_file, training_out_file, session_out_file), log_file
 
     def handle_training_status(self, trials_table=None, rerun=False, dry=False):
