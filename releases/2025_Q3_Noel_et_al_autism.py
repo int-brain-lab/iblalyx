@@ -24,7 +24,7 @@ sys.path.append(str(IBL_ALYX_ROOT.parent))
 import iblalyx.releases.utils
 
 
-def parse_excel_files_to_eid_dataframe(path_xls):
+def parse_excel_files_to_eid_dataframe(path_xls=None):
     """
     JP has provided us with Excel files listing subjects and dates for each session. Unfortunately, there
     is no EID nor session number, which can yield to ambiguity in the selection of sessions.
@@ -97,7 +97,7 @@ TAG_NAME = '2025_Q3_Noel_et_al_Autism'
 DRY_RUN = True
 
 # read in the eid list according to what JP has released in the Excel files
-file_eids = IBL_ALYX_ROOT.joinpath('releases', '2025_Q3_Noel_et_al_Autism_EIDS.pqt')
+file_eids = IBL_ALYX_ROOT.joinpath('releases', '2025_Q3_Noel_et_al_Autism_eids.pqt')
 if file_eids.exists():
     df_eids = pd.read_parquet(file_eids)
 else:
@@ -111,21 +111,22 @@ df_datasets = []
 
 # behaviour and wheel datasets
 dsets = Dataset.objects.filter(session__in=eids, dataset_type__name__in=iblalyx.releases.utils.DTYPES_RELEASE_BEHAVIOUR)
-df_datasets.append(pd.DataFrame([str(eid) for eid in dsets.values_list('pk', flat=True)], columns=['dataset_id']))
+df_datasets.append(iblalyx.releases.utils.dset2df(dsets))
 
 
 # %% for ephys sessions, we get video and ephys datasets
 
 # video datasets only for ephys sessions: we exlude QC critical datasets and include lick times
 dsets = iblalyx.releases.utils.get_video_datasets_for_ephys_sessions(eids_ephys, cam_labels=['left', 'right', 'body'])
-df_datasets.append(pd.DataFrame([str(eid) for eid in dsets.values_list('pk', flat=True)], columns=['dataset_id']))
+df_datasets.append(iblalyx.releases.utils.dset2df(dsets))
 
 # ephys datasets
 dsets = Dataset.objects.filter(session__in=eids_ephys, dataset_type__name__in=iblalyx.releases.utils.DTYPES_RELEASE_EPHYS_ALL)
-df_datasets.append(pd.DataFrame([str(eid) for eid in dsets.values_list('pk', flat=True)], columns=['dataset_id']))
+df_datasets.append(iblalyx.releases.utils.dset2df(dsets))
 
 # finalize
-df_datasets = pd.concat(df_datasets, axis=1)
+df_datasets = pd.concat(df_datasets, axis=0).reset_index(drop=True)
+df_datasets.to_parquet(IBL_ALYX_ROOT.joinpath('releases', f'{TAG_NAME}.pqt'))
 
 
 # %% Tagging in production database

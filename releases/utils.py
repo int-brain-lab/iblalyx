@@ -7,6 +7,9 @@ Here is how I link it to my current interpreter, you can replace IBL_ALYX_ROOT w
     assert IBL_ALYX_ROOT.exists(), 'No IBL_ALYX_ROOT found, it is usually at the same directory level as the alyx repo'
     sys.path.append(str(IBL_ALYX_ROOT.parent))
 """
+
+import pandas as pd
+
 from actions.models import Session
 from data.models import Dataset
 from django.db.models import Q
@@ -116,9 +119,6 @@ DTYPES_RELEASE_SPIKE_SORTING = [
     'clusters.uuids',
     'clusters.waveforms',
     'clusters.waveformsChannels',
-    'electrodeSites.brainLocationIds_ccf_2017',
-    'electrodeSites.localCoordinates',
-    'electrodeSites.mlapdv',
     'kilosort.whitening_matrix',
     'spikes.amps',
     'spikes.clusters',
@@ -135,7 +135,21 @@ DTYPES_RELEASE_SPIKE_SORTING = [
     'waveforms.traces',
 ]
 
-DTYPES_RELEASE_EPHYS_ALL = DTYPES_RELEASE_EPHYS_RAW + DTYPES_RELEASE_SPIKE_SORTING
+DTYPES_RELEASE_HISTOLOGY = [
+    'electrodeSites.brainLocationIds_ccf_2017',
+    'electrodeSites.localCoordinates',
+    'electrodeSites.mlapdv'
+]
+
+DTYPES_RELEASE_EPHYS_ALL = DTYPES_RELEASE_EPHYS_RAW + DTYPES_RELEASE_SPIKE_SORTING + DTYPES_RELEASE_HISTOLOGY
+
+
+def dset2df(dsets_queryset, columns: dict = None):
+    columns = columns if columns is not None else {'id': 'dataset_id', 'session': 'eid', 'collection': 'collection', 'name': 'file', 'dataset_type__name': 'dataset_type'}
+    df_datasets = pd.DataFrame(dsets_queryset.values_list(*list(columns.keys())), columns=list(columns.values()))
+    for col in ['dataset_id', 'eid']:
+        df_datasets[col] = df_datasets[col].astype(str)
+    return df_datasets
 
 
 def get_video_datasets_for_ephys_sessions(eids, cam_labels=None):
