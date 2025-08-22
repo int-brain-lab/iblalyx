@@ -1,6 +1,10 @@
 """
 Data Release request link:
 https://docs.google.com/document/d/1b2hhuUMBXV8-yUDKmDznZmW8EmHroxf0AZ6cjZNOgJM/edit?tab=t.0
+
+# TODO: missing DLC / video times: should we run extraction and lightning pose ? None of the 34 sessions below have LP
+
+
 """
 # %%
 import sys
@@ -26,7 +30,7 @@ pids = ['aebf71d2-408d-4901-a4e3-007cf61af8a0', '3ae57f3f-be93-48d9-8f47-f5a6f90
 TAG_NAME = '2025_Q3_Zang_et_al_Aging'
 DRY_RUN = True
 insertions = ProbeInsertion.objects.filter(id__in=pids)
-eids = list(insertions.values_list('session__id', flat=True).distinct())
+eids = [str(eid) for eid in insertions.values_list('session__id', flat=True).distinct()]
 sessions = Session.objects.filter(id__in=eids)
 subjects = list(sessions.values_list('subject__nickname', flat=True).distinct())
 df_datasets = []
@@ -55,7 +59,7 @@ for subject in subjects:
         session__isnull=True,
         dataset_type__name__in=['subjectSessions.table', 'subjectTraining.table', 'subjectTrials.table'],
         collection='Subjects',
-        file_records__relative_path__icontains='/SP054/'
+        file_records__relative_path__icontains=f'/{subject}/'
     ).distinct()
     # print(subject, len(dsets), 'aggregate tables found')
     df_datasets.append(iblalyx.releases.utils.dset2df(dsets))

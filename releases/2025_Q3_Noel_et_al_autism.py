@@ -1,12 +1,3 @@
-"""
-
-Other data repository: https://osf.io/fap2s/
-Nature Neuroscience | Volume 28 | July 2025 | 1519–1532 1519 nature neuroscience
-https://doi.org/10.1038/s41593-025-01965-8
-
-https://osf.io/fap2s/wiki/home/
-
-"""
 # %%
 from pathlib import Path
 import alyx.base
@@ -23,6 +14,13 @@ sys.path.append(str(IBL_ALYX_ROOT.parent))
 
 import iblalyx.releases.utils
 
+# those eids where exluded as impossible to read bpod trace in the sync stream of the FPGA - see release notes
+EXCLUDES = [
+    '429de7e8-1fc9-4aa2-87a1-0800268935d7',  # 4350
+    '5d4e158b-7d6d-48fd-ad94-74ad4704e89f',  # 4351
+    '8507e9f6-4da3-454a-b553-3fc8f6299bbb',  # 4354
+    'e9620e9a-688a-45da-ba6e-33fce6753729',  # 4355
+]
 
 def parse_excel_files_to_eid_dataframe(path_xls=None):
     """
@@ -36,7 +34,7 @@ def parse_excel_files_to_eid_dataframe(path_xls=None):
 
     :return:
     """
-    path_xls = Path('/home/olivier/scratch/autism') if path_xls is None else path_xls
+    path_xls = Path('/datadisk/Data/2025/08_autism_release/jp_spreadsheets') if path_xls is None else path_xls
     from one.api import ONE
     one = ONE()
 
@@ -103,10 +101,14 @@ if file_eids.exists():
 else:
     df_eids = parse_excel_files_to_eid_dataframe()
     df_eids.to_parquet(file_eids)
+# drop excluded eids - see release notes
+df_eids = df_eids.drop(index=EXCLUDES)
 
 eids_ephys = df_eids[df_eids['ephys']].index.tolist()
 eids = df_eids.index.tolist()
 
+
+# %% Get behaviour and wheel datasets
 df_datasets = []
 
 # behaviour and wheel datasets
