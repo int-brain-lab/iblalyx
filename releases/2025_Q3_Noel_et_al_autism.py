@@ -21,6 +21,13 @@ EXCLUDES = [
     '8507e9f6-4da3-454a-b553-3fc8f6299bbb',  # 4354
     'e9620e9a-688a-45da-ba6e-33fce6753729',  # 4355
 ]
+df_pids = pd.read_parquet(IBL_ALYX_ROOT.joinpath('releases', '2025_Q3_Noel_et_al_Autism_pids.pqt'))
+df_ephys_eids = df_pids.groupby('eid').agg(
+    count=pd.NamedAgg(column="exclude", aggfunc="count"),
+    exclude=pd.NamedAgg(column="exclude", aggfunc="mean")
+)
+EXCLUDES = sorted(EXCLUDES + list(df_ephys_eids.index[df_ephys_eids['exclude'] >= 1]))
+
 
 def parse_excel_files_to_eid_dataframe(path_xls=None):
     """
@@ -103,6 +110,7 @@ else:
     df_eids.to_parquet(file_eids)
 # drop excluded eids - see release notes
 df_eids = df_eids.drop(index=EXCLUDES)
+
 
 eids_ephys = df_eids[df_eids['ephys']].index.tolist()
 eids = df_eids.index.tolist()

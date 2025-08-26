@@ -63,9 +63,10 @@ We have only included video data where we could confidently align the frames tim
 | 553b258e-e21d-48b2-8065-21246c82e51a | 9c257bc7-ac32-4255-bb03-8ff90dfc2547 | CSP017 | 2020-11-20 | 001  | probe00 |
 
 
-#### WARNING: Missing alignments
+#### ERROR: Missing alignments
 
-Here we have spike sorting and histology tracing, but the channels haven´t  been aligned.
+Here we have spike sorting and histology tracing, but the channels haven´t  been aligned. We are not releasing those datasets for the time being.
+Those would be good candidates for a future revision if the ephys atlas task force devises a tool to perform automatic alignments.
 
 | PID | EID | Subject | Date | Number | Probe |
 | --- | --- | --- | --- | --- | --- |
@@ -95,5 +96,5 @@ Here we have spike sorting and histology tracing, but the channels haven´t  bee
 
 ## Possible future evolutions
 - Spike sorting re-run with iblsorter or newer algorithm to have better yield and better pre-processing
-- Perform the missing alignments
+- Perform the missing alignments with an automatic tool
 

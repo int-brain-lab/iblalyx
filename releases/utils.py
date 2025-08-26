@@ -145,7 +145,16 @@ DTYPES_RELEASE_EPHYS_ALL = DTYPES_RELEASE_EPHYS_RAW + DTYPES_RELEASE_SPIKE_SORTI
 
 
 def dset2df(dsets_queryset, columns: dict = None):
-    columns = columns if columns is not None else {'id': 'dataset_id', 'session': 'eid', 'collection': 'collection', 'name': 'file', 'dataset_type__name': 'dataset_type'}
+    columns = columns if columns is not None else {
+        'id': 'dataset_id',
+        'session': 'eid',
+        'session__subject__nickname': 'subject',
+        'session__start_time__date': 'data',
+        'session__number': 'number',
+        'collection': 'collection',
+        'name': 'file',
+        'dataset_type__name': 'dataset_type'
+    }
     df_datasets = pd.DataFrame(dsets_queryset.values_list(*list(columns.keys())), columns=list(columns.values()))
     for col in ['dataset_id', 'eid']:
         df_datasets[col] = df_datasets[col].astype(str)
