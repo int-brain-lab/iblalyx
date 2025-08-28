@@ -16,7 +16,7 @@ services:
     volumes:
       - /var/log/apache2:/var/log/apache2
       - /var/log/alyx:/var/log/alyx
-      - /etc/letsencrypt:/etc/apache2/ssl
+      - /etc/letsencrypt/live/${APACHE_SERVER_NAME}:/etc/letsencrypt/live/${APACHE_SERVER_NAME}
       - ${DJANGO_MEDIA_ROOT:-~/uploaded}:/var/www/alyx/alyx/uploaded
     depends_on:
       - postgres
