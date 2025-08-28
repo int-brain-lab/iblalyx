@@ -40,6 +40,7 @@ PUBLIC_DS_FILES = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2025_Q3_Meijer_et_al_serotonin.pqt',
                    '2025_Q3_IBL_et_al_BWM.pqt',
                    '2025_Q3_Davatolhagh_et_al_autism_datasets.pqt',
+                   '2025_Q3_Noel_et_al_Autism_datasets.pqt'
                    ]
 
 PUBLIC_DS_TAGS = [
@@ -64,6 +65,7 @@ PUBLIC_DS_TAGS = [
     "c94baa2d-d627-4a4e-a5c1-eac7efbf644e",  # 2025_Q3_Meijer_et_al
     "60381f40-ef53-4a83-9a36-ef6548f7e996",  # 2025_Q3_IBL_et_al_BWM.pqt
     "7b16fa4f-f759-4181-bdff-779b7fe4a9a6",  # 2025_Q3_Davatolhagh_et_al_autism
+    "125b3051-f5ed-466c-b9e9-0fded1ea487c",  # 2025_Q3_Noel_et_al_Autism_pids.pqt
 ]
 
 

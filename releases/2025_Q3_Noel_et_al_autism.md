@@ -29,6 +29,7 @@ We have only included video data where we could confidently align the frames tim
 #### Quality of uppermost channels
 
 #### CRITICAL: Missing spike sorting
+The following insertions do not have any spike sorting available.
 
 | PID | EID | Subject | Date | Number | Probe |
 | --- | --- | --- | --- | --- | --- |

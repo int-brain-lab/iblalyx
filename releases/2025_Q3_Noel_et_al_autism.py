@@ -144,3 +144,4 @@ if DRY_RUN is False:
     dsets2tag = Dataset.objects.filter(id__in=df_datasets['dataset_id'])
     tag, _ = Tag.objects.get_or_create(name=TAG_NAME, protected=True, public=True)
     tag.datasets.set(dsets2tag)
+
