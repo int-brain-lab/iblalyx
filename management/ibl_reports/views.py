@@ -736,7 +736,7 @@ class SubjectTrainingPlots(LoginRequiredMixin, ListView):
     paginate_by = 20
     statuses = (
         'habituation', 'in_training', 'trained_1a', 'trained_1b',
-        'ready4ephysrig', 'ready4delay', 'ready4recording', 'untrainable', 'unbiasable')
+        'ready4ephysrig', 'ready4delay', 'ready4recording', 'untrainable', 'unbiasable', 'not_computed')
 
     def get_context_data(self, **kwargs):
         # need to figure out which is more efficient
@@ -818,7 +818,7 @@ class SubjectTrainingPlots(LoginRequiredMixin, ListView):
 
         # Create map of training status -> mice
         mice_by_status = (training_status
-                          .applymap(lambda d: time.mktime(d.timetuple()), na_action='ignore')
+                          .map(lambda d: time.mktime(d.timetuple()), na_action='ignore')
                           .idxmax(axis=1, skipna=True)  # status for latest date
                           .to_frame()  # allows us to call groupby on values without assignment
                           .groupby(0))
