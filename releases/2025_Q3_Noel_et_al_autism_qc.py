@@ -16,19 +16,28 @@ from brainbox.io.one import SpikeSortingLoader
 
 one = ONE()
 
-EXCLUDES = [
-    '429de7e8-1fc9-4aa2-87a1-0800268935d7',  # 4350
-    '5d4e158b-7d6d-48fd-ad94-74ad4704e89f',  # 4351
-    '8507e9f6-4da3-454a-b553-3fc8f6299bbb',  # 4354
-    'e9620e9a-688a-45da-ba6e-33fce6753729',  # 4355
+
+EXCLUDES = [ # those are sessions for which there is no behaviour data available
+    '11cdb19a-6c13-41e7-b989-a2ad1f829c8b',
+    '429de7e8-1fc9-4aa2-87a1-0800268935d7',
+    '59642ec6-44a3-467d-a20f-19b5a29414b7',
+    '5d4e158b-7d6d-48fd-ad94-74ad4704e89f',
+    '6996f5c7-32ad-4007-aec4-b016364b0b7e',
+    '7dc5595a-13c3-4fcc-a607-dab1d3eba4a5',
+    '8507e9f6-4da3-454a-b553-3fc8f6299bbb',
+    '87f8b50e-194f-46f5-87d7-4113a9ec5cb7',
+    '8def5ec1-f83c-4367-ae59-bb066d44c7bb',
+    'dce99574-223b-4b99-825c-65753e47441f',
+    'e9620e9a-688a-45da-ba6e-33fce6753729'
 ]
+
 df_eids = pd.read_parquet(
     '/home/olivier/PycharmProjects/alyx_ferret/iblalyx/releases/2025_Q3_Noel_et_al_Autism_eids.pqt')  # 4356 sessions
 df_eids = df_eids.drop(index=EXCLUDES)
 
 eids_ephys = df_eids[df_eids['ephys']].index.tolist()
 eids = df_eids.index.tolist()
-
+ba = iblatlas.atlas.AllenAtlas()
 # %% First check the loading af all behaviour sessions
 #  388 1ba5bfae-ac10-4d3c-bf54-7d1082439302 /datadisk/FlatIron/angelakilab/Subjects/SH008/2020-03-02/001
 # 2090 21ed8271-9d4d-4b05-bc5f-2fc4c0a9bb7c /datadisk/FlatIron/angelakilab/Subjects/SH012/2019-11-12/001
@@ -48,40 +57,13 @@ for i, eid in tqdm.tqdm(enumerate(eids)):
     sl.load_trials()
 
 # %% Next check the alignment status and the loading of spike sorting
-import joblib
+file_pids = Path('/home/olivier/PycharmProjects/alyx_ferret/iblalyx/releases/2025_Q3_Noel_et_al_Autism_pids.pqt')
+df_pids = pd.read_parquet(file_pids)
+df_pids['file_align'] = ''
+for pid, rec in df_pids.iterrows():
+    df_pids.at[pid, 'file_align'] = next(Path('/datadisk/Data/2025/08_autism_release/alignments/channel_locations').glob(
+        f'{rec.subject}_{rec.date.strftime('%Y-%m-%d')}_{str(rec.number).zfill(3)}_{rec.pname}_*.json'), '')
 
-
-def get_histology(eid):
-    esl = EphysSessionLoader(one=one, eid=eid)
-    for pname in esl.ephys:
-        ssl = esl.ephys[pname]['ssl']
-        try:
-            ssl.load_channels()
-            # spikes, clusters, channels = ssl.load_spike_sorting()
-        except:
-            ssl.histology = 'ERROR'
-
-        session_path = one.eid2path(eid)
-        subject, date, number = session_path.parts[-3:]
-        # NB: the old alignments are not necessary as they're a subset of the current alignments files
-        file_align = next(Path('/datadisk/Data/2025/08_autism_release/alignments/channel_locations').glob(
-            f'{subject}_{date}_{number}_{ssl.pname}_*.json'), '')
-        # old_align = next(Path('/datadisk/Data/2025/08_autism_release/alignments/previous').glob(f'{subject}_{date}_{number}_{ssl.pname}_*.json'), '')
-        pid_info = {'pid': ssl.pid, 'eid': eid, 'pname': pname, 'histology': ssl.histology,
-                    'file_align': str(file_align), 'subject': subject, 'date': date, 'number': number}
-    return pid_info
-
-
-#
-file_pids = Path('/datadisk/Data/2025/08_autism_release/pids_autism_release.pqt')
-if not file_pids.exists():
-    jobs = (joblib.delayed(get_histology)(eid) for eid in eids_ephys)
-    df_pids = list(tqdm.tqdm(joblib.Parallel(return_as='generator', n_jobs=4)(jobs), total=len(eids_ephys)))
-    df_pids = pd.DataFrame(df_pids)
-    df_pids.set_index('pid', inplace=True)
-    df_pids.to_parquet(file_pids)
-else:
-    df_pids = pd.read_parquet(file_pids)
 
 
 # %%
@@ -185,12 +167,14 @@ def register_histology(one, pid, TaskClass):
 # %% MAIN
 # %% TODO: exclude those PIDs. In case this concerns all insertions for a session, exclude the whole session
 df_pids['exclude'] = 0
-
+df_pids['exclude reason'] = ''
 print('| PID | EID | Subject | Date | Number | Probe |')
 print('| --- | --- | --- | --- | --- | --- |')
 for pid, rec in df_pids.iterrows():
     if rec['histology'] == 'ERROR':
-        df_pids.loc[pid, 'exclude'] = 1
+        df_pids.at[pid, 'exclude'] = 1
+        df_pids.at[pid, 'exclude reason'] = 'no spike sorting'
+        # print(f'| {pid} | {rec.eid} | {rec.subject} | {rec.date} | {rec.number}  | {rec.pname} |')
     elif rec['histology'] == 'aligned':
         if rec['file_align'] == '':
             """
@@ -206,11 +190,20 @@ for pid, rec in df_pids.iterrows():
             | f32a7ceb-cf66-4cac-be67-a0e99b1a47d6 | 4c53f746-7763-478d-b251-5315c26c4b5f | CSP004 | 2019-11-27 | 001  | probe00 |
             """
             # register_histology(one, pid, ProbeRegisterTaskB)
+    elif rec['histology'] == '':
+        if rec['file_align'] == '':
+            df_pids.loc[pid, 'exclude'] = 1
+            df_pids.at[pid, 'exclude reason'] = 'no tracing'
+            # print(f'| {pid} | {rec.eid} | {rec.subject} | {rec.date} | {rec.number}  | {rec.pname} |')
+        else:
+            # register_histology(one, pid, ProbeRegisterTaskB)
+            pass
     elif rec['histology'] == 'traced':
         if rec['file_align'] == '':
             # All have tracing in Alyx, we exclude them anyways. An alternative would be to create and register electrode locations with a big warning
             df_pids.loc[pid, 'exclude'] = 1
-            print(f'| {pid} | {rec.eid} | {rec.subject} | {rec.date} | {rec.number}  | {rec.pname} |')
+            df_pids.at[pid, 'exclude reason'] = 'traced but no alignment'
+            # print(f'| {pid} | {rec.eid} | {rec.subject} | {rec.date} | {rec.number}  | {rec.pname} |')
             # print(one.alyx.rest('insertions', 'list', id=pid)[0]['json']['extended_qc'])
             pass
         else:
@@ -238,8 +231,43 @@ for pid, rec in df_pids.iterrows():
             | ab41e289-eacb-42a7-b34b-44cd76b5cea8 | 03b83d58-23d9-467e-bac1-e12ab34683c0 | NYU-49 | 2021-07-21 | 001  | probe00 |
             | edd8c08d-726b-46e7-980e-69043ab87e5f | 3dad6235-17ae-4eb3-bcb8-8fb6f69876e0 | NYU-49 | 2021-07-22 | 001  | probe00 |
             """
-            # print(f'| {pid} | {rec.eid} | {rec.subject} | {rec.date} | {rec.number}  | {rec.pname} |')
+
+
+            """
+            | PID | EID | Subject | Date | Number | Probe |
+            | --- | --- | --- | --- | --- | --- |
+            | 4c61be2b-f3b3-4c54-89b8-3f242f2dd8ef | a23eb5b9-6b0c-469a-920c-26d422931e55 | SH027 | 2022-01-25 | 1  | probe00 |
+            | b9501747-f0bb-4bc6-b78f-f06445d54846 | 992c382b-6c04-44e4-a7f4-4b734ed9b519 | FMR029 | 2021-10-12 | 1  | probe00 |
+            | e3a1161c-810b-4b91-baef-cb3d6e2677f5 | 5ef0bd40-6c0a-46ed-bb62-dc407d9fcd09 | FMR010 | 2021-01-29 | 1  | probe01 |
+            | 3cf407d6-8a2e-45e3-a387-60676458bdc8 | c7972c13-7e45-4892-ba1b-f0abf0c94070 | NYU-50 | 2021-08-20 | 1  | probe01 |
+            | 9de2de0e-82f7-43f1-aecd-3da2f7b704fc | 81161ed2-909d-4d3f-8c05-4c5dd3d22bdc | FMR010 | 2021-01-28 | 1  | probe00 |
+            | 864441cd-d1f1-4ebb-b095-7fc2e4cd3c08 | 3dad6235-17ae-4eb3-bcb8-8fb6f69876e0 | NYU-49 | 2021-07-22 | 1  | probe01 |
+            | 6195ccb0-0f30-4c38-8cc9-4014c5772c76 | 0eab2fc7-a065-4841-b31f-39019a8e62f4 | FMR027 | 2021-08-24 | 1  | probe00 |
+            | f2cd8a0f-6d92-4493-b7ad-68f2bf8c7cdc | bfc87524-c333-4110-a52d-22530cee481b | CSP025 | 2021-06-04 | 1  | probe01 |
+            | 057d659a-c648-4bd7-9eb5-e9e28330d148 | 0cfcfb55-258f-4dc7-943c-30fbf48d1410 | FMR019 | 2021-05-26 | 1  | probe01 |
+            | b7d33207-0fb1-4763-a219-70e6eaf5200d | ef8f1e97-ccab-4e21-bd66-2d9ec4313db5 | SH015 | 2020-08-05 | 2  | probe00 |
+            | 7c94091d-fce9-40b5-80cc-6a7ee25129f4 | 709b3f53-d379-43f3-822c-1e9bd26f38c6 | CSP025 | 2021-06-03 | 1  | probe01 |
+            | 1344933d-755d-4efc-93ee-533217ddcbd7 | 80d617ee-4010-4be1-8b11-03e508e88dfa | FMR019 | 2021-05-28 | 1  | probe01 |
+            | 39a08b8e-b3eb-446b-9ff7-b016b29ecd7a | 0574827a-c1f1-4cc0-8188-520a6e575c01 | CSP025 | 2021-06-01 | 1  | probe01 |
+            | 0734b688-3e43-4332-8c96-b9af68b54b4d | 03b83d58-23d9-467e-bac1-e12ab34683c0 | NYU-49 | 2021-07-21 | 1  | probe01 |
+            | eb13c81f-655b-48ec-adf9-b7ce5b55a39b | aa6e6db8-b57a-4b11-b1b9-b2f710af9598 | FMR019 | 2021-05-27 | 1  | probe01 |
+            | 76bb43ae-5e3d-430a-9f95-ec8acedba056 | 67b1d2b6-eba8-4492-a766-ce6791538242 | NYU-32 | 2020-12-22 | 1  | probe01 |
+            | ddeac441-01a0-48cb-b89f-1229e9f42530 | bad413bd-6e5a-4532-937d-eeefa6b08515 | CSP018 | 2021-01-21 | 1  | probe01 |
+            | 5bcbcae4-9bb3-4622-93e5-fc12abb9d331 | 0ad4fa8e-8855-4539-841d-373d8c975bf6 | CSP018 | 2021-01-22 | 1  | probe01 |
+            | a0a7d756-67c3-47b5-aea2-eecb16ca66df | fc8d9a41-5c68-435b-8ec3-a603b742d901 | CSP025 | 2021-06-02 | 1  | probe01 |
+            """
             # register_histology(one, pid, ProbeRegisterTaskB)
             pass
 
-df_pids.to_parquet("/home/olivier/PycharmProjects/alyx_ferret/iblalyx/releases/2025_Q3_Noel_et_al_Autism_pids.pqt")
+# df_pids.to_parquet("/home/olivier/PycharmProjects/alyx_ferret/iblalyx/releases/2025_Q3_Noel_et_al_Autism_pids.pqt")
+
+
+# %%
+df_pids['exclude reason'].value_counts()
+sorted(list(df_pids.index[df_pids['exclude reason'] == 'no spike sorting']))
+sorted(list(df_pids.index[df_pids['exclude reason'] == 'traced but no alignment']))
+sorted(list(df_pids.index[df_pids['exclude reason'] == 'no tracing']))
+
+
+import datetime
+print(f'python manage.py update_aws --dryrun --from-date {datetime.datetime.now().isoformat()}')
