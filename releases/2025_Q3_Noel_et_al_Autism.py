@@ -6,6 +6,7 @@ import sys
 import pandas as pd  # uv pip install openpyxl
 import tqdm
 
+from subjects.models import Project
 from data.models import Dataset, Tag
 from experiments.models import ProbeInsertion
 
@@ -16,7 +17,9 @@ sys.path.append(str(IBL_ALYX_ROOT.parent))
 import iblalyx.releases.utils
 
 TAG_NAME = '2025_Q3_Noel_et_al_Autism'
+PROJECT_NAME = 'angelaki_mouseASD'
 DRY_RUN = True
+
 
 EID_EXCLUDES = [ # those are sessions for which there is no behaviour data available
     '11cdb19a-6c13-41e7-b989-a2ad1f829c8b',
@@ -283,6 +286,13 @@ eids_ephys = df_eids[df_eids['ephys']].index.tolist()
 eids = df_eids.index.tolist()
 
 
+# %% Set project
+from actions.models import Session
+project = Project.objects.get(name=PROJECT_NAME)
+sessions2addproject = Session.objects.filter(id__in=eids).exclude(projects=project)
+for ses in tqdm.tqdm(sessions2addproject, total=sessions2addproject.count()):
+    ses.projects.add(project)
+
 # %% Get behaviour and wheel datasets
 df_datasets = []
 
@@ -297,19 +307,20 @@ dsets = iblalyx.releases.utils.get_video_datasets_for_ephys_sessions(eids_ephys,
 df_datasets.append(iblalyx.releases.utils.dset2df(dsets))
 
 
-# ephys datasets: we release only datasets from non exluded insertions
-for pid, rec in df_pids.iterrows():
+# %% ephys datasets: we release only datasets from non exluded insertions
+for pid, rec in tqdm.tqdm(df_pids.iterrows(), total=df_pids.shape[0]):
     dsets = Dataset.objects.filter(session=rec.eid, dataset_type__name__in=iblalyx.releases.utils.DTYPES_RELEASE_EPHYS_ALL, collection__icontains=rec.pname)
     df_datasets.append(iblalyx.releases.utils.dset2df(dsets))
 
 
-# finalize
+# %% finalize
 df_datasets = pd.concat(df_datasets, axis=0).reset_index(drop=True)
-df_datasets.to_parquet(IBL_ALYX_ROOT.joinpath('releases', f'{TAG_NAME}.pqt'))
+
+if DRY_RUN is False:
+    df_datasets.to_parquet(IBL_ALYX_ROOT.joinpath('releases', f'{TAG_NAME}_datasets.pqt'))
 
 # %% Tagging in production database
 if DRY_RUN is False:
     dsets2tag = Dataset.objects.filter(id__in=df_datasets['dataset_id'])
     tag, _ = Tag.objects.get_or_create(name=TAG_NAME, protected=True, public=True)
     tag.datasets.set(dsets2tag)
-

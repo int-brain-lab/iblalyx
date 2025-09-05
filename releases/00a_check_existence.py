@@ -25,7 +25,7 @@ import iblalyx.releases.utils
 public_ds_files = iblalyx.releases.utils.PUBLIC_DS_FILES
 
 # Select which release you want to check by changing i
-i = -1
+i = -4
 
 # Load datasets and check if they have the FI and AWS file records and both exist
 dset_file = IBL_ALYX_ROOT.joinpath('releases', public_ds_files[i])
@@ -84,6 +84,7 @@ otherwise skip to point 3
 """
 
 """
+FIXING missing_aws_repo datasets
 2a. ON MBOX
 """
 
@@ -105,9 +106,11 @@ for d in tqdm.tqdm(missing_aws_repo, total=missing_aws_repo.count()):
                                   relative_path=rel_path,
                                   data_repository=missing_repo[0],
                                   exists=False)
-
+# then re-run the above queries to regenerate the list of datasets. Those missing_aws_repo should now be in the
+# aws_exists_false queryset and you can then run the block below
 # %%
 """
+FIXING aws_exists_false datasets
 2b. Generate a command to run ON SDSC
 """
 # force sync the datasets that didn't have an aws file record before: first set the autodatetime field to now and

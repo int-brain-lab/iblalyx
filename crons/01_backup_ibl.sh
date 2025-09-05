@@ -11,7 +11,7 @@ mkdir -p "$backup_dir"
 docker exec -it postgres-alyx-client bash -c 'pg_dump -h alyx.clfrcwlvymbw.eu-west-2.rds.amazonaws.com -p 5432 -U ibl_dev -d alyx -f /backups/$(date +%Y-%m-%d)_alyx_full.sql'
 sudo chown ubuntu:ubuntu  /home/ubuntu/tmp/$(date +%Y-%m-%d)_alyx_full.sql
 gzip -f /home/ubuntu/tmp/$(date +%Y-%m-%d)_alyx_full.sql
-mv /home/ubuntu/tmp/$(date +%Y-%m-%d)_alyx_full.sql.gz "$backup_dir/alyx_full.sql"
+mv /home/ubuntu/tmp/$(date +%Y-%m-%d)_alyx_full.sql.gz "$backup_dir/alyx_full.sql.gz"
 
 rsync -av --progress -e "ssh -i /home/ubuntu/.ssh/sdsc_alyx.pem -p 62022" "$backup_dir/alyx_full.sql.gz" alyx@ibl.flatironinstitute.org:/mnt/ibl/json/$(date +%Y-%m-%d)_alyxfull.sql.gz
 
