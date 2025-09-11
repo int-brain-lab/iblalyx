@@ -25,3 +25,4 @@ psql -q -U $OPENALYX_USER -h $OPENALYX_HOST -d $OPENALYX_NAME -p $OPENALYX_PORT 
 # Remove tmp directory
 rm -rf "$TMP_DIR"
 echo "$(date '+%Y-%m-%d %H:%M:%S') Finished uploading database to openalyx RDS"
+

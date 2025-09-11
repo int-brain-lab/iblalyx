@@ -7,6 +7,9 @@ Here is how I link it to my current interpreter, you can replace IBL_ALYX_ROOT w
     assert IBL_ALYX_ROOT.exists(), 'No IBL_ALYX_ROOT found, it is usually at the same directory level as the alyx repo'
     sys.path.append(str(IBL_ALYX_ROOT.parent))
 """
+
+import pandas as pd
+
 from actions.models import Session
 from data.models import Dataset
 from django.db.models import Q
@@ -36,6 +39,8 @@ PUBLIC_DS_FILES = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2025_Q1_IBL_et_al_BWM_wheel_patch_datasets.pqt',
                    '2025_Q3_Meijer_et_al_serotonin.pqt',
                    '2025_Q3_IBL_et_al_BWM.pqt',
+                   '2025_Q3_Davatolhagh_et_al_autism_datasets.pqt',
+                   '2025_Q3_Noel_et_al_Autism_datasets.pqt'
                    ]
 
 PUBLIC_DS_TAGS = [
@@ -59,6 +64,8 @@ PUBLIC_DS_TAGS = [
     "3faeb797-0d60-4595-86f4-2712265e6291",  # 2025_Q1_IBL_et_al_BWM_wheel_patch
     "c94baa2d-d627-4a4e-a5c1-eac7efbf644e",  # 2025_Q3_Meijer_et_al
     "60381f40-ef53-4a83-9a36-ef6548f7e996",  # 2025_Q3_IBL_et_al_BWM.pqt
+    "7b16fa4f-f759-4181-bdff-779b7fe4a9a6",  # 2025_Q3_Davatolhagh_et_al_autism
+    "125b3051-f5ed-466c-b9e9-0fded1ea487c",  # 2025_Q3_Noel_et_al_Autism_pids.pqt
 ]
 
 
@@ -72,6 +79,7 @@ DTYPES_RELEASE_BEHAVIOUR = [
     'trials.laserProbability',
     'trials.stimOff_times',
     'trials.table',
+    'wheel.position',
     'wheel.timestamps',
     'wheelMoves.intervals',
     'wheelMoves.peakAmplitude',
@@ -113,9 +121,6 @@ DTYPES_RELEASE_SPIKE_SORTING = [
     'clusters.uuids',
     'clusters.waveforms',
     'clusters.waveformsChannels',
-    'electrodeSites.brainLocationIds_ccf_2017',
-    'electrodeSites.localCoordinates',
-    'electrodeSites.mlapdv',
     'kilosort.whitening_matrix',
     'spikes.amps',
     'spikes.clusters',
@@ -132,7 +137,30 @@ DTYPES_RELEASE_SPIKE_SORTING = [
     'waveforms.traces',
 ]
 
-DTYPES_RELEASE_EPHYS_ALL = DTYPES_RELEASE_EPHYS_RAW + DTYPES_RELEASE_SPIKE_SORTING
+DTYPES_RELEASE_HISTOLOGY = [
+    'electrodeSites.brainLocationIds_ccf_2017',
+    'electrodeSites.localCoordinates',
+    'electrodeSites.mlapdv'
+]
+
+DTYPES_RELEASE_EPHYS_ALL = DTYPES_RELEASE_EPHYS_RAW + DTYPES_RELEASE_SPIKE_SORTING + DTYPES_RELEASE_HISTOLOGY
+
+
+def dset2df(dsets_queryset, columns: dict = None):
+    columns = columns if columns is not None else {
+        'id': 'dataset_id',
+        'session': 'eid',
+        'session__subject__nickname': 'subject',
+        'session__start_time__date': 'data',
+        'session__number': 'number',
+        'collection': 'collection',
+        'name': 'file',
+        'dataset_type__name': 'dataset_type'
+    }
+    df_datasets = pd.DataFrame(dsets_queryset.values_list(*list(columns.keys())), columns=list(columns.values()))
+    for col in ['dataset_id', 'eid']:
+        df_datasets[col] = df_datasets[col].astype(str)
+    return df_datasets
 
 
 def get_video_datasets_for_ephys_sessions(eids, cam_labels=None):

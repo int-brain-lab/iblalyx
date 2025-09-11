@@ -1,3 +1,4 @@
+# %%
 """
 --------------
 1. TO RUN ON MBOX
@@ -6,10 +7,12 @@
 import sys
 from pathlib import Path
 
+import tqdm
 import pandas as pd
 import boto3
 
 import ibl_reports.views
+from django.db.models import Count, Q, Exists, OuterRef
 from data.models import Dataset, FileRecord, DataRepository
 
 IBL_ALYX_ROOT = Path(ibl_reports.views.__file__).resolve().parents[2]
@@ -22,7 +25,7 @@ import iblalyx.releases.utils
 public_ds_files = iblalyx.releases.utils.PUBLIC_DS_FILES
 
 # Select which release you want to check by changing i
-i = -1
+i = -4
 
 # Load datasets and check if they have the FI and AWS file records and both exist
 dset_file = IBL_ALYX_ROOT.joinpath('releases', public_ds_files[i])
@@ -31,25 +34,48 @@ incorrect_repos = []
 correct = []
 not_exist = []
 
-for d in datasets:
-    fr = d.file_records.filter(data_repository__globus_is_personal=False)
-    if fr.count() == 2:
-        repos = [f.data_repository.name.split('_')[0] for f in fr]
-        if set(repos) == set(['aws', 'flatiron']):
-            if all([f.exists for f in fr]):
-                correct.append(d)
-            else:
-                not_exist.append(d)
-        else:
-            incorrect_repos.append(d)
-    else:
-        incorrect_repos.append(d)
+
+# Annotate datasets with counts of file records and existence flags
+datasets = datasets.annotate(
+    aws_count=Count('file_records', filter=Q(file_records__data_repository__name__startswith='aws')),
+    flatiron_count=Count('file_records', filter=Q(file_records__data_repository__name__startswith='flatiron')),
+    aws_exists=Exists(FileRecord.objects.filter(
+        dataset_id=OuterRef('pk'),
+        data_repository__name__startswith='aws',
+        data_repository__globus_is_personal=False,
+        exists=True
+    )),
+    flatiron_exists=Exists(FileRecord.objects.filter(
+        dataset_id=OuterRef('pk'),
+        data_repository__name__startswith='flatiron',
+        data_repository__globus_is_personal=False,
+        exists=True
+    ))
+)
+
+incorrect_repos = datasets.filter(aws_count__gt=1, flatiron_count__gt=1)
+missing_flatiron_repo = datasets.filter(flatiron_count=0)
+missing_aws_repo = datasets.filter(aws_count=0)
+aws_exists_false = datasets.filter(aws_count=1, aws_exists=False)
+fi_exists_false = datasets.filter(flatiron_count=1, flatiron_exists=False)
+correct = datasets.filter(aws_count=1, flatiron_count=1, aws_exists=True, flatiron_exists=True)
 
 print(f'{public_ds_files[i]}: {datasets.count()} datasets')
-print(f'Incorrect repositories: {len(incorrect_repos)}')
-print(f'File records exist=False: {len(not_exist)}')
-print(f'Correct: {len(correct)}')
+print(f'Incorrect repository count (too many): {incorrect_repos.count()}')
+print(f"AWS file record doesn't exist: {missing_aws_repo.count()}")
+print(f"FI file record doesn't exist: {missing_flatiron_repo.count()}")
+print(f"AWS file set to exists=False: {aws_exists_false.count()}")
+print(f"FI file set to exists=False: {fi_exists_false.count()}")
 
+print(f'Correct: {correct.count()}')
+
+if correct.count() < datasets.count():
+    df_errors = pd.DataFrame(datasets.exclude(aws_count=1, flatiron_count=1, aws_exists=True, flatiron_exists=True).values_list(
+        'id', 'session__id', 'session__subject', 'collection', 'name', 'aws_count', 'flatiron_count', 'aws_exists', 'flatiron_exists'),
+    columns=['id', 'eid', 'session__subject', 'collection', 'name', 'aws_count', 'flatiron_count', 'aws_exists', 'flatiron_exists'])
+
+
+# %%
 """
 ---------------------------------------------------------------------------------------------------------
 THE FOLLOWING THREE STEPS, ONLY IF THERE ARE ISSUES (INCORRECT REPOS OR FILE RECORDS THAT DO NOT EXIST)
@@ -58,20 +84,14 @@ otherwise skip to point 3
 """
 
 """
+FIXING missing_aws_repo datasets
 2a. ON MBOX
 """
-
-# Check that all the nonexistent file records are aws ones, so far this has been the case, if not, figure out what to do
-for d in not_exist:
-    for f in d.file_records.filter(data_repository__globus_is_personal=False):
-        if not f.exists:
-            if not f.data_repository.name.startswith('aws'):
-                print(f.data_repository.name)
 
 # If necessary create missing file records, set to exist=False to makes sure data gets transferred
 # Check in dry run first and then set dry run to False if it all looks good
 dry_run = True
-for d in incorrect_repos:
+for d in tqdm.tqdm(missing_aws_repo, total=missing_aws_repo.count()):
     frs = d.file_records.filter(data_repository__globus_is_personal=False)
     # Make sure it is that one and only one FR is missing, otherwise we probably need to do this manually
     assert frs.count() == 1
@@ -86,25 +106,24 @@ for d in incorrect_repos:
                                   relative_path=rel_path,
                                   data_repository=missing_repo[0],
                                   exists=False)
-
+# then re-run the above queries to regenerate the list of datasets. Those missing_aws_repo should now be in the
+# aws_exists_false queryset and you can then run the block below
+# %%
 """
-2b. ON SDSC
+FIXING aws_exists_false datasets
+2b. Generate a command to run ON SDSC
 """
-# force sync the datasets that didn't have an aws file record before (write ids to txt file and scp over or copy paste)
-to_check = [str(d.id) for d in not_exist]
-with open(r'/home/ubuntu/to_check.txt', 'w') as fp:
-    fp.write("\n".join(str(item) for item in to_check))
+# force sync the datasets that didn't have an aws file record before: first set the autodatetime field to now and
+# then prepare the command to sync the datasets in one pass on SDSC
+import datetime
 
-# Make a bash script with this content and run it
-# #!/bin/bash
-# fname='/home/datauser/to_check.txt'
-# while read line; do
-# echo $line
-# python alyx/manage.py update_aws --dataset $line -v 2 &>> /home/datauser/Documents/github/alyx/tmp.log
-# done < $fname
+update_time = datetime.datetime.now(datetime.timezone.utc)
+aws_exists_false.update(auto_datetime=update_time.isoformat())
+print(f"python manage.py update_aws --from-date {(update_time - datetime.timedelta(seconds=1)).isoformat()}")
 
 
 
+# %%
 """
 2c. ON MBOX
 """

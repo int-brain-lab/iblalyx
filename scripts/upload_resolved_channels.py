@@ -81,7 +81,7 @@ class RegisterChannels(Task):
         meta_data_file = next(self.session_path.joinpath(
             'raw_ephys_data', self.pname).glob('*ap.meta'))
 
-        geometry = spikeglx._geometry_from_meta(
+        geometry = spikeglx.geometry_from_meta(
             spikeglx.read_meta_data(meta_data_file))
 
         ephysalign = EphysAlignment(xyz, geometry['y'], track_prev=track,
@@ -128,7 +128,7 @@ def upload_channels(ins):
 
             task = RegisterChannels(session_path, one=one, pname=name, location='SDSC')
             task.run()
-            response = task.register_datasets()
+            response = task.register_datasets(force=True)
             for resp in response:
                 fi = next((fr for fr in resp['file_records'] if 'flatiron' in fr['data_repository']), None)
                 if fi is not None:

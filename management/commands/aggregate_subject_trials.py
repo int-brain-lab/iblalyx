@@ -403,16 +403,15 @@ class Command(BaseCommand):
             logger.setLevel(logging.DEBUG)
 
         self.default_revision = options.pop('default_revision', None)
-        subject = args[0] if len(args) else options['subject']
-        dsets, files, log = self.run(subject, user=options.pop('alyx_user'), dry=options.pop('dryrun'),
-                                     compute_training_status=options.pop('training_status'), **options)
+        options['subject'] = args[0] if len(args) else options['subject']
+        dsets, files, log = self.run(**options)
 
         return dsets, files, log
 
     def run(self, subject, revision=None, output_path=OUTPUT_PATH, data_path=ROOT,
-            dry=True, clobber=False, user='root', compute_training_status=False):
+            dryrun=True, clobber=False, alyx_user='root', training_status=False, **kwargs):
         self.subject = Subject.objects.get(nickname=subject)
-        self.user = user
+        self.user = alyx_user
         self.revision = revision
         self.output_path = output_path
         query = self.query_sessions(self.subject)
@@ -454,9 +453,9 @@ class Command(BaseCommand):
             for task in chain.from_iterable(all_tasks.values()):
                 task.cleanUp()
             logger.info('Aggregate hash unchanged; exiting')
-            if compute_training_status:
+            if training_status:
                 # The trials table may not need to be rerun, but we need to check if the training status table exists
-                training_dset, training_out_file = self.handle_training_status(trials_table=None, rerun=rerun, dry=dry)
+                training_dset, training_out_file = self.handle_training_status(trials_table=None, rerun=rerun, dry=dryrun)
                 return (None, training_dset), (None, training_out_file), None
             else:
                 return (None, None), (None, None), None
@@ -472,8 +471,8 @@ class Command(BaseCommand):
         assert set(all_trials.columns) == set(EXPECTED_KEYS), 'unexpected columns in aggregate trials table'
 
         if out_file.exists():
-            logger.warning(('(DRY) ' if dry else '') + 'Output file already exists, overwriting %s', out_file)
-        if dry:
+            logger.warning(('(DRY) ' if dryrun else '') + 'Output file already exists, overwriting %s', out_file)
+        if dryrun:
             out_file = out_file.with_name(f'{out_file.stem}.DRYRUN{out_file.suffix}')
 
         # Save to disk
@@ -485,7 +484,7 @@ class Command(BaseCommand):
         md5_hash = hashfile.md5(out_file)
 
         # Save outcome log
-        log_file = out_file.with_name(f'_ibl_subjectTrials.log{".DRYRUN" if dry else ""}.csv')
+        log_file = out_file.with_name(f'_ibl_subjectTrials.log{".DRYRUN" if dryrun else ""}.csv')
         outcomes.to_csv(log_file)
 
         # Create aggregate hash
@@ -497,14 +496,14 @@ class Command(BaseCommand):
             task.cleanUp()
 
         # Create the session table
-        session_dset, session_out_file = self.handle_session_table(trials_table=out_file, rerun=rerun, dry=dry)
+        session_dset, session_out_file = self.handle_session_table(trials_table=out_file, rerun=rerun, dry=dryrun)
 
-        if compute_training_status:
-            training_dset, training_out_file = self.handle_training_status(trials_table=out_file, rerun=rerun, dry=dry)
+        if training_status:
+            training_dset, training_out_file = self.handle_training_status(trials_table=out_file, rerun=rerun, dry=dryrun)
         else:
             training_dset = training_out_file = None
 
-        if dry:
+        if dryrun:
             logger.info('Dry run complete: %s aggregate hash = %s', out_file, aggregate_hash)
             return (None, None, None), (out_file, training_out_file, session_out_file), log_file
 
@@ -517,6 +516,7 @@ class Command(BaseCommand):
         if out_file.parent != log_file.parent:
             log_file = log_file.rename(out_file.with_name(log_file.name))
 
+        logger.info('Command run complete')
         return (dset, training_dset, session_dset), (out_file, training_out_file, session_out_file), log_file
 
     def handle_training_status(self, trials_table=None, rerun=False, dry=False):
@@ -760,13 +760,13 @@ class Command(BaseCommand):
         if not file_path.exists():
             raise FileNotFoundError(file_path)
         assert all((self.output_path, self.subject)), 'subject and output path must be set'
-
+        collection = f'Subjects/{self.subject.lab.name}/{self.subject.nickname}'
         # Get the alf object from the filename
         alf_object = alfiles.filename_parts(file_path.name, as_dict=True)['object']
 
         # Get or create the dataset
         dset, is_new = Dataset.objects.get_or_create(
-            name=f'_ibl_{alf_object}.table.pqt', collection='Subjects', default_dataset=True,
+            name=f'_ibl_{alf_object}.table.pqt', collection=collection, default_dataset=True,
             dataset_type=DatasetType.objects.get(name=f'{alf_object}.table'),
             data_format=DataFormat.objects.get(name='parquet'), object_id=self.subject.id)
 
@@ -785,7 +785,7 @@ class Command(BaseCommand):
                 logger.info('Creating new dataset with "%s" revision', revision.name)
                 # Create new dataset; leave the old untouched (save method handles change of default dataset field)
                 dset = Dataset.objects.create(
-                    name=f'_ibl_{alf_object}.table.pqt', collection='Subjects', default_dataset=True,
+                    name=f'_ibl_{alf_object}.table.pqt', collection=collection, default_dataset=True,
                     dataset_type=DatasetType.objects.get(name=f'{alf_object}.table'),
                     data_format=DataFormat.objects.get(name='parquet'), content_object=self.subject, revision=revision
                 )
@@ -809,12 +809,12 @@ class Command(BaseCommand):
         (Dataset
          .objects
          .filter(
-            name=f'_ibl_{alf_object}.table.pqt', collection='Subjects', default_dataset=True,
+            name=f'_ibl_{alf_object}.table.pqt', collection=collection, default_dataset=True,
             dataset_type=DatasetType.objects.get(name=f'{alf_object}.table'), object_id=self.subject.id)
          .exclude(pk=dset.pk)
          .update(default_dataset=False))
 
-        out_file = self.output_path.joinpath(dset.collection, self.subject.lab.name, self.subject.nickname)
+        out_file = self.output_path.joinpath(collection)
         if dset.revision:
             out_file /= f'#{dset.revision.name}#'
             out_file.mkdir(exist_ok=True)
