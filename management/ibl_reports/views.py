@@ -1,7 +1,6 @@
 from datetime import date
 import logging
 import time
-from collections import OrderedDict
 
 import django_filters
 from django.http import HttpResponse, JsonResponse
@@ -12,6 +11,7 @@ from django.db.models.functions import Coalesce, Cast
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.postgres.fields import JSONField, ArrayField
 from django.core.files.storage import default_storage
+from django.utils.functional import lazy
 
 from experiments.models import TrajectoryEstimate, ProbeInsertion
 from misc.models import Note, Lab
@@ -526,16 +526,8 @@ class GalleryPlotsOverview(LoginRequiredMixin, ListView):
             id=OuterRef('object_id')).values('json__extended_qc__experimenter_raw_destripe'))
 
         qs = qs.annotate(plot_type=Note.objects.filter(id=OuterRef('id')).values('json__name'))
-
         self.f = GalleryFilter(self.request.GET, queryset=qs.order_by('-session_time'))
-
         return self.f.qs
-
-
-plot_types = Note.objects.all().filter(json__tag="## report ##").values_list("text", flat=True).distinct()
-PLOT_OPTIONS = []
-for ip, pl in enumerate(plot_types):
-    PLOT_OPTIONS.append((ip, pl))
 
 
 class GalleryFilter(django_filters.FilterSet):
@@ -564,8 +556,16 @@ class GalleryFilter(django_filters.FilterSet):
         (1, 'Fail'),
     )
 
+    @staticmethod
+    def _get_plot_options():
+        plot_options = []
+        plot_types = Note.objects.all().filter(json__tag="## report ##").values_list("text", flat=True).distinct()
+        for ip, pl in enumerate(plot_types):
+            plot_options.append((ip, pl))
+        return plot_options
+
     id = django_filters.CharFilter(label='Experiment ID/ Probe ID', method='filter_id', lookup_expr='startswith')
-    plot = django_filters.ChoiceFilter(choices=PLOT_OPTIONS, label='Plot Type', method='filter_plot')
+    plot = django_filters.ChoiceFilter(choices=lazy(_get_plot_options, list)(), label='Plot Type', method='filter_plot')
     lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')
     project = django_filters.ModelChoiceFilter(queryset=Project.objects.all(), label='Project', method='filter_project')
     repeated = django_filters.ChoiceFilter(choices=REPEATEDSITE, label='Location', method='filter_repeated')
@@ -614,7 +614,7 @@ class GalleryFilter(django_filters.FilterSet):
         return queryset
 
     def filter_plot(self, queryset, name, value):
-        text = [pl[1] for pl in PLOT_OPTIONS if pl[0] == int(value)][0]
+        text = [pl[1] for pl in _get_plot_options() if pl[0] == int(value)][0]
         queryset = queryset.filter(text=text)
         return queryset
 

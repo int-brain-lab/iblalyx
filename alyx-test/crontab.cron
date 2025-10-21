@@ -1,0 +1,5 @@
+# every dat at 23:15
+15 23 * * * ~/Documents/PYTHON/iblalyx/alyx-test/00_rebuild_from_cache.sh > /var/log/alyx/00_rebuild_from_cache.log
+
+# every 2 months
+0 0 1 */2 * ~/Documents/PYTHON/iblalyx/alyx-test/02_renew_certificate.sh > /var/log/alyx/02_renew_certificate.log

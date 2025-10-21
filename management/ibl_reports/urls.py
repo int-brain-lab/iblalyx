@@ -1,5 +1,6 @@
 from django.urls import path
-from . import views
+
+from ibl_reports import views
 
 urlpatterns = [
     path('', views.landingpage),

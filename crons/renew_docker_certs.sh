@@ -1,32 +1,47 @@
 #!/bin/bash
 set -e
 # A script to renew let's encrypt certificates from within a restricted dockerized AWS EC2 instance
-# $1 determines the environment (alyx-prod, alyx-dev, openalyx)
+# $1 determines the environment (alyx-prod, alyx-dev, openalyx, or full domain name)
+# $2 is the security group ID for certbot renewal (default is sg-07b6343c0d485e097)
+# $3 is the AWS region (default is eu-west-2)
 
 # Set Vars
-EC2_REGION="eu-west-2"
-CERTBOT_SG="sg-07b6343c0d485e097"
-
-echo "Checking arg passed for build environment, special case for alyx-dev..."
-if [ -z "$1" ]; then
-  echo "Error: No argument supplied, script requires first argument for build env (alyx, alyx-dev, openalyx, etc)"
-  exit 1
-else
-  if [ "${1}" == "alyx-dev" ]; then
-    ALYX_URL="dev.alyx.internationalbrainlab.org"
-  elif [ "${1}" == "alyx-prod" ]; then
-    ALYX_URL="alyx.internationalbrainlab.org"
-  elif [ "${1}" == "openalyx" ]; then
-    ALYX_URL="openalyx.internationalbrainlab.org"
-  else
-    echo "Incorrect argument passed to script, exiting..."
+if [ -z "$2" ]; then
+  if [ -z "$CERTBOT_SG" ]; then
+    echo "Error: No argument supplied and no CERTBOT_SG set, please set one of them."
     exit 1
   fi
-  echo "ALYX_URL set to ${ALYX_URL}"
+else
+  CERTBOT_SG=${2:-sg-07b6343c0d485e097}
 fi
+EC2_REGION=${3:-eu-west-2}
+
+echo "Checking arg passed for build environment, special case for alyx-dev..."
+if [ "${1}" == "alyx-dev" ]; then
+  ALYX_URL="dev.alyx.internationalbrainlab.org"
+elif [ "${1}" == "alyx-prod" ]; then
+  ALYX_URL="alyx.internationalbrainlab.org"
+elif [ "${1}" == "openalyx" ]; then
+  ALYX_URL="openalyx.internationalbrainlab.org"
+elif [ -z "$1" ]; then
+  if [ -z "$APACHE_SERVER_NAME" ]; then
+    echo "Error: No argument supplied and no APACHE_SERVER_NAME set, please set one of them."
+    exit 1
+  else
+    ALYX_URL="${APACHE_SERVER_NAME}"
+  fi
+else
+  ALYX_URL="${1}"
+fi
+echo "ALYX_URL set to ${ALYX_URL}"
 
 echo "Retrieving instance-id from local metadata..."
-EC2_INSTANCE_ID=$(wget -q -O - http://169.254.169.254/latest/meta-data/instance-id)
+if [ -z $EC2_INSTANCE_ID ]
+then
+  die() { status=$1; shift; echo "FATAL: $*"; exit $status; }
+  EC2_INSTANCE_ID="`wget -q -O - http://169.254.169.254/latest/meta-data/instance-id || die "wget instance-id has failed: $?\"`"
+fi
+
 echo "EC2_INSTANCE_ID found: ${EC2_INSTANCE_ID}"
 
 echo "Retrieving list of security groups attached to this instance..."
@@ -51,11 +66,24 @@ if [ $in_list -eq 0 ]; then
 fi
 
 echo "Attempting to renew certs..."
-certbot --apache --noninteractive --agree-tos --email admin@internationalbrainlab.org -d $ALYX_URL
+# If APACHE_SERVER_ADMIN is set, use it; otherwise, default to admin@domain
+if [ -z "$APACHE_SERVER_ADMIN" ]; then
+    domain=$(echo "$ALYX_URL" | awk -F. '{print $(NF-1)"."$NF}')
+    email="admin@$domain"
+else
+    email="$APACHE_SERVER_ADMIN"
+fi
 
-echo "Copying newly generated certs to AWS S3 bucket..."
-aws s3 cp /etc/letsencrypt/live/$ALYX_URL/fullchain.pem s3://alyx-docker/fullchain.pem-$1
-aws s3 cp /etc/letsencrypt/live/$ALYX_URL/privkey.pem s3://alyx-docker/privkey.pem-$1
+certbot --apache --noninteractive --agree-tos --email "$email" -d $ALYX_URL -v
+
+# check if bucket exists, if not skip copy
+if aws s3 ls "s3://alyx-docker/" > /dev/null 2>&1; then
+    echo "Copying newly generated certs to AWS S3 bucket..."
+    aws s3 cp /etc/letsencrypt/live/$ALYX_URL/fullchain.pem s3://alyx-docker/fullchain.pem-$1
+    aws s3 cp /etc/letsencrypt/live/$ALYX_URL/privkey.pem s3://alyx-docker/privkey.pem-$1
+else
+    echo "Bucket does not exist or command failed, skipping upload of certs."
+fi
 
 if [ $in_list -eq 0 ]; then
   echo "Reverting security groups for instance..."
