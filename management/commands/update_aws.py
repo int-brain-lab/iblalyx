@@ -60,6 +60,8 @@ class Command(BaseCommand):
         parser.add_argument('--dryrun', action='store_true',
                             help='Displays the operations that would be performed using the '
                             'specified command without actually running them.')
+        parser.add_argument('-f', '--force', action='store_true',
+                            help='Sync even if file records indicate files are already on AWS.')
 
     def handle(self, *_, **options):
         # TODO Check logging works from outside main Alyx package
@@ -95,15 +97,18 @@ class Command(BaseCommand):
         batch_size = options.pop('batch_size')
         hostname = options.pop('hostname')
         limit = options.pop('limit')
+        force = options.pop('force', False)
         for k, v in options.items():
             if not v:
                 continue
             if k == 'session':
                 q = Q(dataset__session=v[0]) if len(v) == 1 else Q(dataset__session__in=v)
                 query.add(q, Q.OR)
+                force = True  # force sync if specific sessions requested
             elif k == 'dataset':
                 q = Q(dataset__pk=v[0]) if len(v) == 1 else Q(dataset__pk__in=v)
                 query.add(q, Q.OR)
+                force = True  # force sync if specific datasets requested
             elif k == 'hours':
                 nuo = datetime.datetime.now() - datetime.timedelta(hours=v)
                 query.add(Q(dataset__auto_datetime__gt=nuo), Q.OR)
@@ -123,10 +128,11 @@ class Command(BaseCommand):
             'dataset__id', 'dataset__session', 'dataset__auto_datetime',
             'relative_path', 'data_repository__globus_path')
         qs = FileRecord.objects.filter(query, exists=True, data_repository__hostname=hostname)
-        # Exclude file records already on AWS
-        on_aws = FileRecord.objects.filter(
-            dataset__in=OuterRef('dataset'), exists=True, data_repository__name__startswith='aws')
-        qs = qs.exclude(dataset__in=on_aws.values_list('dataset', flat=True).distinct())
+        if not force:
+            # Exclude file records already on AWS
+            on_aws = FileRecord.objects.filter(
+                dataset__in=OuterRef('dataset'), exists=True, data_repository__name__startswith='aws')
+            qs = qs.exclude(dataset__in=on_aws.values_list('dataset', flat=True).distinct())
         # TODO deal with file_records that are on AWS but not FlatIron
         qs = qs.order_by('dataset__auto_datetime').select_related().values(*fields)
         if limit:
