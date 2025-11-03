@@ -36,10 +36,14 @@ fi
 echo "ALYX_URL set to ${ALYX_URL}"
 
 echo "Retrieving instance-id from local metadata..."
-if [ -z $EC2_INSTANCE_ID ]
+if [ -z "$EC2_INSTANCE_ID" ];
 then
-  die() { status=$1; shift; echo "FATAL: $*"; exit $status; }
-  EC2_INSTANCE_ID="`wget -q -O - http://169.254.169.254/latest/meta-data/instance-id || die "wget instance-id has failed: $?\"`"
+  # Try using cloud utils (NB: this may not work within a docker container and is not installed by default)
+  EC2_INSTANCE_ID=$(ec2metadata --instance-id)
+  if [ -z "$EC2_INSTANCE_ID" ]; then
+    echo "Error: Unable to retrieve EC2 instance ID from metadata service."
+    exit 1
+  fi
 fi
 
 echo "EC2_INSTANCE_ID found: ${EC2_INSTANCE_ID}"
