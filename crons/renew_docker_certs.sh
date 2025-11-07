@@ -76,15 +76,6 @@ fi
 
 certbot --apache --noninteractive --agree-tos --email "$email" -d $ALYX_URL -v
 
-# check if bucket exists, if not skip copy
-if aws s3 ls "s3://alyx-docker/" > /dev/null 2>&1; then
-    echo "Copying newly generated certs to AWS S3 bucket..."
-    aws s3 cp /etc/letsencrypt/live/$ALYX_URL/fullchain.pem s3://alyx-docker/fullchain.pem-$1
-    aws s3 cp /etc/letsencrypt/live/$ALYX_URL/privkey.pem s3://alyx-docker/privkey.pem-$1
-else
-    echo "Bucket does not exist or command failed, skipping upload of certs."
-fi
-
 if [ $in_list -eq 0 ]; then
   echo "Reverting security groups for instance..."
   aws ec2 modify-instance-attribute \
