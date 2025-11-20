@@ -27,7 +27,7 @@ s3 = boto3.resource('s3',
                     aws_secret_access_key=aws_repo.json['Secret access key'])
 bucket = s3.Bucket(name='ibl-brain-wide-map-private')
 
-
+# TODO remove aggregates
 
 def format_seconds(seconds):
     """Represent seconds in either minutes, seconds or hours depending on order of magnitude"""
@@ -146,13 +146,15 @@ class Command(BaseCommand):
                             dset.file_size = fs
                             dset.save()
 
-                    # Check that the hash matches
-                    hs = hashfile.md5(expected_FI_path)
-                    if hs != dset.hash:
-                        logger.warning(f'{str(dset.id)} - FLATIRON: md5 hash mismatch - updating from {dset.hash} to {hs}')
-                        if not dry:
-                            dset.hash = hs
-                            dset.save()
+                    # Only check md5 for files smaller than specified size (default 3GB)
+                    if fs / (1024 ** 3) < 3:
+                        # Check that the hash matches
+                        hs = hashfile.md5(expected_FI_path)
+                        if hs != dset.hash:
+                            logger.warning(f'{str(dset.id)} - FLATIRON: md5 hash mismatch - updating from {dset.hash} to {hs}')
+                            if not dry:
+                                dset.hash = hs
+                                dset.save()
 
                     # Get the last time the file was updated on the flatiron server
                     FI_last_updated = datetime.datetime.fromtimestamp(expected_FI_path.stat().st_mtime,
@@ -256,6 +258,8 @@ class Command(BaseCommand):
             processed_datasets = np.unique(processed_datasets)
 
         unprocessed_datasets = Dataset.objects.exclude(id__in=processed_datasets)
+        # Remove aggregate datasets
+        unprocessed_datasets = unprocessed_datasets.exclude(session__isnull=True)
         # Get mainly alf datasets
         alf_datasets = unprocessed_datasets.filter(collection__icontains='alf')
         alf_datasets = alf_datasets[:limit-1000]
@@ -292,4 +296,5 @@ class Command(BaseCommand):
             orig_to_fix = orig_to_fix.drop_duplicates(subset='dataset_id', keep='first')
             orig_to_fix = orig_to_fix.reset_index(drop=True)
             orig_to_fix.to_parquet(SAVE_PATH.joinpath('datasets_to_fix.pqt'))
+
 
