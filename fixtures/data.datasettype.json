@@ -1142,5 +1142,49 @@
       "description": "Time in seconds, relative to the session start, of the onset and offset of the opto stimulation.",
       "filename_pattern": "*optostimulation.intervals*.npy"
     }
+  },
+    {
+    "model": "data.datasettype",
+    "pk": "f3c81c3c-25b9-43c8-a6f7-1a4cdee2c26d",
+    "fields": {
+      "json": null,
+      "name": "_av_trials.leftReward",
+      "created_by": null,
+      "description": "Whether a reward was available on the left side regardless of whether this choice was made or not",
+      "filename_pattern": "_av_trials.leftReward*"
+    }
+  },
+    {
+    "model": "data.datasettype",
+    "pk": "7882054a-74c0-43b6-918b-86baba252279",
+    "fields": {
+      "json": null,
+      "name": "_av_trials.rightReward",
+      "created_by": null,
+      "description": "Whether a reward was available on the right side regardless of whether this choice was made or not",
+      "filename_pattern": "_av_trials.rightReward*"
+    }
+  },
+    {
+    "model": "data.datasettype",
+    "pk": "8ee6802c-5970-4ae1-bdbb-4d0e17a45bd4",
+    "fields": {
+      "json": null,
+      "name": "_av_trials.laserOnset_times",
+      "created_by": null,
+      "description": "Time in seconds, relative to the session start, of the first laser pulse if the optogenetic reward was given, NaN otherwise",
+      "filename_pattern": "_av_trials.laserOnset_times*"
+    }
+  },
+    {
+    "model": "data.datasettype",
+    "pk": "c3a1a7ec-4698-4e77-b69e-627311c9ff3e",
+    "fields": {
+      "json": null,
+      "name": "trials.modelPredictions",
+      "created_by": null,
+      "description": "Model prediction parameters and results for each trial.",
+      "filename_pattern": "*trials.modelPredictions*"
+    }
   }
 ]
