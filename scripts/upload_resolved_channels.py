@@ -2,7 +2,7 @@ from ibllib.pipes.tasks import Task
 from ibllib.pipes.ephys_alignment import EphysAlignment
 import spikeglx
 from iblatlas.atlas import AllenAtlas
-import one.alf.io as alfio
+from one.alf.path import full_path_parts
 import numpy as np
 from datetime import date, timedelta
 from one.api import ONE
@@ -22,10 +22,8 @@ class RegisterChannels(Task):
     @property
     def signature(self):
         signature = {
-            'input_files': [('channels.localCoordinates.npy',
-                             f'alf/{self.pname}*', False),
-                            ('*.ap.meta', f'raw_ephys_data/{self.pname}*',
-                             False)],
+            'input_files': [('channels.localCoordinates.npy', collection, False) for collection in self.collections] +
+                            [('*.ap.meta', f'raw_ephys_data/{self.pname}', False)],
             'output_files': []
         }
         return signature
@@ -49,15 +47,21 @@ class RegisterChannels(Task):
 
         files_to_register = []
 
-        collections = self.one.list_collections(self.eid, filename='spikes*',
-                                                collection=f'alf/{self.pname}*')
+        files = [f for f in self.data_handler.linked_files if 'channels.localCoordinates.npy' in f.name]
 
         # loop over all spike sorting collections and generate
         # the channel extra files for them
-        for collection in collections:
+        for collection in self.collections:
             alf_path = self.session_path.joinpath(collection)
-            chans = alfio.load_object(alf_path, 'channels')
-            depths = chans.localCoordinates[:, 1]
+
+            for file in files:
+                file_parts = full_path_parts(file, as_dict=True)
+                if file_parts['collection'] == collection:
+                    local_coords_file = file
+                    break
+
+            chans = np.load(local_coords_file)
+            depths = chans[:, 1]
             ephysalign = EphysAlignment(xyz, depths, track_prev=track,
                                         feature_prev=feature,
                                         brain_atlas=ba, speedy=True)
@@ -126,13 +130,20 @@ def upload_channels(ins):
             eid, name = one.pid2eid(pr.id)
             session_path = one.eid2path(eid)
 
+            dsets = pr.datasets.filter(name='channels.localCoordinates.npy')
+            collections = set([d.collection for d in dsets])
+
             task = RegisterChannels(session_path, one=one, pname=name, location='SDSC')
+            task.collections = collections
             task.run()
             response = task.register_datasets(force=True)
             for resp in response:
                 fi = next((fr for fr in resp['file_records'] if 'flatiron' in fr['data_repository']), None)
                 if fi is not None:
                     one.alyx.rest('files', 'partial_update', id=fi['id'], data={'exists': True})
+                aws = next((fr for fr in resp['file_records'] if 'aws' in fr['data_repository']), None)
+                if aws is not None:
+                    one.alyx.rest('files', 'partial_update', id=aws['id'], data={'exists': False})
             task.cleanUp()
         except Exception as err:
             logger.error(f'{pr.id} errored with message: {err}')
