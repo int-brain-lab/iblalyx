@@ -41,8 +41,7 @@ PUBLIC_DS_FILES = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2025_Q3_IBL_et_al_BWM.pqt',
                    '2025_Q3_Davatolhagh_et_al_autism_datasets.pqt',
                    '2025_Q3_Noel_et_al_Autism_datasets.pqt',
-                   '2025_Q4_Pan_Vazquez_et_al_datasets.pqt',
-                   '2025_Q3_Zang_et_al_Aging.pqt',
+                   '2025_Q4_Pan_Vazquez_et_al_datasets.pqt'
                    ]
 
 PUBLIC_DS_TAGS = [
@@ -69,7 +68,6 @@ PUBLIC_DS_TAGS = [
     "7b16fa4f-f759-4181-bdff-779b7fe4a9a6",  # 2025_Q3_Davatolhagh_et_al_autism
     "125b3051-f5ed-466c-b9e9-0fded1ea487c",  # 2025_Q3_Noel_et_al_Autism_pids.pqt
     "7a430656-0974-4cee-8f4d-454faea3adbb",  # 2025_Q4_Pan_Vazquez_et_al
-    "d3a8fa38-63da-4d4b-b03d-6a0aaa6d1fd2",  # 2025_Q3_Zang_et_al_Aging
 ]
 
 
