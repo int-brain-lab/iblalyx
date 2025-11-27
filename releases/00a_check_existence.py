@@ -25,7 +25,7 @@ import iblalyx.releases.utils
 public_ds_files = iblalyx.releases.utils.PUBLIC_DS_FILES
 
 # Select which release you want to check by changing i
-i = -4
+i = -1
 
 # Load datasets and check if they have the FI and AWS file records and both exist
 dset_file = IBL_ALYX_ROOT.joinpath('releases', public_ds_files[i])
@@ -198,6 +198,7 @@ public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2024_Q2_Blau_et_al_datasets.pqt',
                    '2024_Q3_Pan_Vazquez_et_al_datasets.pqt',
                    '2025_Q1_IBL_et_al_BWM_wheel_patch.pqt',
+                   '2025_Q3_Zang_et_al_Aging.pqt',
                    ]
 
 # Chose release with i
