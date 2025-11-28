@@ -174,7 +174,7 @@ print(f'Exists on AWS: {len(exist)}')
 from pathlib import Path
 import pandas as pd
 from one.alf.path import add_uuid_string
-from data.models import DataRepository, Dataset
+from data.models import DataRepository, Dataset, FileRecord
 
 # Make sure iblalyx is up to date before running this!
 IBL_ALYX_ROOT = Path('/home/datauser/Documents/PYTHON/iblalyx/')
@@ -204,21 +204,42 @@ public_ds_files = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
 # Chose release with i
 i = -1
 dset_file = IBL_ALYX_ROOT.joinpath('releases', public_ds_files[i])
-datasets = Dataset.objects.filter(pk__in=list(pd.read_parquet(dset_file)['dataset_id']))
+dsets_qset = Dataset.objects.filter(pk__in=list(pd.read_parquet(dset_file)['dataset_id']))
 
-no_record = []
-nonexist = []
-for dset in datasets:
-    fr = dset.file_records.filter(data_repository__name__startswith='flatiron').first()
-    if fr is None:
-        no_record.append()
-    else:
-        rel_path = Path(fr.data_repository.globus_path).joinpath(fr.relative_path).relative_to('/')
-        rel_path = add_uuid_string(str(rel_path), dset.pk)
-        source = Path('/mnt/ibl').joinpath(rel_path)
-        if not source.exists():
-            nonexist.append(dset)
+#Get the file records for the release
+frecs_qset = FileRecord.objects.filter(dataset__in=pd.read_parquet(dset_file)['dataset_id'],
+ data_repository__name__startswith='flatiron')
 
-print(f'{public_ds_files[i]}: {datasets.count()} datasets')
-print(f'No file record: {len(no_record)}')
-print(f'Does not exist: {len(nonexist)}')
+# Get the paths and dataset ids from the file records
+output = frecs_qset.values_list('data_repository__globus_path', 'relative_path', 'dataset_id')
+
+from pathlib import Path
+
+# Check if the paths exist for the file records
+path_exists = [
+    add_uuid_string((Path('/mnt/ibl') / globus_path[1:] / relative_path).as_posix(), dataset_id).exists()
+    for globus_path, relative_path, dataset_id in output
+]
+
+# Print the number of datasets that do not have a file record and the number of file records that do not exist
+print(f"No file record: {len(pd.read_parquet(dset_file)['dataset_id']) -  len(dsets_qset)}")
+print(f"Does not exists: {len(path_exists) -  sum(path_exists)}")
+
+
+# Older code to check the existence of the file records
+# no_record = []
+# nonexist = []
+# for dset in datasets:
+#     fr = dset.file_records.filter(data_repository__name__startswith='flatiron').first()
+#     if fr is None:
+#         no_record.append()
+#     else:
+#         rel_path = Path(fr.data_repository.globus_path).joinpath(fr.relative_path).relative_to('/')
+#         rel_path = add_uuid_string(str(rel_path), dset.pk)
+#         source = Path('/mnt/ibl').joinpath(rel_path)
+#         if not source.exists():
+#             nonexist.append(dset)
+
+# print(f'{public_ds_files[i]}: {datasets.count()} datasets')
+# print(f'No file record: {len(no_record)}')
+# print(f'Does not exist: {len(nonexist)}')
