@@ -18,41 +18,41 @@ from django.db.models import Q
 IBL_ALYX_ROOT = Path(alyx.base.__file__).parents[3].joinpath('iblalyx')
 assert IBL_ALYX_ROOT.exists(), 'No IBL_ALYX_ROOT found, it is usually at the same directory level as the alyx repo'
 
-def get_passive_datasets():
-    """
-    # Find the additional passive datasets to release
-    In 2023_Q4_IBL_et_al_BWM_passive we only released passive datasets that had all three components of the passive task
-    1. Spontaneous activity
-    2. Receptive field map
-    3. Passive task replay
-    We have decided that it is valuable to release the _ibl_passivePeriods.intervalsTable.csv and where available
-    the rfmap and task replay anyway for people who want to do analysis on the spontaneous portion of the task.
-    The sessions that have incomplete passive data have a note associated with them so they can be identified
-    """
-
-    # Note we do this in two steps because some have the '_iblrig_RFMapStim.raw.bin' but not '_ibl_passivePeriods.intervalsTable.csv'
-    # and we do not want to release these sessions.
-
-    # Find the sessions with the passivePeriods dataset that haven't already been released
-    dsets = Dataset.objects.filter(session__in=bwm_sess, name='_ibl_passivePeriods.intervalsTable.csv')
-    dsets_intervals = dsets.exclude(tags__name__icontains='brainwide')
-    add_pass_sess = dsets_intervals.values_list('session', flat=True).distinct()
-
-    # Find the sessions that we have rfmap data times for and add this dataset as well as the RFMapStim file
-    rfmap_dsets = Dataset.objects.filter(session__in=add_pass_sess, name='_ibl_passiveRFM.times.npy')
-    rfmap_sess = rfmap_dsets.values_list('session', flat=True).distinct()
-
-    bin_dsets = Dataset.objects.filter(session__in=rfmap_sess, name='_iblrig_RFMapStim.raw.bin', default_dataset=True)
-
-    # Find the task replay datasets
-    dnames = ['_ibl_passiveGabor.table.csv', '_ibl_passiveStims.table.csv']
-    replay_dsets = Dataset.objects.filter(session__in=add_pass_sess, name__in=dnames, default_dataset=True)
-
-    dsets_passive = dsets_intervals | rfmap_dsets | bin_dsets | replay_dsets
-    # Save dataset IDs for release in public database
-    dset_ids = [str(eid) for eid in dsets.values_list('pk', flat=True)]
-    df = pd.DataFrame(dset_ids, columns=['dataset_id'])
-    return df
+# def get_passive_datasets():
+#     """
+#     # Find the additional passive datasets to release
+#     In 2023_Q4_IBL_et_al_BWM_passive we only released passive datasets that had all three components of the passive task
+#     1. Spontaneous activity
+#     2. Receptive field map
+#     3. Passive task replay
+#     We have decided that it is valuable to release the _ibl_passivePeriods.intervalsTable.csv and where available
+#     the rfmap and task replay anyway for people who want to do analysis on the spontaneous portion of the task.
+#     The sessions that have incomplete passive data have a note associated with them so they can be identified
+#     """
+#
+#     # Note we do this in two steps because some have the '_iblrig_RFMapStim.raw.bin' but not '_ibl_passivePeriods.intervalsTable.csv'
+#     # and we do not want to release these sessions.
+#
+#     # Find the sessions with the passivePeriods dataset that haven't already been released
+#     dsets = Dataset.objects.filter(session__in=bwm_sess, name='_ibl_passivePeriods.intervalsTable.csv')
+#     dsets_intervals = dsets.exclude(tags__name__icontains='brainwide')
+#     add_pass_sess = dsets_intervals.values_list('session', flat=True).distinct()
+#
+#     # Find the sessions that we have rfmap data times for and add this dataset as well as the RFMapStim file
+#     rfmap_dsets = Dataset.objects.filter(session__in=add_pass_sess, name='_ibl_passiveRFM.times.npy')
+#     rfmap_sess = rfmap_dsets.values_list('session', flat=True).distinct()
+#
+#     bin_dsets = Dataset.objects.filter(session__in=rfmap_sess, name='_iblrig_RFMapStim.raw.bin', default_dataset=True)
+#
+#     # Find the task replay datasets
+#     dnames = ['_ibl_passiveGabor.table.csv', '_ibl_passiveStims.table.csv']
+#     replay_dsets = Dataset.objects.filter(session__in=add_pass_sess, name__in=dnames, default_dataset=True)
+#
+#     dsets_passive = dsets_intervals | rfmap_dsets | bin_dsets | replay_dsets
+#     # Save dataset IDs for release in public database
+#     dset_ids = [str(eid) for eid in dsets.values_list('pk', flat=True)]
+#     df = pd.DataFrame(dset_ids, columns=['dataset_id'])
+#     return df
 
 
 def get_lightening_pose_datasets():
@@ -126,7 +126,8 @@ dsets = Dataset.objects.filter(tags__name__icontains='brainwide', name__icontain
 bwm_sess = Session.objects.filter(id__in=dsets.values_list('session', flat=True).distinct())
 
 df_datasets = []
-df_datasets.append(get_passive_datasets())
+# Remove the passive datasets from this release and add them to the 2023_Q4_IBL_et_al_BWM_passive release
+# df_datasets.append(get_passive_datasets())
 df_datasets.append(get_lightening_pose_datasets())
 df_datasets.append(get_saturation_datasets())
 df_datasets = pd.concat(df_datasets, axis=0)
