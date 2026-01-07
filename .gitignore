@@ -2,8 +2,7 @@
 .DS_Store
 .deploy/*
 /.idea/*
+.env
 /deploy/environment.env
-/deploy/.env
 /deploy/.env.dev
 /deploy/alyx_ec2_bootstrap_install.log
-/releases/.env
