@@ -13,7 +13,7 @@ sudo chown ubuntu:ubuntu  /home/ubuntu/tmp/$(date +%Y-%m-%d)_alyx_full.sql
 gzip -f /home/ubuntu/tmp/$(date +%Y-%m-%d)_alyx_full.sql
 mv /home/ubuntu/tmp/$(date +%Y-%m-%d)_alyx_full.sql.gz "$backup_dir/alyx_full.sql.gz"
 
-rsync -av --progress -e "ssh -i /home/ubuntu/.ssh/sdsc_alyx.pem -p 62022" "$backup_dir/alyx_full.sql.gz" alyx@ibl.flatironinstitute.org:/mnt/ibl/json/$(date +%Y-%m-%d)_alyxfull.sql.gz
+rsync -av --progress -e "ssh -i /home/ubuntu/.ssh/sdsc_alyx.pem -p 62022" "$backup_dir/alyx_full.sql.gz" alyx@ibl-ssh.flatironinstitute.org:/mnt/ibl/json/$(date +%Y-%m-%d)_alyxfull.sql.gz
 
 # clean up the backups on AWS instance
 source /var/www/alyx-main/venv/bin/activate
