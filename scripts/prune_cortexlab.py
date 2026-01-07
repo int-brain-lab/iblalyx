@@ -410,11 +410,12 @@ if __name__ == '__main__':
     call_command('loaddata', json_file_out, database='default')
     
     # Post import steps
+    # set the cortex lab json field health report
     (Lab.objects
      .filter(name='cortexlab')
      .update(json=Lab.objects.using('cortexlab').get(name='cortexlab').json)
     )
-    # Update probe insertions to trigger any downstream updates
+    # set reverse fk probeinsertion --> dataset
     for pi in ProbeInsertion.objects.filter(session__lab__name='cortexlab'):
         pi.save()
 
