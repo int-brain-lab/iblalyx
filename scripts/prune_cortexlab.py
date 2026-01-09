@@ -2,6 +2,7 @@
 import os
 import sys
 import django
+from pathlib import Path
 
 if __name__ == '__main__' and not os.environ.get('DJANGO_SETTINGS_MODULE'):
     sys.path.insert(0, '.')
@@ -23,7 +24,6 @@ from jobs.models import Task
 from alyx.base import flatten
 
 CORTEX_LAB_PK = '4027da48-7be3-43ec-a222-f75dffe36872'
-json_file_out = '../scripts/sync_ucl/cortexlab_pruned.json'
 
 
 def fcn_import_projects(ses_ucl):
@@ -361,48 +361,43 @@ def prune():
                 .filter(object_id__in=Subject.objects.filter(lab=CORTEX_LAB_PK)))
     ibl_notes.exclude(pk__in=list(ucl_notes.values_list('pk', flat=True))).count()
 
-    """
-    Export all the pruned cortexlab database as Json so it can be loaded back into the IBL one
-    those are the init fixtures that could have different names depending on the location
-    (ibl_cortexlab versus cortexlab for example)
-    they share primary keys accross databases but not necessarily the other fields
-    """
-
-    init_fixtures = ['data.dataformat',
-                    'data.datarepositorytype',
-                    'data.datasettype',
-                    'misc.lab',
-                    'subjects.project',
-                    #  'actions.proceduretype',
-                    #  'actions.watertype',
-                    ]
-
-    # those are system fixtures and should not be migrated
-    system_excludes = ['admin.logentry',
-                    'auth.group',
-                    'authtoken.token',
-                    'contenttypes',
-                    'auth.permission',
-                    'reversion.version',
-                    'reversion.revision',
-                    'sessions.session']
-
-    excludes = []
-    excludes.extend(init_fixtures)
-    excludes.extend(system_excludes)
-
 
 if __name__ == '__main__':
     # Remove all non-IBL data from cortexlab database
     prune()
+    """
+    Export all the pruned cortexlab database as JSON so it can be loaded back into the IBL one
+    those are the init fixtures that could have different names depending on the location
+    (ibl_cortexlab versus cortexlab for example)
+    they share primary keys accross databases but not necessarily the other fields
+    """
+    excludes = [
+        # These are init fixtures that will be loaded separately
+        'data.dataformat',
+        'data.datarepositorytype',
+        'data.datasettype',
+        'misc.lab',
+        'subjects.project',
+        # These are system tables that should not be migrated
+        'admin.logentry',
+        'auth.group',
+        'authtoken.token',
+        'contenttypes',
+        'auth.permission',
+        'reversion.version',
+        'reversion.revision',
+        'sessions.session'
+    ]
+
     # Save to JSON file
     # FIXME This could be done without writing to disk
+    json_file_out = Path(__file__).parent / 'cortexlab_pruned.json'
     with open(json_file_out, 'w') as out:  # Point stdout at a file for dumping data to.
         # ./manage.py dumpdata -e contenttypes -e auth.permission -e reversion.version
         # -e reversion.revision -e admin.logentry -e authtoken.token -e auth.group --indent 1
         # --database cortexlab -o ../scripts/sync_ucl/cortexlab.json
-        call_command('dumpdata', format='json', indent=1, stdout=out, database='cortexlab',
-                    exclude=excludes)
+        call_command(
+            'dumpdata', format='json', indent=1, stdout=out, database='cortexlab', exclude=excludes)
 
     # Load into IBL (default) database
     # NB: This is not an atomic operation. If something fails during loaddata,
