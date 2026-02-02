@@ -2,4 +2,4 @@
 15 23 * * * ~/Documents/PYTHON/iblalyx/alyx-test/00_rebuild_from_cache.sh > /var/log/alyx/00_rebuild_from_cache.log
 
 # every 2 months
-0 0 1 */2 * docker exec alyx_apache bash -c "certbot renew --post-hook 'apachectl graceful' 2>&1 | tee /var/log/certbot-renew.log"
+30 1 1,15 * * docker exec alyx_apache bash -c "certbot renew --post-hook 'apachectl graceful' 2>&1 | tee /var/log/certbot-renew.log"
