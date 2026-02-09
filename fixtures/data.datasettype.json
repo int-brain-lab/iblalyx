@@ -1186,5 +1186,16 @@
       "description": "Model prediction parameters and results for each trial.",
       "filename_pattern": "*trials.modelPredictions*"
     }
+  },
+    {
+    "model": "data.datasettype",
+    "pk": "557373dc-e22e-42b1-916d-2e43594f3e9c",
+    "fields": {
+      "json": null,
+      "name": "camera.pawstates",
+      "created_by": null,
+      "description": "Probabilities of each paw being in one of five discrete states (background, still, wheel-move, fidget, groom) and the associated ensemble variance for each state. Total points = 20 (2 paws x 5 states x 2 values (probability and ensemble variance).",
+      "filename_pattern": "*camera.pawstates.*"
+    }
   }
 ]
