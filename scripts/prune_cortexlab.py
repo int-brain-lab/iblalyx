@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import sys
+import json
 import django
 from pathlib import Path
 
@@ -14,6 +15,7 @@ import numpy as np
 from django.core.management import call_command
 from django.db.models import CharField, Q
 from django.db.models.functions import Concat
+from django.contrib.contenttypes.models import ContentType
 
 from subjects.models import Subject, Project, SubjectRequest
 from actions.models import Session, Surgery, NotificationRule, Notification
@@ -354,12 +356,55 @@ def prune():
     created anew. The problem is this will create many duplicates on the IBL side after import.
     Here we look for all of the notes that are present on IBL and remove those that are not in UCL
     """
-    ibl_notes = Note.objects.filter(object_id__in=Subject.objects.filter(lab=CORTEX_LAB_PK))
-    ucl_notes = (Note
-                .objects
-                .using('cortexlab')
-                .filter(object_id__in=Subject.objects.filter(lab=CORTEX_LAB_PK)))
-    ibl_notes.exclude(pk__in=list(ucl_notes.values_list('pk', flat=True))).count()
+    # FIXME This doesn't work as we don't know which notes were removed from cortexlab
+    #       We should be editing the notes in place instead of deleting and creating new ones.
+    # ibl_notes = Note.objects.filter(object_id__in=Subject.objects.filter(lab=CORTEX_LAB_PK))
+    # ucl_notes = (Note
+    #             .objects
+    #             .using('cortexlab')
+    #             .filter(object_id__in=Subject.objects.filter(lab=CORTEX_LAB_PK)))
+    # ibl_notes.exclude(pk__in=list(ucl_notes.values_list('pk', flat=True))).count()
+
+
+def fix_content_type_ids(fixture):
+    """
+    For models with a generic foreign key the content_type field contains an ID that is database specific.
+    When importing from one database to another, the content_type_id may point to a different model or be invalid.
+    This function updates the content_type_id in the fixture to match the target database's ContentType IDs.
+    
+    Parameters
+    ----------
+    fixture : str, pathlib.Path
+        Path to the JSON file containing the fixtures.
+
+    """
+    # Load the fixture data
+    with open(fixture, 'r') as f:
+        data = json.load(f)
+
+    # Build a mapping of model names to ContentType IDs in the target database
+    content_type_mapping_ibl = {
+        (app_label, model): pk for app_label, model, pk in ContentType.objects.values_list('app_label', 'model', 'pk')
+    }
+    content_type_mapping_cortexlab = {
+        (app_label, model): pk for app_label, model, pk in ContentType.objects.using('cortexlab').values_list('app_label', 'model', 'pk')
+    }
+    content_type_mapping = {}  # cortexlab -> ibl
+    for key, value in content_type_mapping_cortexlab.items():
+        if key in content_type_mapping_ibl:
+            content_type_mapping[value] = content_type_mapping_ibl[key]
+        else:
+            print(f"ERROR: ContentType {key} not found in IBL database. This will cause issues during fixture loading.")
+
+    # Update content_type_id for each object with a GenericForeignKey
+    for obj in data:
+        old_id = obj['fields'].get('content_type')
+        if old_id is not None:
+            obj['fields']['content_type'] = content_type_mapping.get(obj['fields']['content_type'], -1)
+
+    # Save the updated fixture back to disk
+    with open(fixture, 'w') as f:
+        json.dump(data, f, indent=2)
 
 
 if __name__ == '__main__':
@@ -398,6 +443,9 @@ if __name__ == '__main__':
         # --database cortexlab -o ../scripts/sync_ucl/cortexlab.json
         call_command(
             'dumpdata', format='json', indent=1, stdout=out, database='cortexlab', exclude=excludes)
+
+    # Update the content_type field IDs to match the target database
+    fix_content_type_ids(json_file_out)
 
     # Load into IBL (default) database
     # NB: This is not an atomic operation. If something fails during loaddata,
