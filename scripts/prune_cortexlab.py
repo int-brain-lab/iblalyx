@@ -461,4 +461,6 @@ if __name__ == '__main__':
     # set reverse fk probeinsertion --> dataset
     for pi in ProbeInsertion.objects.filter(session__lab__name='cortexlab'):
         pi.save()
-
+    # Some IBL users are inactive on the cortexlab database, we want to make sure they are active on the IBL database
+    users = LabMember.objects.filter(username__in=['steven.west', 'Gaelle', 'miles', 'olivier'])
+    users.update(is_active=True, is_staff=True)

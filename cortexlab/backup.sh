@@ -75,3 +75,4 @@ fi
 
 prune_prefix_by_date "${WEEKLY_PREFIX}" "${weekly_cutoff}"
 prune_prefix_by_date "${MONTHLY_PREFIX}" "${monthly_cutoff}"
+docker exec alyx_apache python /var/www/alyx/alyx/manage.py deleterevisions --days=15
