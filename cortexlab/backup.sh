@@ -28,6 +28,8 @@ MONTHLY_PREFIX="${BACKUPS_S3_URI%/}/monthly/"
 weekly_cutoff="$(date -u -d '365 days ago' +%F)"
 monthly_cutoff="$(date -u -d '730 days ago' +%F)"
 
+echo "backup.sh start: date=${TODAY} dow=${DAY_OF_WEEK} dom=${DAY_OF_MONTH}"
+
 docker_exec_args=(-i)
 if [[ -n "${DB_PASSWORD:-}" ]]; then
 	docker_exec_args+=(-e "PGPASSWORD=${DB_PASSWORD}")
@@ -49,6 +51,15 @@ create_dump() {
 	echo "Uploaded ${final_key}"
 }
 
+copy_weekly_to_monthly() {
+	local weekly_key="${WEEKLY_PREFIX}alyx_weekly_${TODAY}.sql.gz"
+	local monthly_key="${MONTHLY_PREFIX}alyx_monthly_${TODAY}.sql.gz"
+
+	echo "Copying weekly dump to monthly for ${TODAY}"
+	docker exec "${AWS_CONTAINER}" aws s3 cp "${weekly_key}" "${monthly_key}" --only-show-errors
+	echo "Copied ${weekly_key} to ${monthly_key}"
+}
+
 prune_prefix_by_date() {
 	local prefix="$1"
 	local cutoff="$2"
@@ -59,6 +70,7 @@ prune_prefix_by_date() {
 		if [[ "${key}" =~ ([0-9]{4}-[0-9]{2}-[0-9]{2}) ]]; then
 			file_date="${BASH_REMATCH[1]}"
 			if [[ "${file_date}" < "${cutoff}" ]]; then
+				echo "Pruning ${prefix}${key} (file_date=${file_date}, cutoff=${cutoff})"
 				docker exec "${AWS_CONTAINER}" aws s3 rm "${prefix}${key}" --only-show-errors
 			fi
 		fi
@@ -66,11 +78,17 @@ prune_prefix_by_date() {
 }
 
 if [[ "${DAY_OF_WEEK}" == "7" ]]; then
+	echo "Backup cadence: weekly"
 	create_dump "weekly" "${WEEKLY_PREFIX}"
-fi
-
-if [[ "${DAY_OF_MONTH}" == "01" ]]; then
+	if [[ "${DAY_OF_MONTH}" == "01" ]]; then
+		echo "Backup cadence overlap: first-of-month on weekly day; copying weekly dump to monthly"
+		copy_weekly_to_monthly
+	fi
+elif [[ "${DAY_OF_MONTH}" == "01" ]]; then
+	echo "Backup cadence: monthly"
 	create_dump "monthly" "${MONTHLY_PREFIX}"
+else
+	echo "Backup cadence: none (retention-only run)"
 fi
 
 prune_prefix_by_date "${WEEKLY_PREFIX}" "${weekly_cutoff}"
