@@ -1,7 +1,7 @@
 0 22 * * 1-5 docker exec alyx_apache /bin/bash /home/iblalyx/cortexlab/email.sh >> /var/log/alyx_emails.log 2>&1
 30 3 * * 5 docker exec alyx_apache /bin/bash /home/iblalyx/crons/cleanup_old_tasks.sh > /var/log/cleanup_old_tasks.log 2>&1
 30 1 1,15 * * docker exec alyx_apache bash -c "certbot renew --pre-hook '/home/iblalyx/crons/ec2_modify_groups.sh --add' --post-hook '/home/iblalyx/crons/ec2_modify_groups.sh --remove && apachectl graceful' 2>&1 | tee /var/log/apache2/cert_renew.log"
-15 0 * * * /bin/bash -o pipefail -c '/bin/bash /home/ubuntu/Documents/backup.sh 2>&1 | tee /var/log/alyx_backup.log' && curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/bae5666b-fcfc-4d70-a702-8a0d6e21d1fc
+15 0 * * * /bin/bash -o pipefail -c '/bin/bash /home/ubuntu/Documents/PYTHON/iblalyx/cortexlab/backup.sh 2>&1 | tee /var/log/alyx_backup.log' && curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/bae5666b-fcfc-4d70-a702-8a0d6e21d1fc
 # Health check every 5 minutes
 */5 * * * * curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/787ec4cb-2b7f-415c-9c35-8ed74df93231
 # Basic Monitoring every 12 minutes
