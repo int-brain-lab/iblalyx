@@ -1,5 +1,7 @@
 #!/bin/bash
-set -euo pipefail
+set -Eeuo pipefail
+
+trap 'rc=$?; line=${BASH_LINENO[0]:-${LINENO}}; echo "backup.sh error: rc=${rc} line=${line} cmd=${BASH_COMMAND}"; exit ${rc}' ERR
 
 ENV_FILE="/home/ubuntu/Documents/PYTHON/iblsre/alyx/containers/deploy-web/.env"
 
@@ -91,6 +93,10 @@ else
 	echo "Backup cadence: none (retention-only run)"
 fi
 
+echo "Pruning weekly backups"
 prune_prefix_by_date "${WEEKLY_PREFIX}" "${weekly_cutoff}"
+echo "Pruning monthly backups"
 prune_prefix_by_date "${MONTHLY_PREFIX}" "${monthly_cutoff}"
-docker exec alyx_apache python /var/www/alyx/alyx/manage.py deleterevisions --days=15
+echo "Deleting old revisions"
+docker exec "${AWS_CONTAINER}" python /var/www/alyx/alyx/manage.py deleterevisions --days=15
+echo "backup.sh completed successfully"
