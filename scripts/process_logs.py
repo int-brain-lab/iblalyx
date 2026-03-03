@@ -9,6 +9,8 @@ if __name__ == '__main__':
     import sys
     command = sys.argv[1]
     ipinfo_token = sys.argv[2]
+    profile_name = 'ibladmin' if len(sys.argv) < 4 else sys.argv[3]
     logger.warning(command)
     logger.warning(ipinfo_token)
-    consolidate_logs(date=command, ipinfo_token=ipinfo_token, profile_name='ibladmin')
+    logger.warning(profile_name)
+    consolidate_logs(date=command, ipinfo_token=ipinfo_token, profile_name=profile_name)

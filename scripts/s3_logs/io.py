@@ -2,10 +2,10 @@
 import warnings
 from pathlib import PurePosixPath, Path
 import re
-from io import BytesIO
+from io import BytesIO, StringIO
 from typing import Optional
 from itertools import filterfalse
-from tempfile import TemporaryDirectory
+from tempfile import TemporaryDirectory, gettempdir
 
 from tqdm import tqdm
 import numpy as np
@@ -258,9 +258,11 @@ def read_remote_logs(date_range=None, log_location=REMOTE_LOG_LOCATION, s3_bucke
 
 def read_remote_logs_robust(date_range=None, log_location=REMOTE_LOG_LOCATION, s3_bucket=None) -> pd.DataFrame:
     """
-    Sometimes logs contain an uneven number of columns (they keep adding columns). This function
-    deals with those logs but it's slow and ugly. Additionally the raw log strings are pickled
-    in the home directory before attempting to parse them.
+    Read and parse poisoned or inconsistent logs.
+    
+    Sometimes logs contain an uneven number of columns (they keep adding columns) or malformed entries.
+    This function deals with those logs but it's slow and ugly. Additionally the raw log strings are
+    pickled in the home directory before attempting to parse them.
 
     Parameters
     ----------
@@ -276,32 +278,61 @@ def read_remote_logs_robust(date_range=None, log_location=REMOTE_LOG_LOCATION, s
     pd.DataFrame
         A pandas data frame of remote server access logs.
     """
-    import pickle
-    from io import StringIO
-    log_files = tqdm(_iter_logs(log_location, date_range, s3_bucket=s3_bucket), unit=' files')
-    log_files = map(BytesIO.read, log_files)
-    # Decode each log and save as list of strings in home dir in case we fail to parse them
-    logstr = list(map(bytes.decode, log_files))
-    with open(LOCAL_LOG_LOCATION.joinpath(date_range[0].strftime('%Y-%m') + '_logs_raw.pkl'), 'wb') as file:
-        pickle.dump(logstr, file)
-
     # Parse each str individually. AWS occasionally introduces new columns and within one file
     # there may rows with different numbers of columns.
     dfs = []
-    for i, log in enumerate(map(StringIO, logstr)):
+    for obj in tqdm(_iter_objects(log_location, date_range, s3_bucket=s3_bucket), unit=' files'):
+        logbytes = obj.get()['Body'].read()
         try:
-            dfs.append(pd.read_csv(log, sep=' ', header=None))
+            dfs.append(pd.read_csv(BytesIO(logbytes), sep=' ', header=None))
         except pd.errors.ParserError as ex:
             # Parser expects N columns of nth row <= N columns of 1st row.
             # If there's a column mismatch, attempt to parse each row individually.
             # NB: To be extra safe we search for the expected column mismatch in the error str.
+            logstrs = logbytes.decode().splitlines()
             if (re.search(rf'Expected {N_FIELDS - 1} fields in line \d+, saw {N_FIELDS}', str(ex)) or
                re.search(rf'Expected {N_FIELDS} fields in line \d+, saw {N_FIELDS + 1}', str(ex))):
-                rows = map(StringIO, logstr[i].strip().split('\n'))
-                rows = (pd.read_csv(row, sep=' ', header=None) for row in rows)
+                rows = (pd.read_csv(StringIO(row), sep=' ', header=None) for row in logstrs)
                 dfs.append(pd.concat(rows, ignore_index=True))  # concat handles missing columns
+            
+            # If there are many more columns than expected, this may be due to log poisoning. We skip these logs but log a warning.
+            elif re.search(rf'Expected {N_FIELDS} fields in line \d+, saw \d+', str(ex)):
+                parsed_rows = []
+                malformed_rows = []
+                for line_no, row in enumerate(logstrs, start=1):
+                    if not row:
+                        continue
+                    try:
+                        parsed = pd.read_csv(StringIO(row), sep=' ', header=None)
+                    except pd.errors.ParserError:
+                        malformed_rows.append((line_no, row))
+                        continue
+
+                    n_cols = len(parsed.columns)
+                    if n_cols in (N_FIELDS, N_FIELDS + 1):
+                        parsed_rows.append(parsed)
+                    else:
+                        malformed_rows.append((line_no, row))
+
+                if parsed_rows:
+                    dfs.append(pd.concat(parsed_rows, ignore_index=True))
+
+                if malformed_rows:
+                    temp_dir = Path(gettempdir()).joinpath('s3_logs')
+                    temp_dir.mkdir(parents=True, exist_ok=True)
+                    malformed_file = temp_dir.joinpath(f'{obj.key.rsplit("/", 1)[-1]}.log')
+                    with malformed_file.open('w', encoding='utf-8') as file:
+                        for line_no, row in malformed_rows:
+                            file.write(f'{line_no}\t{row}\n')
+
+                    warnings.warn(
+                        f'Skipped {len(malformed_rows)} malformed log rows in file {temp_dir.stem} '
+                        f'(lines {", ".join(str(line_no) for line_no, _ in malformed_rows)}). '
+                        f'Saved malformed rows to {malformed_file}'
+                    )
             else:
                 raise ex
+
     df = pd.concat(dfs, ignore_index=True)
     try:
         df.columns = COL_NAMES
@@ -316,10 +347,11 @@ def read_remote_logs_robust(date_range=None, log_location=REMOTE_LOG_LOCATION, s
 
 def fix_extra_column_entries(df):
     """
-    Some logs (particurlarly in Feb 2024) have an extra column, this seems to be column 10. This code finds the rows
+    Some logs (particularly in Feb 2024) have an extra column, this seems to be column 10. This code finds the rows
     that have this extra column, removes it and shifts the entries such that they match the rest of the dataframe. We
     also remove the redundant last column that was added to ensure the dataframe has the same number of columns as
     COL_NAMES
+
     Parameters
     ----------
     df : pandas Dataframe
