@@ -6,6 +6,8 @@ from io import BytesIO, StringIO
 from typing import Optional
 from itertools import filterfalse
 from tempfile import TemporaryDirectory, gettempdir
+from ipaddress import ip_address
+import pickle
 
 from tqdm import tqdm
 import numpy as np
@@ -259,7 +261,7 @@ def read_remote_logs(date_range=None, log_location=REMOTE_LOG_LOCATION, s3_bucke
 def read_remote_logs_robust(date_range=None, log_location=REMOTE_LOG_LOCATION, s3_bucket=None) -> pd.DataFrame:
     """
     Read and parse poisoned or inconsistent logs.
-    
+
     Sometimes logs contain an uneven number of columns (they keep adding columns) or malformed entries.
     This function deals with those logs but it's slow and ugly. Additionally the raw log strings are
     pickled in the home directory before attempting to parse them.
@@ -281,6 +283,7 @@ def read_remote_logs_robust(date_range=None, log_location=REMOTE_LOG_LOCATION, s
     # Parse each str individually. AWS occasionally introduces new columns and within one file
     # there may rows with different numbers of columns.
     dfs = []
+    df, done = None, False
     for obj in tqdm(_iter_objects(log_location, date_range, s3_bucket=s3_bucket), unit=' files'):
         logbytes = obj.get()['Body'].read()
         try:
@@ -294,7 +297,7 @@ def read_remote_logs_robust(date_range=None, log_location=REMOTE_LOG_LOCATION, s
                re.search(rf'Expected {N_FIELDS} fields in line \d+, saw {N_FIELDS + 1}', str(ex))):
                 rows = (pd.read_csv(StringIO(row), sep=' ', header=None) for row in logstrs)
                 dfs.append(pd.concat(rows, ignore_index=True))  # concat handles missing columns
-            
+
             # If there are many more columns than expected, this may be due to log poisoning. We skip these logs but log a warning.
             elif re.search(rf'Expected {N_FIELDS} fields in line \d+, saw \d+', str(ex)):
                 parsed_rows = []
@@ -333,14 +336,25 @@ def read_remote_logs_robust(date_range=None, log_location=REMOTE_LOG_LOCATION, s
             else:
                 raise ex
 
-    df = pd.concat(dfs, ignore_index=True)
     try:
+        df = pd.concat(dfs, ignore_index=True)
         df.columns = COL_NAMES
+        done = True
     except ValueError as ex:
         if re.search(rf'Expected axis has {N_FIELDS + 1} elements, new values have {N_FIELDS} elements', str(ex)):
             df = fix_extra_column_entries(df)
+            done = True
         else:
             raise ex
+    finally:
+        if not done:
+            temp_dir = Path(gettempdir()).joinpath('s3_logs')
+            temp_dir.mkdir(parents=True, exist_ok=True)
+            date_range_str = f'{date_range[0].date().isoformat()}_{date_range[1].date().isoformat()}' if date_range else 'full_range'
+            pickle_file = temp_dir.joinpath(f'{date_range_str}_raw_logs.pkl')
+            print(f'Pickling raw log data to {pickle_file} for later analysis.')
+            with pickle_file.open('wb') as file:
+                pickle.dump(dfs, file)
 
     return df
 
@@ -362,19 +376,97 @@ def fix_extra_column_entries(df):
     pandas Dataframe
         The dataframe with fixed columns
     """
-    probs = df[df[24].str.contains('ibl-brain-wide-map-public')]
-    idx = probs.index.values
-    # Assert that all of column 10 has this same extra value and drop the column
-    assert all(probs[10].values == 'HTTP/1.1"')
-    probs = probs.drop(columns=[10])
-    # Assert that the last column in the original df is empty and drop this column
-    assert all(df[27].isna() | df[27].str.contains('-'))
-    df = df.drop(columns=[27])
-    # Assign the adjusted values to the problematic indices
-    df.iloc[idx] = probs
+    probs = df[df[24].str.endswith('.amazonaws.com')]  # Host_Header column
+    if probs.empty:
+        assert df[23].str.endswith('.amazonaws.com').all()
+        # Most columns are correct, just drop the last, extra column
+        df = df.drop(columns=[27])
+    else:
+        idx = probs.index.values
+        # Assert that all of column 10 has this same extra value and drop the column
+        assert all(probs[10].values == 'HTTP/1.1"')
+        probs = probs.drop(columns=[10])
+        # Assert that the last column in the original df is empty and drop this column
+        assert all(df[27].isna() | df[27].str.contains('-'))
+        df = df.drop(columns=[27])
+        # Assign the adjusted values to the problematic indices
+        df.iloc[idx] = probs
     df.columns = COL_NAMES
+    column_qc(df)
 
     return df
+
+
+def column_qc(df):
+    """Checks the quality of each column in the dataframe.
+
+    Checks the values of each columns and prints the percentage of rows that match the expected
+    format. This is useful for identifying columns that may have been affected by log poisoning or
+    other issues.
+    """
+    def is_ip_address(x):
+        try:
+            ip_address(x)
+            return True
+        except ValueError:
+            return x == '-'  # Some entries are '-' instead of an IP address, we consider these valid for this column
+    common_errors = {'-', 'NoSuchKey', 'PermanentRedirect', 'OwnershipControlsNotFoundError', 'MethodNotAllowed', 'InvalidArgument'}
+    column_checks = {
+        'Bucket_Owner': lambda col: col.str.match(r'^[a-f0-9]{64}$', na=False),
+        'Bucket': lambda col: col.str.match(r'^ibl-brain-wide-map-public$', na=False),  # Should be 100%
+        'Time': lambda col: col.str.match(r'^\[\d{2}/[A-Za-z]{3}/\d{4}:\d{2}:\d{2}:\d{2}$', na=False),
+        'Time_Offset': lambda col: col.str.match(r'^[+-]\d{4}\]$', na=False),  # Should be 100%
+        'Remote_IP': lambda col: col.apply(is_ip_address),  # Should be 100%
+        'Requester_ARN/Canonical_ID': lambda col: col.str.match(r'^-$', na=False) | col.str.startswith('arn:'),
+        'Request_ID': lambda col: col.str.match(r'^[A-Z0-9]{16}$', na=False),  # Should be 100%
+        'Operation': lambda col: col.str.startswith('REST.', na=False),
+        'Key': lambda col: col.str.contains('lab/', na=False),
+        'Request_URI': lambda col: col.apply(lambda x: x.split()[0] in ('GET', 'HEAD', 'PUT', 'POST', 'DELETE', 'OPTIONS')),
+        'HTTP_status': lambda col: col.astype(str).str.match(r'^\d{3}$', na=False),
+        'Error_Code': lambda col: col.isin(common_errors),
+        'Bytes_Sent': lambda col: pd.to_numeric(col, errors='coerce').notna(),
+        'Object_Size': lambda col: pd.to_numeric(col, errors='coerce').notna(),
+        'Total_Time': lambda col: pd.to_numeric(col, errors='coerce').notna() | col == '-',
+        'Turn_Around_Time': lambda col: pd.to_numeric(col, errors='coerce').notna() | col.str.match(r'^-$', na=False),
+        'Referrer': lambda col: col.str.startswith('http') | col.str.match(r'^-$', na=False),
+        'User_Agent': lambda col: col.str.contains('/'),  # e.g. Boto3, Safari, curl, etc. separated by slashes
+        'Version_Id': lambda col: col.str.match(r'^[A-Za-z0-9_.-]+$', na=False),  # Always present but often '-'
+        'Host_Id': lambda col: col.str.match(r'^[A-Za-z0-9/+=]+$', na=False),
+        'Signature_Version': lambda col: col.str.match(r'^(SigV4|-)|\s*$', na=False),
+        'Cipher_Suite': lambda col: col.str.endswith('SHA256'),  # e.g. ECDHE-RSA-AES128-GCM-SHA256, TLS_AES_128_GCM_SHA256
+        'Authentication_Type': lambda col: col.str.match(r'^(AuthHeader|QueryString|-)|\s*$', na=False),
+        'Host_Header': lambda col: col.str.endswith('.amazonaws.com', na=False),
+        'TLS_version': lambda col: col.str.match(r'^(TLSv\d\.\d|-)|\s*$', na=False),  # TLS version or '-'
+        'Access_Point_ARN': lambda col: col.str.match(r'^-$', na=False),  # Always present but often '-'
+        'ACL_Required': lambda col: col.str.match(r'^-$', na=False) | col.isna()  # Always present but often '-' or NaN
+    }
+
+    total_rows = len(df)
+    if total_rows == 0:
+        print('DataFrame is empty. No QC to perform.')
+        return
+
+    print(f'Performing QC on {total_rows} rows.')
+    for i, (col_name, check_func) in enumerate(column_checks.items()):
+        if col_name in df.columns:
+            column = df[col_name]
+        elif i < len(df.columns):
+            column = df.iloc[:, i]
+        else:
+            print(f'Column "{col_name}" not found in DataFrame and index {i} is out of bounds. Skipping QC for this column.')
+            continue
+        try:
+            # The check_func returns a boolean Series. Summing it gives the count of True values.
+            n_pass = check_func(column.dropna()).sum()
+            n_total = len(column.dropna())
+            if n_total > 0:
+                percentage_pass = (n_pass / n_total) * 100
+                print(f'{col_name}: {percentage_pass:.2f}% pass ({n_pass}/{n_total})')
+            else:
+                print(f'{col_name}: 100.00% pass (0/0)')
+        except Exception as e:
+            print(f'Could not perform QC on column "{col_name}": {e}')
+
 
 
 def get_remote_log_date_range(log_location=REMOTE_LOG_LOCATION, s3_bucket=None):
@@ -422,7 +514,7 @@ def prepare_for_parquet(df):
 
     # Ensure correct data types for pyarrow
     df.loc[df['Bytes_Sent'] == '-', 'Bytes_Sent'] = 0
-    df['Bytes_Sent'] = df['Bytes_Sent'].astype(int)
+    df['Bytes_Sent'] = df['Bytes_Sent'].astype(np.int64)
     for col in ('Object_Size', 'Turn_Around_Time', 'Total_Time'):
         df.loc[df[col] == '-', col] = np.nan
         df[col] = df[col].astype(float)
