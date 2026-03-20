@@ -43,6 +43,7 @@ PUBLIC_DS_FILES = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2025_Q3_Noel_et_al_Autism_datasets.pqt',
                    '2025_Q4_Pan_Vazquez_et_al_datasets.pqt',
                    '2025_Q3_Zang_et_al_Aging.pqt',
+                   '2026_Q1_Miska_Zapit_datasets.pqt',
                    ]
 
 PUBLIC_DS_TAGS = [
@@ -70,6 +71,7 @@ PUBLIC_DS_TAGS = [
     "125b3051-f5ed-466c-b9e9-0fded1ea487c",  # 2025_Q3_Noel_et_al_Autism_pids.pqt
     "7a430656-0974-4cee-8f4d-454faea3adbb",  # 2025_Q4_Pan_Vazquez_et_al
     "d3a8fa38-63da-4d4b-b03d-6a0aaa6d1fd2",  # 2025_Q3_Zang_et_al_Aging
+    "dcc4b8f1-570f-43cb-9960-246ec5e558ee",  # 2026_Q1_Miska_Zapit
 ]
 
 

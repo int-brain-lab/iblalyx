@@ -17,13 +17,13 @@ import zapit_analysis  # Nate's analysis script
 
 # Save the dataset IDs to file
 dataset_uuids, filename = one.save_loaded_ids(clear_list=False)
-filename = filename.replace(filename.with_stem('2026_Q2_Campbell_et_al_datasets'))
+filename = filename.replace(filename.with_stem('2026_Q1_Miska_Zapit_datasets'))
 print(filename)
 print(pd.read_csv(filename), end='\n\n')
 
 # Save the session IDs
 session_uuids, filename = one.save_loaded_ids(sessions_only=True)
-filename = filename.replace(filename.with_stem('2026_Q2_Campbell_et_al_sessions'))
+filename = filename.replace(filename.with_stem('2026_Q1_Miska_Zapit_sessions'))
 print(filename)
 print(pd.read_csv(filename))
 

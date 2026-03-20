@@ -21,13 +21,6 @@ python $ALYX_DIR/alyx/manage.py check
 python $ALYX_DIR/alyx/manage.py showmigrations
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') Beginning to create local version of public database"
-# Create a working directory
-echo "... creating working directory $TMP_DIR"
-mkdir -p "$TMP_DIR"
-# Copying and unzipping the most recent alyx backup into it, SSH_STR needs to be setup correctly above
-echo "... copying latest backup of production database"
-scp $SSH_STR:/backups/alyx-backups/$(date +%Y-%m-%d)/alyx_full.sql.gz "$TMP_DIR"/alyxfull.sql.gz
-gunzip -f -c "$TMP_DIR"/alyxfull.sql.gz > "$TMP_DIR"/alyxfull.sql
 
 # Destroy local public database and load production database into it
 echo "... destroying local public database"
@@ -40,7 +33,7 @@ python $ALYX_DIR/alyx/manage.py migrate --database public
 
 # Prune local public database
 echo "... pruning local public database"
-python $ALYX_DIR/alyx/manage.py shell < 01a_prune_public_db.py
+python $ALYX_DIR/alyx/manage.py shell < 01b_prune_public_db.py
 # Export the public db to sql
 echo "... creating sql dump of local public database"
 /usr/bin/pg_dump -cOx -U $BUFFER_DB_USER -h $BUFFER_DB_HOST -d $BUFFER_DB_NAME -p $BUFFER_DB_PORT -f "$TMP_DIR"/openalyx.sql

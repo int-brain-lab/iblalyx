@@ -8,7 +8,7 @@ from data.models import Dataset, Tag
 import ibl_reports.views
 
 
-MODE = 'raise'  # or 'update'
+MODE = 'raise'  # or 'raise' or 'update'
 
 IBL_ALYX_ROOT = Path(ibl_reports.views.__file__).resolve().parents[2]
 sys.path.append(str(IBL_ALYX_ROOT.parent))

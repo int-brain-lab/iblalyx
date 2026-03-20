@@ -27,6 +27,7 @@ public_ds_files = iblalyx.releases.utils.PUBLIC_DS_FILES
 # Select which release you want to check by changing i
 i = -1
 
+print(f"checking {public_ds_files[i]}")
 # Load datasets and check if they have the FI and AWS file records and both exist
 dset_file = IBL_ALYX_ROOT.joinpath('releases', public_ds_files[i])
 datasets = Dataset.objects.filter(pk__in=list(pd.read_parquet(dset_file)['dataset_id']))
