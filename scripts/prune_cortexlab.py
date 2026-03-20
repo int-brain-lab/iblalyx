@@ -4,6 +4,7 @@ import sys
 import json
 import django
 from pathlib import Path
+from collections import defaultdict
 
 if __name__ == '__main__' and not os.environ.get('DJANGO_SETTINGS_MODULE'):
     sys.path.insert(0, '.')
@@ -119,10 +120,11 @@ def prune():
     fcn_import_projects(ses_ucl)
 
     # only imports users that are relevant to IBL
-    # OW: I removed nick from the import so his IBL account is active but his cortexlab expired
+    # FIXME when a cortexlab user is onboarded to IBL we can manually import them as a LabMember fixture.
+    #  This list should be replaced with intersection of user pks in both databases
     users_to_import = ['cyrille', 'Gaelle', 'kenneth', 'lauren', 'matteo', 'miles', 'olivier',
                     'Karolina_Socha', 'Hamish', 'laura', 'niccolo', 'SamuelP', 'miriam.jansen',
-                    'carolina.quadrado']
+                    'carolina.quadrado', 'nick']
     users_to_leave = LabMember.objects.using('cortexlab').exclude(username__in=users_to_import)
     users_to_keep = Dataset.objects.using('cortexlab').values_list('created_by', flat=True).distinct()
     users_to_leave = users_to_leave.exclude(pk__in=users_to_keep)
@@ -447,6 +449,13 @@ if __name__ == '__main__':
     # Update the content_type field IDs to match the target database
     fix_content_type_ids(json_file_out)
 
+    # Before loading into database, get the set of shared users between the two databases and make sure 
+    # each user's status is preserved after import.
+    shared_users = LabMember.objects.using('cortexlab').filter(pk__in=LabMember.objects.all().values('pk'))
+    ibl_users = defaultdict(list)
+    for user, active, staff in shared_users.values_list('username', 'is_active', 'is_staff'):
+        ibl_users[(active, staff)].append(user)
+
     # Load into IBL (default) database
     # NB: This is not an atomic operation. If something fails during loaddata,
     # the database may be left in a partially updated state.
@@ -462,5 +471,7 @@ if __name__ == '__main__':
     for pi in ProbeInsertion.objects.filter(session__lab__name='cortexlab'):
         pi.save()
     # Some IBL users are inactive on the cortexlab database, we want to make sure they are active on the IBL database
-    users = LabMember.objects.filter(username__in=['steven.west', 'Gaelle', 'miles', 'olivier'])
-    users.update(is_active=True, is_staff=True)
+    # Group by active and staff status to minimize the number of queries
+    for (is_active, is_staff), user_list in ibl_users.items():
+        users = LabMember.objects.filter(username__in=user_list)
+        users.update(is_active=is_active, is_staff=is_staff)
