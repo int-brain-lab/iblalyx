@@ -451,7 +451,8 @@ if __name__ == '__main__':
 
     # Before loading into database, get the set of shared users between the two databases and make sure 
     # each user's status is preserved after import.
-    shared_users = LabMember.objects.using('cortexlab').filter(pk__in=LabMember.objects.all().values('pk'))
+    ctxlab_users = LabMember.objects.using('cortexlab').values_list('pk', flat=True)
+    shared_users = LabMember.objects.filter(pk__in=ctxlab_users)
     ibl_users = defaultdict(list)
     for user, active, staff in shared_users.values_list('username', 'is_active', 'is_staff'):
         ibl_users[(active, staff)].append(user)
