@@ -1,7 +1,4 @@
-cd /var/www/alyx-main/
-source ./venv/bin/activate
-cd alyx
-
+# docker exec -i ibl_alyx_apache bash -s 02c_globus_sync_PT.sh
 ./manage.py files bulksync --lab=danlab
 ./manage.py files bulksync --lab=steinmetzlab
 ./manage.py files bulksync --lab=churchlandlab_ucla

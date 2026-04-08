@@ -1,6 +1,4 @@
-cd /var/www/alyx-main/
-source ./venv/bin/activate
-cd alyx
+# docker exec -i ibl_alyx_apache bash -s 02a_globus_sync_UTC.sh
 
 ./manage.py files bulksync --lab=cortexlab
 ./manage.py files bulktransfer --lab=cortexlab
