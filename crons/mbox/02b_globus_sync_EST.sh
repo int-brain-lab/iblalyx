@@ -1,6 +1,4 @@
-cd /var/www/alyx-main/
-source ./venv/bin/activate
-cd alyx
+# docker exec -i ibl_alyx_apache bash -s 02b_globus_sync_EST.sh
 
 ./manage.py files bulksync --lab=churchlandlab
 ./manage.py files bulktransfer --lab=churchlandlab
