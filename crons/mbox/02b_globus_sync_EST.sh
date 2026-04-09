@@ -1,4 +1,6 @@
-# docker exec -i ibl_alyx_apache bash -s 02b_globus_sync_EST.sh
+# docker exec -i ibl_alyx_apache bash -s < 02b_globus_sync_EST.sh
+
+echo "Start synchronisation for EST time zone"
 
 ./manage.py files bulksync --lab=churchlandlab
 ./manage.py files bulktransfer --lab=churchlandlab
