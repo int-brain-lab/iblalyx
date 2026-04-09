@@ -1,4 +1,7 @@
 # docker exec -i ibl_alyx_apache bash -s 02c_globus_sync_PT.sh
+
+echo "Start synchronisation for PT time zone"
+
 ./manage.py files bulksync --lab=danlab
 ./manage.py files bulksync --lab=steinmetzlab
 ./manage.py files bulksync --lab=churchlandlab_ucla

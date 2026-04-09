@@ -1,4 +1,7 @@
-# docker exec -i ibl_alyx_apache bash -s 02a_globus_sync_UTC.sh
+# docker exec -i ibl_alyx_apache bash -s < 02a_globus_sync_UTC.sh
+# docker exec -i ibl_alyx_apache bash -s < /home/ubuntu/Documents/PYTHON/iblalyx/crons/mbox/02a_globus_sync_UTC.sh
+
+echo "Start synchronisation for UTC time zone"
 
 ./manage.py files bulksync --lab=cortexlab
 ./manage.py files bulktransfer --lab=cortexlab
