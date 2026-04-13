@@ -44,6 +44,7 @@ PUBLIC_DS_FILES = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2025_Q4_Pan_Vazquez_et_al_datasets.pqt',
                    '2025_Q3_Zang_et_al_Aging.pqt',
                    '2026_Q1_Miska_Zapit_datasets.pqt',
+                   '2026_Q2_Ghani_et_al_datasets.pqt'
                    ]
 
 PUBLIC_DS_TAGS = [
@@ -72,6 +73,7 @@ PUBLIC_DS_TAGS = [
     "7a430656-0974-4cee-8f4d-454faea3adbb",  # 2025_Q4_Pan_Vazquez_et_al
     "d3a8fa38-63da-4d4b-b03d-6a0aaa6d1fd2",  # 2025_Q3_Zang_et_al_Aging
     "dcc4b8f1-570f-43cb-9960-246ec5e558ee",  # 2026_Q1_Miska_Zapit
+    "3d788949-b148-482f-a510-387e44e7bd25",  # 2026_Q2_Ghani_et_al
 ]
 
 

@@ -12,7 +12,7 @@ sys.path.append(str(IBL_ALYX_ROOT.parent))
 
 import iblalyx.releases.utils
 
-TAG_NAME = '2026_Ghani_et_al'
+TAG_NAME = '2026_Q2_Ghani_et_al'
 DRY_RUN = True
 
 sessions = pd.read_csv(IBL_ALYX_ROOT.joinpath('releases', './2026_Q2_Ghani_et_al_sessions.csv'))['eid'].values
