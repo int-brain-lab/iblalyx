@@ -11,6 +11,7 @@ services:
     restart: always
     volumes:
       # - /etc/letsencrypt:/etc/apache2/ssl
+      - ./.one:/root/.one
       - /var/log/apache2:/var/log/apache2
       - ./settings.py:/var/www/alyx/alyx/alyx/settings.py
     depends_on:
