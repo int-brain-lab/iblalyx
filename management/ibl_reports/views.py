@@ -709,10 +709,11 @@ class SessionFilter(django_filters.FilterSet):
     lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')
     projects = django_filters.ModelChoiceFilter(queryset=Project.objects.all(), label='Project')
     repeated = django_filters.ChoiceFilter(choices=REPEATEDSITE, label='Location', method='filter_repeated')
+    protocol = django_filters.CharFilter(label='Protocol', method='filter_protocol')
 
     class Meta:
-        model = Note
-        fields = ['lab', 'projects']
+        model = Session
+        fields = ['lab', 'projects', 'protocol']
         exclude = ['json']
 
     def __init__(self, *args, **kwargs):
@@ -730,6 +731,10 @@ class SessionFilter(django_filters.FilterSet):
                                    Q(probe_insertion__trajectory_estimate__x=-2243) &
                                    Q(probe_insertion__trajectory_estimate__y=-2000) &
                                    Q(probe_insertion__trajectory_estimate__theta=15))
+
+    def filter_protocol(self, queryset, name, value):
+        queryset = queryset.filter(task_protocol__icontains=value)
+        return queryset
 
 
 class SubjectTrainingPlots(LoginRequiredMixin, ListView):
