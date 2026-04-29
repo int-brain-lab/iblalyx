@@ -807,7 +807,7 @@ class SubjectTrainingPlots(LoginRequiredMixin, ListView):
         training_status = pd.DataFrame.from_records(crit, index=names)
         # Drop eids and parse dates
         training_status = (training_status[~training_status.isna()]
-                           .applymap(lambda x: date.fromisoformat(x[0]), na_action='ignore'))
+                           .map(lambda x: date.fromisoformat(x[0]), na_action='ignore'))
         sessions = (Session
                     .objects
                     .select_related('subject')
