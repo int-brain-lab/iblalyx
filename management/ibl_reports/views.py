@@ -4,6 +4,7 @@ import logging
 import time
 
 import django_filters
+from django import forms
 from django.http import HttpResponse, JsonResponse
 from django.template import loader
 from django.views.generic.list import ListView
@@ -749,7 +750,8 @@ class SubjectTrainingPlots(LoginRequiredMixin, ListView):
         context['info'] = data
         context['subjects'] = s
         if not self.request.GET.get('nickname'):
-            context['status_data'] = self.get_all_subjects_status_data(lab=self.request.GET.get('lab'))
+            context['status_data'] = self.get_all_subjects_status_data(
+                lab=self.request.GET.get('lab'), alive_since=self.request.GET.get('alive_since'))
         return context
 
     def get_my_data(self, subjects, notes):
@@ -779,7 +781,7 @@ class SubjectTrainingPlots(LoginRequiredMixin, ListView):
 
         return self.f.qs
 
-    def get_all_subjects_status_data(self, lab=None):
+    def get_all_subjects_status_data(self, lab=None, alive_since=None):
         """
         Fetch the data required for the subjects training status plot.
 
@@ -787,9 +789,13 @@ class SubjectTrainingPlots(LoginRequiredMixin, ListView):
         corresponds to the training status on that session.
 
         :param lab: The UUID of the lab whose subjects are plotted. If None, all active subjects are plotted.
+        :param alive_since: If provided, only subjects with a death date after this date are plotted. Format: YYYY-MM-DD
         """
         # We handle only the live mice that are in the training pipeline
-        filter_args = dict(cull__isnull=True, death_date__isnull=True, json__has_key='trained_criteria')
+        filter_args = dict(json__has_key='trained_criteria')
+        if not alive_since:
+            filter_args['death_date__isnull'] = True
+            filter_args['cull__isnull'] = True
         if lab:
             filter_args['lab'] = lab
         subjects = (Subject
@@ -800,14 +806,15 @@ class SubjectTrainingPlots(LoginRequiredMixin, ListView):
                         (SELECT subject_id FROM actions_waterrestriction
                         WHERE end_time IS NULL)
                         ''']))
+        if alive_since:
+            subjects = subjects.exclude(death_date__lte=alive_since)
         if subjects.count() == 0:
             return {}
         subject_data = subjects.values_list('nickname', 'json')
         names, crit = zip(*[(name, jsn.get('trained_criteria', {})) for name, jsn in subject_data])
         training_status = pd.DataFrame.from_records(crit, index=names)
         # Drop eids and parse dates
-        training_status = (training_status[~training_status.isna()]
-                           .map(lambda x: date.fromisoformat(x[0]), na_action='ignore'))
+        training_status = (training_status[~training_status.isna()].map(lambda x: date.fromisoformat(x[0]), na_action='ignore'))
         sessions = (Session
                     .objects
                     .select_related('subject')
@@ -849,7 +856,7 @@ class SubjectTrainingPlots(LoginRequiredMixin, ListView):
                 session_dates = session_dates[session_dates >= date_reached]
                 next_date = status_dates[status_dates > date_reached].sort_values()
                 if not next_date.empty:
-                    session_dates = session_dates[session_dates <= next_date[0]]
+                    session_dates = session_dates[session_dates <= next_date.values[0]]
                 if len(session_dates) == 0:
                     continue
                 if status in ('untrainable', 'unbiasable') and len(session_dates) > 1:
@@ -885,11 +892,21 @@ class SubjectFilter(django_filters.FilterSet):
 
     nickname = django_filters.ModelChoiceFilter(queryset=Subject.objects.all(), label='Nickname')
     lab = django_filters.ModelChoiceFilter(queryset=Lab.objects.all(), label='Lab')
+    alive_since = django_filters.DateFilter(
+        label='Alive Since',
+        method='filter_alive_since',
+        widget=forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
+        input_formats=['%Y-%m-%d'],
+    )
 
     class Meta:
-        model = Note
-        fields = ['nickname', 'lab']
-        exclude = ['json']
+        model = Subject
+        fields = ['nickname', 'lab', 'alive_since']
 
     def __init__(self, *args, **kwargs):
+        if args and isinstance(args[0], dict) and 'alive_since' not in args[0]:
+            args = ({**args[0], 'alive_since': date.today().isoformat()}, *args[1:])
         super(SubjectFilter, self).__init__(*args, **kwargs)
+
+    def filter_alive_since(self, queryset, name, value):
+        return queryset.exclude(death_date__lte=value)
