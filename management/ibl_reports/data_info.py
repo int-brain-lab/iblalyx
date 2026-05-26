@@ -205,4 +205,5 @@ OVERVIEW_SUBJECT_PLOTS = [('subj_trial_count_session_duration', True),
                           ('subj_performance_easy_reaction_time', True),
                           ('subj_performance_heatmap', True),
                           ('subj_psychometric_curve', True),
+                          ('subject_bias_history_zero_contrast_bug', True),                          
                           ('subj_psychometric_fit_params', True)]
