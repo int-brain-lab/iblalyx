@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Data Notices Changelog</title>
+    <style>
+        :root {
+            --page-bg: #f5f1e8;
+            --panel-bg: #fffdf8;
+            --text: #1f2933;
+            --muted: #6b7280;
+            --border: #e5dccd;
+            --critical: #9f1239;
+            --major: #b45309;
+            --minor: #0f766e;
+            --insignificant: #475569;
+            --accent: #16324f;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(22, 50, 79, 0.08), transparent 30%),
+                linear-gradient(180deg, #f9f6f0 0%, var(--page-bg) 100%);
+        }
+
+        .shell {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 36px 20px 48px;
+        }
+
+        .hero {
+            margin-bottom: 28px;
+        }
+
+        .eyebrow {
+            margin: 0 0 10px;
+            font-size: 0.8rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            line-height: 1;
+        }
+
+        .hero p {
+            max-width: 760px;
+            margin: 14px 0 0;
+            font-size: 1.05rem;
+            line-height: 1.6;
+            color: var(--muted);
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: rgba(255, 253, 248, 0.94);
+            box-shadow: 0 16px 40px rgba(22, 50, 79, 0.08);
+        }
+
+        .filters h2 {
+            grid-column: 1 / -1;
+            margin: 0 0 4px;
+            font-size: 1rem;
+        }
+
+        .field label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .field select {
+            width: 100%;
+            min-height: 150px;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: #fff;
+            font: inherit;
+        }
+
+        .actions {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .button,
+        .button-secondary {
+            display: inline-block;
+            padding: 10px 16px;
+            border-radius: 999px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.95rem;
+            border: 1px solid transparent;
+            cursor: pointer;
+        }
+
+        .button {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .button-secondary {
+            background: transparent;
+            color: var(--accent);
+            border-color: var(--border);
+        }
+
+        .summary {
+            margin-left: auto;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .notices {
+            display: grid;
+            gap: 16px;
+        }
+
+        details.notice {
+            border: 1px solid var(--border);
+            border-left-width: 8px;
+            border-radius: 18px;
+            background: var(--panel-bg);
+            box-shadow: 0 14px 34px rgba(31, 41, 51, 0.07);
+            overflow: hidden;
+        }
+
+        details.notice[open] {
+            background: #fffefb;
+        }
+
+        details.notice.critical { border-left-color: var(--critical); }
+        details.notice.major { border-left-color: var(--major); }
+        details.notice.minor { border-left-color: var(--minor); }
+        details.notice.insignificant { border-left-color: var(--insignificant); }
+
+        summary {
+            list-style: none;
+            cursor: pointer;
+            padding: 18px 22px;
+        }
+
+        summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 140px 1fr auto;
+            gap: 16px;
+            align-items: start;
+        }
+
+        .importance-badge {
+            display: inline-block;
+            padding: 7px 10px;
+            border-radius: 999px;
+            color: #fff;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .title {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .version {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: #e9eef5;
+            color: var(--accent);
+            font-size: 0.8rem;
+        }
+
+        .meta {
+            text-align: right;
+            color: var(--muted);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .body {
+            padding: 0 22px 22px;
+        }
+
+        .markdown {
+            line-height: 1.7;
+            padding: 16px 18px;
+            border-radius: 14px;
+            background: #f8f5ee;
+        }
+
+        .markdown :first-child {
+            margin-top: 0;
+        }
+
+        .markdown code,
+        .markdown pre {
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        }
+
+        .markdown pre {
+            overflow-x: auto;
+            padding: 12px;
+            border-radius: 10px;
+            background: #efe8db;
+        }
+
+        .subsection {
+            margin-top: 18px;
+        }
+
+        .subsection h3 {
+            margin: 0 0 10px;
+            font-size: 1rem;
+        }
+
+        .pill-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: #dde7f2;
+            color: var(--accent);
+            font-size: 0.85rem;
+        }
+
+        .date-range {
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .empty {
+            padding: 24px;
+            border: 1px dashed var(--border);
+            border-radius: 18px;
+            background: rgba(255, 253, 248, 0.9);
+            color: var(--muted);
+        }
+
+        @media (max-width: 760px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .meta {
+                text-align: left;
+            }
+
+            .actions {
+                flex-wrap: wrap;
+            }
+
+            .summary {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <header class="hero">
+            <p class="eyebrow">Analysis Noticeboard</p>
+            <h1>Data notices and known issues</h1>
+            <p>Use this page as a changelog for data quality and analysis-impacting changes. Expand any notice for the full markdown description, affected date range, and related datasets.</p>
+        </header>
+
+        <form method="get" class="filters">
+            <h2>Filter notices</h2>
+
+            <div class="field">
+                <label for="dataset">Datasets</label>
+                <select id="dataset" name="dataset" multiple>
+                    {% for dataset in datasets %}
+                    <option value="{{ dataset.id }}" {% if dataset.id|stringformat:"s" in selected_datasets %}selected{% endif %}>{{ dataset.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="tag">Tags</label>
+                <select id="tag" name="tag" multiple>
+                    {% for tag in tags %}
+                    <option value="{{ tag.name }}" {% if tag.name in selected_tags %}selected{% endif %}>{{ tag.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="actions">
+                <button class="button" type="submit">Apply filters</button>
+                <a class="button-secondary" href="/ibl_reports/data-notices-changelog">Clear filters</a>
+                <div class="summary">{{ notices|length }} notice{{ notices|length|pluralize }}</div>
+            </div>
+        </form>
+
+        <section class="notices">
+            {% for notice in notices %}
+            <details class="notice {% if notice.importance == notice.IMPORTANCE.CRITICAL %}critical{% elif notice.importance == notice.IMPORTANCE.MAJOR %}major{% elif notice.importance == notice.IMPORTANCE.MINOR %}minor{% else %}insignificant{% endif %}" {% if forloop.first %}open{% endif %}>
+                <summary>
+                    <div class="summary-grid">
+                        <div>
+                            <span class="importance-badge" style="background: {{ notice.importance_badge_color }};">{{ notice.get_importance_display }}</span>
+                        </div>
+                        <div>
+                            <h2 class="title">{{ notice.name|default:"Untitled notice" }}</h2>
+                            {% if notice.version_affected %}
+                            <span class="version">Version affected: {{ notice.version_affected }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="meta">
+                            <div>{{ notice.created_datetime|date:"j M Y, H:i" }}</div>
+                            {% if notice.created_by %}
+                            <div>{{ notice.created_by.username }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </summary>
+
+                <div class="body">
+                    {% if notice.description %}
+                    <div class="markdown">{{ notice.description_html|safe }}</div>
+                    {% endif %}
+
+                    {% if notice.affected_date_start or notice.affected_date_end %}
+                    <div class="subsection">
+                        <h3>Affected date range</h3>
+                        <div class="date-range">
+                            {% if notice.affected_date_start %}
+                            {{ notice.affected_date_start|date:"j M Y" }}
+                            {% else %}
+                            from the start of the dataset history
+                            {% endif %}
+                            to
+                            {% if notice.affected_date_end %}
+                            {{ notice.affected_date_end|date:"j M Y" }}
+                            {% else %}
+                            ongoing
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% with related_datasets=notice.datasets.all %}
+                    {% if related_datasets %}
+                    <div class="subsection">
+                        <h3>Related datasets</h3>
+                        <div class="pill-list">
+                            {% for dataset in related_datasets %}
+                            <span class="pill">{{ dataset.name }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+            </details>
+            {% empty %}
+            <div class="empty">No notices match the current filters.</div>
+            {% endfor %}
+        </section>
+    </main>
+</body>
+</html>

@@ -7,8 +7,9 @@ import django_filters
 from django import forms
 from django.http import HttpResponse, JsonResponse
 from django.template import loader
+from django.views.generic import TemplateView
 from django.views.generic.list import ListView
-from django.db.models import Q, F, OuterRef, Exists, UUIDField, Max, Count, Func, Subquery, TextField
+from django.db.models import Q, F, OuterRef, Exists, UUIDField, Max, Count, Func, Subquery, TextField, Prefetch
 from django.db.models.functions import Coalesce, Cast
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.postgres.fields import JSONField, ArrayField
@@ -20,6 +21,7 @@ from misc.models import Note, Lab
 from subjects.models import Project, Subject
 from actions.models import Session
 from jobs.models import Task
+from data.models import DataNotice, Dataset, Tag
 
 import pyarrow.parquet as pq
 import pandas as pd
@@ -915,3 +917,40 @@ class SubjectFilter(django_filters.FilterSet):
 
     def filter_alive_since(self, queryset, name, value):
         return queryset.exclude(death_date__lte=value)
+
+
+class DataNoticeChangelogView(LoginRequiredMixin, TemplateView):
+    """Display a changelog of data notices for analysis users."""
+
+    template_name = 'ibl_reports/datanotice_changelog.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        selected_datasets = [value for value in self.request.GET.getlist('dataset') if value]
+        selected_tags = [value for value in self.request.GET.getlist('tag') if value]
+
+        notices = DataNotice.objects.select_related('created_by').prefetch_related(
+            Prefetch('datasets', Dataset._base_manager.only('id', 'name'))
+        )
+
+        if selected_datasets:
+            notices = notices.filter(datasets__id__in=selected_datasets)
+
+        if selected_tags:
+            notices = notices.filter(datasets__tags__name__in=selected_tags)
+
+        notices = notices.distinct().order_by('-created_datetime', '-importance', 'name')
+
+        datasets = Dataset.objects.filter(data_notices__isnull=False).order_by('name').values('id', 'name').distinct()
+        tags = Tag.objects.filter(datasets__data_notices__isnull=False).order_by('name').values('name').distinct()
+
+        context.update({
+            'notices': notices,
+            'datasets': datasets,
+            'tags': tags,
+            'selected_datasets': selected_datasets,
+            'selected_tags': selected_tags,
+        })
+
+        return context
