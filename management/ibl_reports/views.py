@@ -929,6 +929,10 @@ class DataNoticeChangelogView(LoginRequiredMixin, TemplateView):
 
         selected_datasets = [value for value in self.request.GET.getlist('dataset') if value]
         selected_tags = [value for value in self.request.GET.getlist('tag') if value]
+        selected_projects = [value for value in self.request.GET.getlist('project') if value]
+
+        notice_dataset_through = DataNotice.datasets.through
+        session_project_through = Session.projects.through
 
         notices = DataNotice.objects.select_related('created_by').prefetch_related(
             Prefetch('datasets', Dataset._base_manager.only('id', 'name'))
@@ -940,17 +944,37 @@ class DataNoticeChangelogView(LoginRequiredMixin, TemplateView):
         if selected_tags:
             notices = notices.filter(datasets__tags__name__in=selected_tags)
 
+        if selected_projects:
+            matching_sessions = session_project_through.objects.filter(
+                project_id__in=selected_projects,
+            ).values('session_id')
+            matching_datasets = Dataset.objects.filter(session_id__in=matching_sessions).values('id')
+            matching_notice_datasets = notice_dataset_through.objects.filter(
+                datanotice_id=OuterRef('id'),
+                dataset_id__in=matching_datasets,
+            )
+            notices = notices.annotate(_has_project=Exists(matching_notice_datasets)).filter(_has_project=True)
+
         notices = notices.distinct().order_by('-created_datetime', '-importance', 'name')
 
         datasets = Dataset.objects.filter(data_notices__isnull=False).order_by('name').values('id', 'name').distinct()
         tags = Tag.objects.filter(datasets__data_notices__isnull=False).order_by('name').values('name').distinct()
+        project_ids = session_project_through.objects.filter(
+            session_id__in=Dataset.objects.filter(
+                id__in=notice_dataset_through.objects.values('dataset_id'),
+                session_id__isnull=False,
+            ).values('session_id'),
+        ).values('project_id')
+        projects = Project.objects.filter(id__in=project_ids).order_by('name').values('id', 'name').distinct()
 
         context.update({
             'notices': notices,
             'datasets': datasets,
             'tags': tags,
+            'projects': projects,
             'selected_datasets': selected_datasets,
             'selected_tags': selected_tags,
+            'selected_projects': selected_projects,
         })
 
         return context

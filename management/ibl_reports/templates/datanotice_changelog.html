@@ -319,6 +319,15 @@
                 </select>
             </div>
 
+            <div class="field">
+                <label for="project">Projects</label>
+                <select id="project" name="project" multiple>
+                    {% for project in projects %}
+                    <option value="{{ project.id }}" {% if project.id|stringformat:"s" in selected_projects %}selected{% endif %}>{{ project.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
             <div class="actions">
                 <button class="button" type="submit">Apply filters</button>
                 <a class="button-secondary" href="/ibl_reports/data-notices-changelog">Clear filters</a>
