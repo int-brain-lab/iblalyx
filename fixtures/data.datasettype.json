@@ -1143,7 +1143,7 @@
       "filename_pattern": "*optostimulation.intervals*.npy"
     }
   },
-    {
+  {
     "model": "data.datasettype",
     "pk": "f3c81c3c-25b9-43c8-a6f7-1a4cdee2c26d",
     "fields": {
@@ -1154,7 +1154,7 @@
       "filename_pattern": "_av_trials.leftReward*"
     }
   },
-    {
+  {
     "model": "data.datasettype",
     "pk": "7882054a-74c0-43b6-918b-86baba252279",
     "fields": {
@@ -1165,7 +1165,7 @@
       "filename_pattern": "_av_trials.rightReward*"
     }
   },
-    {
+  {
     "model": "data.datasettype",
     "pk": "8ee6802c-5970-4ae1-bdbb-4d0e17a45bd4",
     "fields": {
@@ -1176,7 +1176,7 @@
       "filename_pattern": "_av_trials.laserOnset_times*"
     }
   },
-    {
+  {
     "model": "data.datasettype",
     "pk": "c3a1a7ec-4698-4e77-b69e-627311c9ff3e",
     "fields": {
@@ -1187,7 +1187,7 @@
       "filename_pattern": "*trials.modelPredictions*"
     }
   },
-    {
+  {
     "model": "data.datasettype",
     "pk": "557373dc-e22e-42b1-916d-2e43594f3e9c",
     "fields": {
@@ -1196,6 +1196,17 @@
       "created_by": null,
       "description": "Probabilities of each paw being in one of five discrete states (background, still, wheel-move, fidget, groom) and the associated ensemble variance for each state. Total points = 20 (2 paws x 5 states x 2 values (probability and ensemble variance).",
       "filename_pattern": "*camera.pawstates.*"
+    }
+  },
+  {
+    "model": "data.datasettype",
+    "pk": "9a941c44-3a6b-47ac-a4d5-5b5718285e3c",
+    "fields": {
+      "json": null,
+      "name": "_ibl_mpciROIs.tracked",
+      "created_by": null,
+      "description": "A table of all chronically-tracked ROIs for a given subject. Rows include 'roi_id', 'cluster_id', 'group_id', 'FOV_path', 'session_path', 'eid'.",
+      "filename_pattern": ""
     }
   }
 ]
