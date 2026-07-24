@@ -7,5 +7,5 @@ The full release instructions are available at [https://dev.internationalbrainla
 
 
 ## Roadmap:
-As the set of public datasets grows, the process of doing full releases is more and more demanding. As of August 2025 it takes around 20 Gb of RAM to perform the pruning of the production database.
-There may be a better way to paginate or speed up the process, especially in `01a_prune_public_db.py`.
+As the set of public datasets grows, the process of doing full releases is more and more demanding. As of August 2025 it takes around 7 Gb of disk space as the full
+production database is cloned before pruning.

@@ -31,32 +31,38 @@ from .settings_lab import *  # noqa
 # %% Databases
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 # Build the connection URL
-POSTGRES_USER = urllib.parse.quote(os.getenv('POSTGRES_USER', ''))
-POSTGRES_PASSWORD = urllib.parse.quote(os.getenv('POSTGRES_PASSWORD', ''))
-POSTGRES_HOST = urllib.parse.quote(os.getenv('POSTGRES_HOST', ''))
-POSTGRES_PORT = urllib.parse.quote(os.getenv('POSTGRES_PORT', '5432'))  # Default PostgreSQL port
-POSTGRES_DB = urllib.parse.quote(os.getenv('POSTGRES_DB', ''))
-# the database details are provided in the form of an URL. The URL looks like:
-# "postgres://USER:PASSWORD@HOST:PORT/DB_NAME"
+PROD_DB_USER = urllib.parse.quote(os.getenv('PROD_DB_USER', ''))
+PROD_DB_PASSWORD = urllib.parse.quote(os.getenv('PROD_DB_PASSWORD', ''))
+PROD_DB_HOST = urllib.parse.quote(os.getenv('PROD_DB_HOST', ''))
+PROD_DB_PORT = urllib.parse.quote(os.getenv('PROD_DB_PORT', '5432'))  # Default PostgreSQL port
+PROD_DB_NAME = urllib.parse.quote(os.getenv('PROD_DB_NAME', ''))
 DATABASES = {
-    "default": {
+    "default": {  # production alyx
         "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "NAME": POSTGRES_DB,
-        "USER": POSTGRES_USER,
-        "PASSWORD": POSTGRES_PASSWORD,
-        "HOST": POSTGRES_HOST,
-        "PORT": POSTGRES_PORT,
+        "NAME": PROD_DB_NAME,
+        "USER": PROD_DB_USER,
+        "PASSWORD": PROD_DB_PASSWORD,
+        "HOST": PROD_DB_HOST,
+        "PORT": PROD_DB_PORT,
     },
-    "cortexlab": {
+    "cortexlab": {  # UCL import buffer, container cortexlab_buffer_postgres
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'cortexlab',
-        'USER': 'ibl_dev',
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD_UCL', ''),
-        'HOST': 'ucl_alyx_postgres',
-        'PORT': '5432',
-    }
+        'NAME': os.getenv('CORTEXLAB_BUFFER_DB_NAME', 'cortexlab'),
+        'USER': os.getenv('CORTEXLAB_BUFFER_DB_USER', ''),
+        'PASSWORD': os.getenv('CORTEXLAB_BUFFER_DB_PASSWORD', ''),
+        'HOST': os.getenv('CORTEXLAB_BUFFER_DB_HOST', 'cortexlab_buffer_postgres'),
+        'PORT': os.getenv('CORTEXLAB_BUFFER_DB_PORT', '5432'),
+    },
+    "public": {  # openalyx release buffer, container openalyx_buffer_postgres
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': os.getenv('OPENALYX_BUFFER_DB_NAME', 'public'),
+        'USER': os.getenv('OPENALYX_BUFFER_DB_USER', ''),
+        'PASSWORD': os.getenv('OPENALYX_BUFFER_DB_PASSWORD', ''),
+        'HOST': os.getenv('OPENALYX_BUFFER_DB_HOST', 'openalyx_buffer_postgres'),
+        'PORT': os.getenv('OPENALYX_BUFFER_DB_PORT', '5432'),
+    },
 }
-    
+
 # %% S3 access to write cache tables
 # the s3 access details are provided in the form of a JSON string. The variable looks like:
 # S3_ACCESS={"access_key":"xxxxx", "secret_key":"xxxxx", "region":"us-east-1"}

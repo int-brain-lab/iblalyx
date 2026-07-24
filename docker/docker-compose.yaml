@@ -1,0 +1,71 @@
+services:
+  # --- cortexlab (UCL) import buffer ---
+  # dropped/recreated schema-in-place on each import by crons/mbox/ucl_import.sh
+  cortexlab_buffer_postgres:
+    image: postgres:17
+    container_name: cortexlab_buffer_postgres
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${CORTEXLAB_BUFFER_DB_USER}
+      POSTGRES_PASSWORD: ${CORTEXLAB_BUFFER_DB_PASSWORD}
+      POSTGRES_DB: ${CORTEXLAB_BUFFER_DB_NAME}
+    # host has 3.8G total and no swap, so this is capped hard (see ibl_alyx_apache's limit
+    # for why: an unbounded query once took the whole host down instead of just its container)
+    mem_limit: 512m
+    memswap_limit: 512m
+    volumes:
+      - cortexlab_buffer_postgres:/var/lib/postgresql/data
+
+  # --- openalyx public release buffer ---
+  # dropped/recreated on each release by the releases/ scripts
+  openalyx_buffer_postgres:
+    image: postgres:17
+    container_name: openalyx_buffer_postgres
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${OPENALYX_BUFFER_DB_USER}
+      POSTGRES_PASSWORD: ${OPENALYX_BUFFER_DB_PASSWORD}
+      POSTGRES_DB: ${OPENALYX_BUFFER_DB_NAME}
+    mem_limit: 1024m
+    memswap_limit: 1024m
+    volumes:
+      - openalyx_buffer_postgres:/var/lib/postgresql/data
+
+  # General production-connected alyx worker: docker exec target for cortexlab import
+  # (--database cortexlab), production-wide Globus sync, deleterevisions maintenance,
+  # and — since releases are manual and rare — the openalyx release process too
+  # (--database public).
+  ibl_alyx_apache:
+    image: internationalbrainlab/alyx_apache:latest
+    container_name: ibl_alyx_apache
+    env_file: .env
+    # never serves traffic — only ever `docker exec`'d for manage.py commands.
+    # Latest alyx images no longer bundle iblalyx, so it's bind-mounted in (matching
+    # iblsre/alyx/hosts/docker-compose.ibl.yaml's convention) and its requirements
+    # installed at startup.
+    command: >
+      bash -c "uv pip install --no-cache -r /home/iblalyx/requirements.txt &&
+               sleep infinity"
+    restart: always
+    # Capped hard: host has 3.8G total and no swap, and an unbounded ORM bulk delete/collector
+    # here has previously grown large enough to exhaust host memory and crash the whole VM
+    # (kernel panic + reboot), not just this container. Better to have manage.py get OOM-killed.
+    mem_limit: 1536m
+    memswap_limit: 1536m
+    volumes:
+      - ./.one:/root/.one
+      - ./settings.py:/var/www/alyx/alyx/alyx/settings.py
+      - ${IBLALYX_ROOT:-/home/ubuntu/Documents/PYTHON/iblalyx}:/home/iblalyx
+      # per iblalyx/README.md's "Installation" symlinks — management commands only, no ibl_reports
+      - ${IBLALYX_ROOT:-/home/ubuntu/Documents/PYTHON/iblalyx}/management/commands/_ibl:/var/www/alyx/alyx/data/management/commands/_ibl
+      - ${IBLALYX_ROOT:-/home/ubuntu/Documents/PYTHON/iblalyx}/management/commands/ibl.py:/var/www/alyx/alyx/data/management/commands/ibl.py
+      - ${IBLALYX_ROOT:-/home/ubuntu/Documents/PYTHON/iblalyx}/management/commands/sync_patcher.py:/var/www/alyx/alyx/data/management/commands/sync_patcher.py
+      - ${IBLALYX_ROOT:-/home/ubuntu/Documents/PYTHON/iblalyx}/management/commands/create_public_links.py:/var/www/alyx/alyx/data/management/commands/create_public_links.py
+      - ${IBLALYX_ROOT:-/home/ubuntu/Documents/PYTHON/iblalyx}/management/commands/update_tags.py:/var/www/alyx/alyx/data/management/commands/update_tags.py
+    depends_on:
+      - cortexlab_buffer_postgres
+      - openalyx_buffer_postgres
+
+volumes:
+  cortexlab_buffer_postgres:
+  openalyx_buffer_postgres:
