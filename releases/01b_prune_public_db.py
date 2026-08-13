@@ -177,6 +177,10 @@ lab_members = LabMember.objects.using('public').filter(
 LabMember.objects.using('public').exclude(pk__in=lab_members).delete()
 
 # Anonymize remaining lab members and build dict for replace names elsewhere
+# is_redacted marks these as placeholders kept only so that the sessions and datasets
+# attributed to them stay queryable. It is what tells the rest of Alyx to keep showing them to
+# public users while hiding real accounts, and what tells releases/public_accounts.py that they
+# are recreated by every release and so need not be preserved across one.
 anon_dict = {}
 for lm in lab_members:
     if lm.username == 'root':
@@ -184,6 +188,7 @@ for lm in lab_members:
     anon_dict[lm.username] = str(lm.id)[:8]
     lm.is_staff = False
     lm.is_superuser = False
+    lm.is_redacted = True
     lm.email = ""
     lm.username = str(lm.id)[:8]
     lm.first_name = ''
@@ -196,13 +201,37 @@ for lm in lab_members:
     except (AssertionError, LabMember.auth_token.RelatedObjectDoesNotExist):
         pass
     lm.save()
-# Create public user
+
+# root is skipped by the loop above so that it stays a usable administrator login, but it
+# arrives here carrying production's password hash and API token. Neither should travel into a
+# database this widely copied, so scrub them: openalyx's root password is set on the instance
+# itself, not inherited from production.
+for lm in LabMember.objects.using('public').filter(username='root'):
+    lm.password = ''
+    lm.email = ''
+    try:
+        lm.auth_token.delete()
+    except (AssertionError, LabMember.auth_token.RelatedObjectDoesNotExist):
+        pass
+    lm.save()
+
+# Create the shared read-only login
+# The 'Public users' group carries view permissions only and comes across in the copy of
+# production, where `manage.py set_public_permissions` defines it. Writes are refused for
+# is_public_user accounts anyway, but the group is what keeps other people's accounts out of
+# the admin, so a missing one is worth stopping for rather than quietly producing a release in
+# which the shared login can enumerate registered users.
+public_group = Group.objects.using('public').filter(name='Public users').first()
+if public_group is None:
+    raise RuntimeError(
+        "No 'Public users' group found. Run `manage.py set_public_permissions` against "
+        "production, then rebuild the buffer, so the group is included in the copy.")
 public_user = LabMember.objects.using('public').create(username='intbrainlab',
                                                        is_active=True,
                                                        is_staff=True,
                                                        is_public_user=True)
 public_user.set_password('international')
-public_user.groups.add(Group.objects.using('public').filter(name='Lab members')[0])
+public_user.groups.add(public_group)
 public_user.save()
 
 print("...pruning probe insertions")

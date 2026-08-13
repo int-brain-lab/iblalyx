@@ -39,8 +39,25 @@ echo "... loading pruned buffer database into $NEW_DB"
 docker exec openalyx_buffer_postgres pg_dump -cOx -U "$OPENALYX_BUFFER_DB_USER" -d "$OPENALYX_BUFFER_DB_NAME" \
 | psql -q -U "$OPENALYX_DB_USER" -h "$OPENALYX_DB_HOST" -p "$OPENALYX_DB_PORT" -d "$NEW_DB"
 
+# Accounts that exist only on openalyx - public users who registered at /signup, intbrainlab,
+# administrators - live in the database the swap below is about to replace. Carry them over.
+# The maintenance trigger goes on first so that nobody can register between the export and the
+# swap, which is the only window in which a registration could be lost.
 echo "... setting maintenance trigger on openalyx EC2"
 ssh -o BatchMode=yes -o ConnectTimeout=10 openalyx "docker exec alyx_apache touch /var/www/alyx/maintenance.trigger"
+
+ACCOUNTS_FILE="/home/iblalyx/releases/openalyx_accounts_$(date +%F).json"
+echo "... exporting openalyx accounts from the live database"
+docker exec ibl_alyx_apache python /home/iblalyx/releases/public_accounts.py export \
+  --output "$ACCOUNTS_FILE"
+
+echo "... checking the export against $NEW_DB for username collisions"
+docker exec -e OPENALYX_DB_NAME="$NEW_DB" ibl_alyx_apache \
+  python /home/iblalyx/releases/public_accounts.py import --input "$ACCOUNTS_FILE" --dry-run
+
+echo "... restoring openalyx accounts into $NEW_DB"
+docker exec -e OPENALYX_DB_NAME="$NEW_DB" ibl_alyx_apache \
+  python /home/iblalyx/releases/public_accounts.py import --input "$ACCOUNTS_FILE"
 
 echo "... swapping $NEW_DB in for $OPENALYX_DB_NAME (previous kept as $PREV_DB)"
 psql -q -U "$OPENALYX_DB_USER" -h "$OPENALYX_DB_HOST" -p "$OPENALYX_DB_PORT" -d postgres <<SQL
@@ -53,3 +70,5 @@ echo "$(date '+%Y-%m-%d %H:%M:%S') Finished uploading database to openalyx RDS"
 echo "... removing maintenance trigger on openalyx EC2"
 ssh -o BatchMode=yes -o ConnectTimeout=10 openalyx "docker exec alyx_apache rm /var/www/alyx/maintenance.trigger"
 echo "Previous database kept as $PREV_DB — drop it manually once you've confirmed the release looks correct."
+echo "Exported accounts kept at $ACCOUNTS_FILE (inside ibl_alyx_apache) — it holds password"
+echo "hashes and API tokens, so delete it once the release is confirmed. 04_cleanup.sh does that."

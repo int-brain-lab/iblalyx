@@ -61,6 +61,18 @@ DATABASES = {
         'HOST': os.getenv('OPENALYX_BUFFER_DB_HOST', 'openalyx_buffer_postgres'),
         'PORT': os.getenv('OPENALYX_BUFFER_DB_PORT', '5432'),
     },
+    "openalyx": {  # the live openalyx RDS, i.e. the released database members of the public use
+        # Used by releases/public_accounts.py to carry self-registered accounts across a
+        # release. NAME is read from the environment on purpose: 02_upload_public_db.sh builds
+        # the release into <name>_next and swaps it in, so the import step points this alias at
+        # the staged database by overriding OPENALYX_DB_NAME on the docker exec.
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': os.getenv('OPENALYX_DB_NAME', 'openalyx'),
+        'USER': os.getenv('OPENALYX_DB_USER', ''),
+        'PASSWORD': os.getenv('OPENALYX_DB_PASSWORD', ''),
+        'HOST': os.getenv('OPENALYX_DB_HOST', ''),
+        'PORT': os.getenv('OPENALYX_DB_PORT', '5432'),
+    },
 }
 
 # %% S3 access to write cache tables
