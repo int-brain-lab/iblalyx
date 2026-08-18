@@ -92,3 +92,32 @@ tag.datasets.set(dsets)
 dset_ids = [str(eid) for eid in dsets.values_list('pk', flat=True)]
 df = pd.DataFrame(dset_ids, columns=['dataset_id'])
 df.to_parquet('/home/ubuntu/iblalyx/releases/2021_Q1_IBL_et_al_Behaviour_datasets.pqt')
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+Adapted code to add wheel and wheelMoves datasets Aug 2026
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+# Load in the previous datasets list (this has been renamed to
+# '2021_Q1_IBL_et_al_Behaviour_datasets_v2.pqt')
+TAG = '2021_Q1_IBL_et_al_Behaviour'
+orig_dsets = pd.read_parquet('/home/ubuntu/iblalyx/releases/2021_Q1_IBL_et_al_Behaviour_datasets_v2.pqt')
+dsets = Dataset.objects.filter(id__in=orig_dsets['dataset_id'].values)
+
+# Add in the wheel and wheelMoves datasets for sessions already part of this release
+wheel_dsets = Dataset.objects.filter(
+    session__data_dataset_session_related__tags__name=TAG,
+    name__icontains='wheel',
+    default_dataset=True,
+).distinct()
+
+dsets = (dsets | wheel_dsets).distinct()
+
+# tag.datasets.set() only manages this tag's membership, other tags already on
+# these datasets (e.g. brainwide map releases) are left untouched
+tag, _ = Tag.objects.get_or_create(name=TAG, protected=True, public=True)
+tag.datasets.set(dsets)
+
+# Saving dataset IDs for release in the public database
+dset_ids = [str(eid) for eid in dsets.values_list('pk', flat=True)]
+df = pd.DataFrame(dset_ids, columns=['dataset_id'])
+df.to_parquet('/home/ubuntu/iblalyx/releases/2021_Q1_IBL_et_al_Behaviour_datasets.pqt')
