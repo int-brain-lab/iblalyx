@@ -177,10 +177,10 @@ lab_members = LabMember.objects.using('public').filter(
 LabMember.objects.using('public').exclude(pk__in=lab_members).delete()
 
 # Anonymize remaining lab members and build dict for replace names elsewhere
-# is_redacted marks these as placeholders kept only so that the sessions and datasets
-# attributed to them stay queryable. It is what tells the rest of Alyx to keep showing them to
-# public users while hiding real accounts, and what tells releases/public_accounts.py that they
-# are recreated by every release and so need not be preserved across one.
+# These records are kept only so that the sessions and datasets attributed to them stay
+# queryable; they hold no usable credentials. They are recreated by every release, so
+# releases/public_accounts.py does not preserve them - it carries over the is_public_user
+# accounts, which are the ones that exist only on openalyx.
 anon_dict = {}
 for lm in lab_members:
     if lm.username == 'root':
@@ -188,7 +188,6 @@ for lm in lab_members:
     anon_dict[lm.username] = str(lm.id)[:8]
     lm.is_staff = False
     lm.is_superuser = False
-    lm.is_redacted = True
     lm.email = ""
     lm.username = str(lm.id)[:8]
     lm.first_name = ''

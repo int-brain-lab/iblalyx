@@ -9,9 +9,11 @@ This script exports those accounts from the live database before the swap and im
 the staged one, so that registrations survive. It is invoked by 02_upload_public_db.sh; run it
 by hand only to inspect a release or to recover from a failed one.
 
-Which accounts are local to openalyx is decided by LabMember.is_redacted: 01b sets that flag on
-every lab member carried over from production, whose identifying details it strips. Every
-release recreates those, so there is nothing to preserve; anything else was created on openalyx.
+Accounts to preserve are those with is_public_user set: the members of the public who
+registered at /signup, and the shared intbrainlab login. The anonymised lab members that 01b
+carries over from production are not preserved, because every release recreates them from
+production anyway. Neither are administrator accounts, which are provisioned on the instance
+rather than carried across.
 
     # export from the live database
     python public_accounts.py export --output /path/accounts.json
@@ -53,7 +55,7 @@ USER_FIELDS = (
 
 
 def export_accounts(output, database=DATABASE):
-    users = LabMember.objects.using(database).filter(is_redacted=False).order_by('username')
+    users = LabMember.objects.using(database).filter(is_public_user=True).order_by('username')
 
     accounts = []
     for user in users:
@@ -76,8 +78,8 @@ def export_accounts(output, database=DATABASE):
               f'{" (inactive)" if not record["is_active"] else ""}'
               f'{" (superuser)" if record["is_superuser"] else ""}')
     if not accounts:
-        print('WARNING: no local accounts found. If openalyx has registered users, check that '
-              '01b_prune_public_db.py is setting is_redacted on the lab members it anonymises.')
+        print('WARNING: no public accounts found. Expected at least intbrainlab - check that '
+              'this is pointing at the live openalyx database.')
     return accounts
 
 
@@ -110,7 +112,6 @@ def import_accounts(input_file, database=DATABASE, dry_run=False):
         groups = {group.name: group for group in Group.objects.using(database).all()}
         for record in restored:
             fields = {field: record[field] for field in USER_FIELDS}
-            fields['is_redacted'] = False
             user = LabMember(**fields)
             user.save(using=database)
             names = [name for name in record['groups'] if name in groups]
@@ -129,32 +130,6 @@ def import_accounts(input_file, database=DATABASE, dry_run=False):
     return restored
 
 
-def backfill_redacted(database=DATABASE, dry_run=False):
-    """One-time fixup for an openalyx database built before is_redacted existed.
-
-    Such a database has the column but every row defaults to False, so an export would treat
-    the lab members a previous release anonymised as local accounts and restore them - putting
-    back users the new release had dropped. Run this once against the live database before the
-    first release that uses public_accounts.py.
-
-    01b_prune_public_db.py renames each lab member it anonymises to the first 8 characters of
-    its own UUID, which identifies exactly that set with no false positives.
-    """
-    candidates = [user for user in LabMember.objects.using(database).filter(is_redacted=False)
-                  if user.username == str(user.id)[:8]]
-    print(f'{"Would mark" if dry_run else "Marking"} {len(candidates)} previously anonymised '
-          f'lab member(s) as redacted in "{database}"')
-    if not dry_run and candidates:
-        LabMember.objects.using(database).filter(
-            pk__in=[user.pk for user in candidates]).update(is_redacted=True)
-    remaining = LabMember.objects.using(database).filter(is_redacted=False).count()
-    print(f'{remaining} account(s) now considered local to "{database}" '
-          f'(these are what a release will preserve):')
-    for user in LabMember.objects.using(database).filter(is_redacted=False).order_by('username'):
-        print(f'  {user.username}')
-    return candidates
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -171,15 +146,9 @@ def main():
                          help='report what would be restored, and any username collisions, '
                               'without writing anything')
 
-    backfill = sub.add_parser(
-        'backfill', help='one-time: mark previously anonymised lab members as redacted')
-    backfill.add_argument('--dry-run', action='store_true')
-
     args = parser.parse_args()
     if args.action == 'export':
         export_accounts(args.output, database=args.database)
-    elif args.action == 'backfill':
-        backfill_redacted(database=args.database, dry_run=args.dry_run)
     else:
         import_accounts(args.input, database=args.database, dry_run=args.dry_run)
 
