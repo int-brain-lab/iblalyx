@@ -1,13 +1,13 @@
 import pandas as pd
 from django.db.models import Q
-from data.models import Tag, Dataset, DatasetType
+from data.models import Tag, Dataset, DatasetType, DataNotice
 from actions.models import Session
 from subjects.models import Subject
 
 # Releases as part of paper The International Brain Laboratory et al, 2021, DOI: 10.7554/eLife.63711
-
+TAG = '2021_Q1_IBL_et_al_Behaviour'
 # Load in the original datasets (this has been renamed to '2021_Q1_IBL_et_al_Behaviour_datasets_v1.pqt')
-orig_dsets = pd.read_parquet('/home/ubuntu/iblalyx/releases/2021_Q1_IBL_et_al_Behaviour_datasets_v1.pqt')
+orig_dsets = pd.read_parquet(f'/home/ubuntu/iblalyx/releases/{TAG}_datasets_v1.pqt')
 dsets = Dataset.objects.filter(id__in=orig_dsets['dataset_id'].values)
 
 # Remove datasets from ZFM-01575 sessions, these violate non unique eids
@@ -85,10 +85,144 @@ dsets = dsets | agg_trials | agg_training | agg_sessions
 dsets = dsets.distinct()
 
 # Tagging in production database
-tag, _ = Tag.objects.get_or_create(name="2021_Q1_IBL_et_al_Behaviour", protected=True, public=True)
+tag, _ = Tag.objects.get_or_create(name=TAG, protected=True, public=True)
 tag.datasets.set(dsets)
 
 # Saving dataset IDs for release in the public database
 dset_ids = [str(eid) for eid in dsets.values_list('pk', flat=True)]
 df = pd.DataFrame(dset_ids, columns=['dataset_id'])
-df.to_parquet('/home/ubuntu/iblalyx/releases/2021_Q1_IBL_et_al_Behaviour_datasets.pqt')
+df.to_parquet(f'/home/ubuntu/iblalyx/releases/{TAG}_datasets.pqt')
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+Adapted code to add wheel and wheelMoves datasets Aug 2026
+
+On 2026-08-28 it was decided that we set the dataset QC for
+for wheel and wheelMoves datasets before release.
+
+For sessions that have a wheel dataset, we will check the
+extended_qc and set datasets to PASS if all wheel related
+QC metrics pass for >= 0.95, otherwise FAIL (or NOT_SET)
+
+As we are adding new datasets to the release, we don't need
+to create a new tag as it's unlikely to affect reproduction
+of the paper's analysis.
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+# Load in the previous datasets list (this has been renamed to
+# '2021_Q1_IBL_et_al_Behaviour_datasets_v2.pqt')
+orig_dsets = pd.read_parquet(f'/home/ubuntu/iblalyx/releases/{TAG}_datasets_v2.pqt')
+dsets = Dataset.objects.filter(id__in=orig_dsets['dataset_id'].values)
+
+# Find sessions with the tag and check their extended_qc
+sessions = Session.objects.filter(data_dataset_session_related__in=dsets).distinct().values('pk', 'extended_qc')
+print(f"Found {sessions.count()} sessions with tag {TAG}")
+
+from collections import defaultdict
+from one.alf.spec import QC
+wheel_qc_map = defaultdict(list)  # Outcome map for wheel datasets, keys are QC.PASS, QC.FAIL, QC.NOT_SET
+trials_qc_map = defaultdict(list)  # Outcome map for trials.firstMovement_times dataset, keys are QC.PASS, QC.FAIL, QC.NOT_SET
+for s in sessions:
+    # First check there are at least the wheel timestamps and position datasets for this session
+    if not (Dataset.objects.filter(session_id=s['pk'], name__startswith='_ibl_wheel.timestamps').exists()
+            and Dataset.objects.filter(session_id=s['pk'], name__startswith='_ibl_wheel.position').exists()):
+        print(f"Session {s['pk']} does not have wheel datasets")
+        continue
+    if not s['extended_qc']:
+        print(f"Session {s['pk']} has no extended_qc")
+        wheel_qc_map[QC.NOT_SET].append(s['pk'])
+        trials_qc_map[QC.NOT_SET].append(s['pk'])
+        continue
+    extended_qc = {k: v for k, v in s['extended_qc'].items()
+                   if k.startswith('_task') and 'wheel' in k}
+    if len(extended_qc.values()) == 0 or all(v is None for v in extended_qc.values()):
+        print(f"Session {s['pk']} has no wheel related extended_qc")
+        wheel_qc_map[QC.NOT_SET].append(s['pk'])
+        trials_qc_map[QC.NOT_SET].append(s['pk'])
+        continue
+    passed = True
+    for k, v in extended_qc.items():
+        if v is None:
+            print(f"Session {s['pk']} failed {k} with value {v}")
+            if 'detected_wheel_moves' in k:
+                trials_qc_map[QC.NOT_SET].append(s['pk'])
+                continue
+            passed = False
+            break
+        if v < 0.95:
+            print(f"Session {s['pk']} failed {k} with value {v}")
+            if 'detected_wheel_moves' in k:
+                trials_qc_map[QC.FAIL].append(s['pk'])
+                continue
+            passed = False
+            break
+        if 'detected_wheel_moves' in k:
+            trials_qc_map[QC.PASS].append(s['pk'])
+    if passed:
+        wheel_qc_map[QC.PASS].append(s['pk'])
+    else:
+        wheel_qc_map[QC.FAIL].append(s['pk'])
+
+to_tag = set()
+# Bulk update the QC for wheel datasets
+for qc, session_ids in wheel_qc_map.items():
+    wheel_dsets = Dataset.objects.filter(session_id__in=session_ids, name__startswith='_ibl_wheel', default_dataset=True)
+    wheel_dsets.update(qc=qc)
+    print(f"Set {len(wheel_dsets)} wheel datasets to QC {qc}")
+    to_tag.update(wheel_dsets)
+for qc, session_ids in trials_qc_map.items():
+    trials_dsets = Dataset.objects.filter(session_id__in=session_ids, name__startswith='_ibl_trials.firstMovement_times', default_dataset=True)
+    trials_dsets.update(qc=qc)
+    print(f"Set {len(trials_dsets)} trials.firstMovement_times datasets to QC {qc}")
+    to_tag.update(trials_dsets)
+
+# tag.datasets.set() only manages this tag's membership, other tags already on
+# these datasets (e.g. brainwide map releases) are left untouched
+tag, _ = Tag.objects.get_or_create(name=TAG, protected=True, public=True)
+tag.datasets.set(to_tag | set(dsets))
+
+# Create a DataNotice for the wheel datasets that have been added to the release
+notice_text = f"""
+# Behaviour paper sessions wheel datasets
+
+The following wheel dataset types have been added to the {TAG} release:
+- wheel.timestamps
+- wheel.position
+- wheelMoves.intervals
+- wheelMoves.peakAmplitude
+- trials.firstMovement_times
+
+The QC for these datasets has been set based on the extended_qc metrics for each session.
+The QC for wheel datasets is set to PASS if all wheel related extended_qc metrics pass for >= 0.95,
+otherwise FAIL (or NOT_SET if the metrics are missing).
+
+## Wheel related extended_qc metrics
+
+### wheel_integrity
+Check wheel position sampled at the expected resolution.
+
+### check_detected_wheel_moves
+Check that the detected first movement times are reasonable. (This metric is used to set the QC for trials.firstMovement_times datasets.)
+
+### wheel_move_before_feedback:
+Check that the wheel does move within 100ms of the feedback onset (error sound or valve).
+
+### wheel_move_during_closed_loop
+Check the wheel moves the correct amount to reach threshold.
+
+### wheel_freeze_during_quiescence
+Check the wheel is indeed still during the quiescent period.
+
+**NB**: Several of these metrics most often fail due to inaccurate or missing stimulus timestamps,
+ however given that such events are generally required for wheel analysis, we will set the QC to
+ FAIL for wheel datasets if any of these metrics fail.
+"""
+notice = DataNotice.objects.create(
+    importance=DataNotice.IMPORTANCE.INSIGNIFICANT,
+    description=notice_text
+)
+notice.datasets.set(to_tag)
+
+# Saving dataset IDs and session IDs for release in the public database
+df = pd.DataFrame(Dataset.objects.filter(tags=tag).values('pk', 'session'))
+df.columns = ['dataset_id', 'session_id']
+df.to_parquet('/home/iblalyx/releases/2021_Q1_IBL_et_al_Behaviour_datasets.pqt')
