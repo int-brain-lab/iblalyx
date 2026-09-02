@@ -45,8 +45,8 @@ PUBLIC_DS_FILES = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2025_Q3_Zang_et_al_Aging.pqt',
                    '2026_Q1_Miska_Zapit_datasets.pqt',
                    '2026_Q2_Ghani_et_al_datasets.pqt',
-                   '2026_Q3_Großmann_et_al.pqt'
-                   '2026_Q3_IBL_et_al_BWM_refined_alignments_datasets.pqt'
+                   '2026_Q3_Großmann_et_al.pqt',
+                   '2026_Q3_IBL_et_al_BWM_refined_alignments_datasets.pqt',
                    ]
 
 PUBLIC_DS_TAGS = [

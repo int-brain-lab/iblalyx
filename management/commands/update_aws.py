@@ -78,7 +78,8 @@ class Command(BaseCommand):
         dry = options.pop('dryrun')
         t0 = time.time()
         query_paginated = self.build_query(**options)
-        self.sync(query_paginated, dry=dry, save_sync_times=options.get('since_last', False))
+        source = DataRepository.objects.get(hostname=options['hostname'])
+        self.sync(query_paginated, dry=dry, save_sync_times=options.get('since_last', False), source=source)
         logger.debug('Entire sync and update took ' + format_seconds(time.time() - t0))
 
     @staticmethod
@@ -142,7 +143,7 @@ class Command(BaseCommand):
         return Paginator(qs, batch_size)
 
     @staticmethod
-    def sync(paginated_query, dry=False, save_sync_times=False):
+    def sync(paginated_query, dry=False, save_sync_times=False, source_repository=None):
         # S3 credential information
         r = DataRepository.objects.filter(name__startswith='aws').first()
         assert r
@@ -158,7 +159,7 @@ class Command(BaseCommand):
 
         # Ugly hack because globus_path doesn't actually contain the correct absolute path
         ROOT = '/mnt/ibl'  # This should be in the globus_path but isn't
-        counts = {'total': 0, 'added': 0, 'modified': 0, 'sessions': 0}
+        counts = {'total': 0, 'added': 0, 'modified': 0, 'sessions': 0, 'missing': 0}
         for i in paginated_query.page_range:
             data = paginated_query.get_page(i)
             current_qs = data.object_list
@@ -227,10 +228,19 @@ class Command(BaseCommand):
                             counts['modified'] += 1
                             logger.info(f'MODIFIED: {fr.relative_path}; EXISTS = {exists}')
                             fr.exists = exists
+                        # If the file record doesn't exist on the source repository, mark it as such
+                        if not exists:
+                            counts['missing'] += 1
+                            logger.warning(f'MISSING: {fr.relative_path}; EXISTS = {exists}')
+                            assert source_repository, 'Source repository must be provided to mark missing files'
+                            r = FileRecord.objects.filter(dataset=fr.dataset, data_repository=source_repository).first()
+                            if r:
+                                r.exists = False
+                                r.save()
                         fr.full_clean()
                         fr.save()
         logger.info('{total:,} files over {sessions:,} sessions sync\'d; '
-                    '{added:,} records added, {modified:,} modified'.format(**counts))
+                    '{added:,} records added, {modified:,} modified, {missing:,} missing'.format(**counts))
         if save_sync_times and not dry:  # set end time
             sync_times = Command.last_sync()
             sync_times.loc[sync_times.start == started, 'end'] = pd.Timestamp.now()

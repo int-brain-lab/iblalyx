@@ -6,8 +6,9 @@ from subjects.models import Subject
 
 # Releases as part of paper The International Brain Laboratory et al, 2021, DOI: 10.7554/eLife.63711
 TAG = '2021_Q1_IBL_et_al_Behaviour'
+IBLALYX = '/home/ubuntu/iblalyx'
 # Load in the original datasets (this has been renamed to '2021_Q1_IBL_et_al_Behaviour_datasets_v1.pqt')
-orig_dsets = pd.read_parquet(f'/home/ubuntu/iblalyx/releases/{TAG}_datasets_v1.pqt')
+orig_dsets = pd.read_parquet(f'{IBLALYX}/releases/{TAG}_datasets_v1.pqt')
 dsets = Dataset.objects.filter(id__in=orig_dsets['dataset_id'].values)
 
 # Remove datasets from ZFM-01575 sessions, these violate non unique eids
@@ -91,7 +92,7 @@ tag.datasets.set(dsets)
 # Saving dataset IDs for release in the public database
 dset_ids = [str(eid) for eid in dsets.values_list('pk', flat=True)]
 df = pd.DataFrame(dset_ids, columns=['dataset_id'])
-df.to_parquet(f'/home/ubuntu/iblalyx/releases/{TAG}_datasets.pqt')
+df.to_parquet(f'{IBLALYX}/releases/{TAG}_datasets.pqt')
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""
 Adapted code to add wheel and wheelMoves datasets Aug 2026
@@ -110,7 +111,7 @@ of the paper's analysis.
 
 # Load in the previous datasets list (this has been renamed to
 # '2021_Q1_IBL_et_al_Behaviour_datasets_v2.pqt')
-orig_dsets = pd.read_parquet(f'/home/ubuntu/iblalyx/releases/{TAG}_datasets_v2.pqt')
+orig_dsets = pd.read_parquet(f'{IBLALYX}/releases/{TAG}_datasets_v2.pqt')
 dsets = Dataset.objects.filter(id__in=orig_dsets['dataset_id'].values)
 
 # Find sessions with the tag and check their extended_qc
@@ -192,7 +193,7 @@ The following wheel dataset types have been added to the {TAG} release:
 - trials.firstMovement_times
 
 The QC for these datasets has been set based on the extended_qc metrics for each session.
-The QC for wheel datasets is set to PASS if all wheel related extended_qc metrics pass for >= 0.95,
+The QC for wheel datasets is set to PASS if all wheel related extended_qc metrics pass for >= 95% of trials,
 otherwise FAIL (or NOT_SET if the metrics are missing).
 
 ## Wheel related extended_qc metrics
@@ -217,12 +218,28 @@ Check the wheel is indeed still during the quiescent period.
  FAIL for wheel datasets if any of these metrics fail.
 """
 notice = DataNotice.objects.create(
+    name='Behaviour paper sessions wheel datasets',
     importance=DataNotice.IMPORTANCE.INSIGNIFICANT,
     description=notice_text
 )
 notice.datasets.set(to_tag)
 
 # Saving dataset IDs and session IDs for release in the public database
-df = pd.DataFrame(Dataset.objects.filter(tags=tag).values('pk', 'session'))
+df = pd.DataFrame(Dataset.objects.filter(tags=tag).values('pk', 'session')).astype(str)
 df.columns = ['dataset_id', 'session_id']
-df.to_parquet('/home/iblalyx/releases/2021_Q1_IBL_et_al_Behaviour_datasets.pqt')
+df.to_parquet(f'{IBLALYX}/releases/{TAG}_datasets.pqt')
+
+
+"""
+Over the course of adding these wheel datasets a number of datasets were found
+to be missing (not present on flatiron or aws). These have been untagged and removed.
+It's unclear if these ever existed on flatiron.
+"""
+from pathlib import Path
+from uuid import UUID
+IBL_DEV_TOOLS = Path.home().joinpath('Documents', 'PYTHON', 'ibldevtools')
+missing_df = pd.read_parquet(IBL_DEV_TOOLS / 'miles/missing_behaviour_datasets.pqt')
+missing_ids = missing_df['id'].apply(lambda x: UUID(int=int.from_bytes(x, 'big'))).astype(str).values
+dsets = pd.read_parquet(f'{IBLALYX}/releases/{TAG}_datasets.pqt')
+dsets = dsets[~dsets['dataset_id'].isin(missing_ids)]
+dsets.to_parquet(f'{IBLALYX}/releases/{TAG}_datasets.pqt')

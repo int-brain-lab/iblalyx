@@ -36,7 +36,7 @@ from misc.models import LabMember, Lab, LabMembership, LabLocation, Note, CageTy
 from actions.models import Session, ProcedureType, Weighing, WaterType, WaterAdministration, VirusInjection, \
     ChronicRecording, Surgery, WaterRestriction, Notification, NotificationRule, CullReason, CullMethod, Cull
 from data.models import DataRepositoryType, DataRepository, DataFormat, DatasetType, Tag, Revision, Dataset, \
-    FileRecord, Download
+    FileRecord, Download, DataNotice
 from subjects.models import Project, Subject, SubjectRequest, Litter, BreedingPair, Line, Species, Strain, Source, \
     ZygosityRule, Allele, Zygosity, Sequence, GenotypeTest
 from experiments.models import BrainRegion, CoordinateSystem, ProbeModel, ProbeInsertion, TrajectoryEstimate, Channel
@@ -129,10 +129,15 @@ for dr in DataRepository.objects.using('public').all():
         dr.data_url = dr.data_url.replace('ibl-brain-wide-map-private', 'ibl-brain-wide-map-public')
         dr.save()
 
-# Remove unused dataset types, formats and revisions
-DatasetType.objects.using('public').exclude(pk__in=datasets.values_list('dataset_type', flat=True).distinct()).delete()
-DataFormat.objects.using('public').exclude(pk__in=datasets.values_list('data_format', flat=True).distinct()).delete()
-Revision.objects.using('public').exclude(pk__in=datasets.values_list('revision', flat=True).distinct()).delete()
+# Remove unused dataset types, formats, revisions, and data notices
+dataset_types = datasets.filter(dataset_type__isnull=False).values_list('dataset_type', flat=True).distinct()
+DatasetType.objects.using('public').exclude(pk__in=dataset_types).delete()
+data_formats = datasets.filter(data_format__isnull=False).values_list('data_format', flat=True).distinct()
+DataFormat.objects.using('public').exclude(pk__in=data_formats).delete()
+revisions = datasets.filter(revision__isnull=False).values_list('revision', flat=True).distinct()
+Revision.objects.using('public').exclude(pk__in=revisions).delete()
+notices = datasets.filter(data_notices__isnull=False).values_list('data_notices', flat=True).distinct()
+DataNotice.objects.using('public').exclude(pk__in=notices).delete()
 
 print("...pruning sessions")
 # Delete sessions that don't have a dataset in public db, along with probe insertions, trajectories, channels and tasks
