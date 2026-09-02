@@ -40,6 +40,8 @@ class Command(BaseCommand):
     limit = None
     sync_times = None
     _query = None
+    # Ugly hack because globus_path doesn't actually contain the correct absolute path
+    ROOT = '/mnt/ibl'  # This should be in the globus_path but isn't
 
     def add_arguments(self, parser):
         parser.add_argument('--batch-size', default=50_000, type=int,
@@ -76,10 +78,13 @@ class Command(BaseCommand):
         if not any(passed := list(map(options.get, required))):
             options['since_last'] = True
         dry = options.pop('dryrun')
+        src_host = options.get('hostname')
+        save_sync_times = options.get('since_last', False)
         t0 = time.time()
         query_paginated = self.build_query(**options)
-        source = DataRepository.objects.get(hostname=options['hostname'])
-        self.sync(query_paginated, dry=dry, save_sync_times=options.get('since_last', False), source=source)
+        self.sync(
+            query_paginated,
+            dry=dry, save_sync_times=save_sync_times, source_hostname=src_host)
         logger.debug('Entire sync and update took ' + format_seconds(time.time() - t0))
 
     @staticmethod
@@ -126,7 +131,7 @@ class Command(BaseCommand):
                 raise ValueError(f'Unknown kwarg "{k}"')
         # relevant fields to select
         fields = (
-            'dataset__id', 'dataset__session', 'dataset__auto_datetime',
+            'dataset__id', 'dataset__session', 'dataset__collection', 'dataset__auto_datetime',
             'relative_path', 'data_repository__globus_path')
         qs = FileRecord.objects.filter(query, exists=True, data_repository__hostname=hostname)
         if not force:
@@ -143,7 +148,7 @@ class Command(BaseCommand):
         return Paginator(qs, batch_size)
 
     @staticmethod
-    def sync(paginated_query, dry=False, save_sync_times=False, source_repository=None):
+    def sync(paginated_query, dry=False, save_sync_times=False, source_hostname=None):
         # S3 credential information
         r = DataRepository.objects.filter(name__startswith='aws').first()
         assert r
@@ -157,8 +162,6 @@ class Command(BaseCommand):
         if save_sync_times and not dry:
             sync_times.to_csv(sync_times_file, index=False)
 
-        # Ugly hack because globus_path doesn't actually contain the correct absolute path
-        ROOT = '/mnt/ibl'  # This should be in the globus_path but isn't
         counts = {'total': 0, 'added': 0, 'modified': 0, 'sessions': 0, 'missing': 0}
         for i in paginated_query.page_range:
             data = paginated_query.get_page(i)
@@ -168,19 +171,22 @@ class Command(BaseCommand):
                 logger.debug('No file records to process')
                 continue
             logger.info(f'Processing {len(df)} records (batch {i}/{paginated_query.num_pages})')
+            df['relative_path_start_idx'] = df['data_repository__globus_path'].str.len()
             df['file_path'] = df.pop('data_repository__globus_path').str.cat(df.pop('relative_path'))
             fields_map = {
                 'dataset__session': 'eid',
                 'dataset__id': 'id',
+                'dataset__collection': 'collection',
                 'dataset__auto_datetime': 'modified'}
             df = df.rename(fields_map, axis=1).set_index('eid')
             counts['total'] += len(df)
+
             # Sync is done and the session level
             for eid, rec in df.groupby('eid'):
                 logger.info(f'Updating session {eid}')
                 counts['sessions'] += 1
                 session_path = next(map(get_session_path, rec['file_path'].values))
-                src_dir = ROOT + session_path.as_posix()
+                src_dir = Command.ROOT + session_path.as_posix()
                 dst_dir = bucket_name.strip('/') + '/data/' + get_alf_path(src_dir)
                 cmd = ['aws', 's3', 'sync', src_dir, dst_dir, '--delete', '--profile', 'ibladmin']
                 if dry:
@@ -202,43 +208,36 @@ class Command(BaseCommand):
                 # Update file records
                 lab, *_ = folder_parts(session_path)
                 repo = f'aws_{lab}'
-                for _, row in rec.iterrows():
-                    record = {
-                        'dataset': Dataset.objects.get(id=row['id']),
-                        'data_repository': DataRepository.objects.get(name=repo),
-                        'relative_path': row['file_path'].replace(f'{lab}/Subjects', '').strip('/')
-                    }
-                    # Check the real file path - WITH uuid in filename - exists
-                    exists = add_uuid_string(ROOT + row['file_path'], row['id']).exists()
-                    if dry:
-                        try:
-                            fr = FileRecord.objects.get(**record)
-                            if fr.exists != exists:
-                                counts['modified'] += 1
-                                logger.info(f'(dryrun) MODIFIED: {fr.relative_path}; EXISTS = {exists}')
-                        except FileRecord.DoesNotExist:
-                            counts['added'] += 1
-                            logger.info('(dryrun) ADDED: ' + record['relative_path'])
-                    else:
-                        fr, is_new = FileRecord.objects.get_or_create(**record)
-                        if is_new:
-                            counts['added'] += 1
-                            logger.info(f'ADDED: {fr.relative_path}')
-                        elif fr.exists != exists:
-                            counts['modified'] += 1
-                            logger.info(f'MODIFIED: {fr.relative_path}; EXISTS = {exists}')
-                            fr.exists = exists
-                        # If the file record doesn't exist on the source repository, mark it as such
-                        if not exists:
-                            counts['missing'] += 1
-                            logger.warning(f'MISSING: {fr.relative_path}; EXISTS = {exists}')
-                            assert source_repository, 'Source repository must be provided to mark missing files'
-                            r = FileRecord.objects.filter(dataset=fr.dataset, data_repository=source_repository).first()
-                            if r:
-                                r.exists = False
-                                r.save()
-                        fr.full_clean()
-                        fr.save()
+                Command.update_records(rec, repo, dry=dry, counts=counts, source_hostname=source_hostname)
+
+            # For remaining (i.e. non-session) file records, sync at collection level
+            non_session = df[df.index.isna()]
+            repo = DataRepository.objects.get(name='aws_aggregates')
+            for collection, rec in non_session.groupby('collection'):
+                logger.info(f'Updating aggregate collection {collection}')
+                collection_idx = (rec['relative_path_start_idx'] + rec['collection'].str.len()).iloc[0]
+                src_dir = Command.ROOT + rec.iloc[0]['file_path'][:collection_idx]
+                dst_dir = bucket_name.strip('/') + rec.iloc[0]['file_path'][:collection_idx]
+                cmd = ['aws', 's3', 'sync', src_dir, dst_dir, '--delete', '--profile', 'ibladmin']
+                if dry:
+                    cmd.append('--dryrun')
+                if logger.level > logging.DEBUG:
+                    log_fcn = logger.error
+                    cmd.append('--only-show-errors')  # Suppress verbose output
+                else:
+                    log_fcn = logger.debug
+                    cmd.append('--no-progress')  # Suppress progress info, estimated time, etc.
+                logger.debug(' '.join(cmd))
+                t0 = time.time()
+                process = Popen(cmd, stdout=PIPE, stderr=STDOUT)
+                with process.stdout:
+                    log_subprocess_output(process.stdout, log_fcn)
+                assert process.wait() == 0
+                logger.debug('Collection sync took ' + format_seconds(time.time() - t0))
+
+                # Update file records
+                Command.update_records(rec, repo, dry=dry, counts=counts, source_hostname=source_hostname)
+
         logger.info('{total:,} files over {sessions:,} sessions sync\'d; '
                     '{added:,} records added, {modified:,} modified, {missing:,} missing'.format(**counts))
         if save_sync_times and not dry:  # set end time
@@ -246,6 +245,49 @@ class Command(BaseCommand):
             sync_times.loc[sync_times.start == started, 'end'] = pd.Timestamp.now()
             sync_times.to_csv(sync_times_file, index=False)
 
+    @staticmethod
+    def update_records(records, destination_repository, dry=False, counts=None, source_hostname=None):
+        """Update file records with new data repository information"""
+        counts = counts or {'added': 0, 'modified': 0, 'missing': 0}
+        if isinstance(destination_repository, str):
+            destination_repository = DataRepository.objects.get(name=destination_repository)
+        for _, row in records.iterrows():
+            record = {
+                'dataset': Dataset.objects.get(id=row['id']),
+                'data_repository': destination_repository,
+                'relative_path': row['file_path'][row['relative_path_start_idx']:].strip('/')
+            }
+            # Check the real file path - WITH uuid in filename - exists
+            exists = add_uuid_string(Command.ROOT + row['file_path'], row['id']).exists()
+            if dry:
+                try:
+                    fr = FileRecord.objects.get(**record)
+                    if fr.exists != exists:
+                        counts['modified'] += 1
+                        logger.info(f'(dryrun) MODIFIED: {fr.relative_path}; EXISTS = {exists}')
+                except FileRecord.DoesNotExist:
+                    counts['added'] += 1
+                    logger.info('(dryrun) ADDED: ' + record['relative_path'])
+            else:
+                fr, is_new = FileRecord.objects.get_or_create(**record)
+                if is_new:
+                    counts['added'] += 1
+                    logger.info(f'ADDED: {fr.relative_path}')
+                elif fr.exists != exists:
+                    counts['modified'] += 1
+                    logger.info(f'MODIFIED: {fr.relative_path}; EXISTS = {exists}')
+                    fr.exists = exists
+                # If the file record doesn't exist on the source repository, mark it as such
+                if not exists:
+                    counts['missing'] += 1
+                    logger.warning(f'MISSING: {fr.relative_path}; EXISTS = {exists}')
+                    assert source_hostname, 'Source repository must be provided to mark missing files'
+                    r = FileRecord.objects.filter(dataset=fr.dataset, data_repository__hostname=source_hostname).first()
+                    if r:
+                        r.exists = False
+                        r.save()
+                fr.full_clean()
+                fr.save()
 
 # def sync_changed():
 #     """Sync all sessions where file records on flatiron don't match those on AWS.
