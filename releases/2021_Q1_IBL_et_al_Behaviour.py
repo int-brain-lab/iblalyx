@@ -239,7 +239,9 @@ from pathlib import Path
 from uuid import UUID
 IBL_DEV_TOOLS = Path.home().joinpath('Documents', 'PYTHON', 'ibldevtools')
 missing_df = pd.read_parquet(IBL_DEV_TOOLS / 'miles/missing_behaviour_datasets.pqt')
-missing_ids = missing_df['id'].apply(lambda x: UUID(int=int.from_bytes(x, 'big'))).astype(str).values
+missing_df['id'] = missing_df['id'].apply(lambda x: UUID(int=int.from_bytes(x, 'big'))).astype(str).values
+# The aggregate datasets are actually present so remove them from this missing list
+exclude = missing_df[~missing_df['eid'].isna()]['id'].values
 dsets = pd.read_parquet(f'{IBLALYX}/releases/{TAG}_datasets.pqt')
-dsets = dsets[~dsets['dataset_id'].isin(missing_ids)]
+dsets = dsets[~dsets['dataset_id'].isin(exclude)]
 dsets.to_parquet(f'{IBLALYX}/releases/{TAG}_datasets.pqt')
