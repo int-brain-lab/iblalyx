@@ -116,11 +116,16 @@ datasets = Dataset.objects.using('public').all()
 # Delete personal data repositories and associated file records
 DataRepository.objects.using('public').exclude(globus_is_personal=False).delete()
 DataRepository.objects.using('public').filter(name='ibl-brain-wide-map-private').delete()
-# Replace some information in the data repositories
+# Replace some information in the data repositories (idempotent)
+FLATIRON_ROOT = 'https://ibl.flatironinstitute.org/'
+FLATIRON_PUBLIC_ROOT = FLATIRON_ROOT + 'public/'
 exclude = ('Secret access key', 'Access key ID')
 for dr in DataRepository.objects.using('public').all():
     if 'flatiron' in dr.hostname:
-        dr.data_url = dr.data_url.replace('.org/', '.org/public/')
+        if not dr.data_url.startswith(FLATIRON_PUBLIC_ROOT):
+            if not dr.data_url.startswith(FLATIRON_ROOT):
+                raise ValueError(f'Unexpected flatiron data_url on {dr.name}: {dr.data_url}')
+            dr.data_url = FLATIRON_PUBLIC_ROOT + dr.data_url[len(FLATIRON_ROOT):]
         dr.json = {}
         dr.save()
     elif 'aws' in dr.hostname:

@@ -12,10 +12,10 @@ Arguments:
 
 Examples:
     # Process all datasets in the public database
-    python manage.py openalyx
+    python manage.py create_public_links
 
     # Process only datasets with specific tags
-    python manage.py openalyx --tags IBL-learning IBL-behavior
+    python manage.py create_public_links --tags IBL-learning IBL-behavior
 
 Notes:
     - The command checks if all datasets have a file record on Flatiron
@@ -77,8 +77,11 @@ class Command(BaseCommand):
             source = Path('/mnt/ibl').joinpath(rel_path)
             dest = Path('/mnt/ibl/public').joinpath(rel_path)
 
+            if rel_path in ('', '.'):
+                raise ValueError(f'Empty relative path for file record {fr.id}: (data_url={fr.data_url})')
             if source.exists():
                 if dest.exists():
+                    assert dest.is_symlink(), f'Destination exists but is not a symlink: {dest}'
                     skipped += 1
                 else:
                     dest.parent.mkdir(exist_ok=True, parents=True)
