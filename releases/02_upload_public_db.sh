@@ -39,10 +39,10 @@ echo "... loading pruned buffer database into $NEW_DB"
 docker exec openalyx_buffer_postgres pg_dump -cOx -U "$OPENALYX_BUFFER_DB_USER" -d "$OPENALYX_BUFFER_DB_NAME" \
 | psql -q -U "$OPENALYX_DB_USER" -h "$OPENALYX_DB_HOST" -p "$OPENALYX_DB_PORT" -d "$NEW_DB"
 
-# Accounts that exist only on openalyx - public users who registered at /signup, intbrainlab,
-# administrators - live in the database the swap below is about to replace. Carry them over.
-# The maintenance trigger goes on first so that nobody can register between the export and the
-# swap, which is the only window in which a registration could be lost.
+# Accounts that exist only on openalyx - public users who registered at /signup or signed in
+# through ORCID, intbrainlab - live in the database the swap below is about to replace. Carry
+# them over. The maintenance trigger goes on first so that nobody can register between the
+# export and the swap, which is the only window in which a registration could be lost.
 echo "... setting maintenance trigger on openalyx EC2"
 ssh -o BatchMode=yes -o ConnectTimeout=10 openalyx "docker exec alyx_apache touch /var/www/alyx/maintenance.trigger"
 
@@ -51,13 +51,11 @@ echo "... exporting openalyx accounts from the live database"
 docker exec ibl_alyx_apache python /home/iblalyx/releases/public_accounts.py export \
   --output "$ACCOUNTS_FILE"
 
-echo "... checking the export against $NEW_DB for username collisions"
+# Checked against the staged database while the swap is still undone, so that a collision or a
+# missing group can be dealt with without the site having changed underneath anyone.
+echo "... checking the export against $NEW_DB"
 docker exec -e OPENALYX_DB_NAME="$NEW_DB" ibl_alyx_apache \
   python /home/iblalyx/releases/public_accounts.py import --input "$ACCOUNTS_FILE" --dry-run
-
-echo "... restoring openalyx accounts into $NEW_DB"
-docker exec -e OPENALYX_DB_NAME="$NEW_DB" ibl_alyx_apache \
-  python /home/iblalyx/releases/public_accounts.py import --input "$ACCOUNTS_FILE"
 
 echo "... swapping $NEW_DB in for $OPENALYX_DB_NAME (previous kept as $PREV_DB)"
 psql -q -U "$OPENALYX_DB_USER" -h "$OPENALYX_DB_HOST" -p "$OPENALYX_DB_PORT" -d postgres <<SQL
@@ -65,6 +63,19 @@ select pg_terminate_backend(pid) from pg_stat_activity where datname in ('$OPENA
 alter database "$OPENALYX_DB_NAME" rename to "$PREV_DB";
 alter database "$NEW_DB" rename to "$OPENALYX_DB_NAME";
 SQL
+
+# The single sign-on tables are not in the release: production has no such data to copy, and
+# allauth's account.0006 data migration cannot be applied to a non-default database (see the
+# router in iblalyx/docker/settings.py). openalyx creates them itself, where the database being
+# migrated is its own default and that migration behaves. This has to happen before the
+# accounts are restored, since some of them carry an ORCID identity.
+echo "... migrating openalyx (creates the single sign-on tables in the new database)"
+ssh -o BatchMode=yes -o ConnectTimeout=10 openalyx \
+  "docker exec alyx_apache python /var/www/alyx/alyx/manage.py migrate --noinput"
+
+echo "... restoring openalyx accounts into the swapped-in database"
+docker exec ibl_alyx_apache \
+  python /home/iblalyx/releases/public_accounts.py import --input "$ACCOUNTS_FILE"
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') Finished uploading database to openalyx RDS"
 echo "... removing maintenance trigger on openalyx EC2"

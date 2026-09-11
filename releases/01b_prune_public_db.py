@@ -20,15 +20,21 @@ from pathlib import Path
 
 import django
 
-if __name__ == '__main__' and not os.environ.get('DJANGO_SETTINGS_MODULE'):
+if __name__ == '__main__':
+    # setdefault already leaves an existing DJANGO_SETTINGS_MODULE alone, so there is no need
+    # to guard on it - and guarding on it means that where the environment does define one
+    # (as a container running alyx generally will) django.setup() never runs and every model
+    # import below fails with AppRegistryNotReady.
     sys.path.insert(0, '.')
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'alyx.settings')
     django.setup()
 
 import pandas as pd
 import tqdm
+from django.db import connections
 from django.db.backends.signals import connection_created
 from django.db.models import Q
+from django.apps import apps as django_apps
 from django.contrib.auth.models import Group
 
 from misc.models import LabMember, Lab, LabMembership, LabLocation, Note, CageType, \
@@ -213,6 +219,23 @@ for lm in LabMember.objects.using('public').filter(username='root'):
     except (AssertionError, LabMember.auth_token.RelatedObjectDoesNotExist):
         pass
     lm.save()
+
+# Purge single sign-on identity records inherited from production. These arrive in the copy
+# only if production has SSO enabled, but when they do they are exactly the identifying
+# information this script exists to remove: a SocialAccount ties a named person to their ORCID
+# iD, and an EmailAddress to their address. openalyx's own identities are restored afterwards
+# by releases/public_accounts.py, from the live public database rather than from production.
+_public_tables = connections['public'].introspection.table_names()
+for _label in ('socialaccount.SocialToken', 'socialaccount.SocialAccount',
+               'socialaccount.SocialApp', 'account.EmailConfirmation', 'account.EmailAddress'):
+    try:
+        _model = django_apps.get_model(_label)
+    except LookupError:
+        continue  # allauth not installed here; nothing of this kind to purge
+    if _model._meta.db_table not in _public_tables:
+        continue  # production has no single sign-on data, so the copy has no such table
+    _n = _model.objects.using('public').all().delete()[0]
+    print(f"...purged {_n} {_label} record(s) inherited from production")
 
 # Create the shared read-only login
 # The 'Public users' group carries view permissions only and comes across in the copy of

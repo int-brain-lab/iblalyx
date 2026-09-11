@@ -75,6 +75,52 @@ DATABASES = {
     },
 }
 
+class AllauthMigrationRouter:
+    """Keep django-allauth's migrations off every database but `default`.
+
+    allauth's account.0006_emailaddress_lower is a data migration that queries through the
+    default manager without honouring schema_editor.connection.alias, so under
+    `migrate --database public` it runs its UPDATE against production instead of the buffer and
+    fails with "relation account_emailaddress does not exist". Nothing here can make that
+    migration target the right database, so it is kept out of the multi-database migrations
+    altogether.
+
+    openalyx still gets the tables: 02_upload_public_db.sh runs `migrate` on the openalyx
+    instance itself after the swap, where the database being migrated *is* `default` and the
+    upstream migration behaves. The release buffer never needs them - production has no single
+    sign-on data to carry, and the public database's own identities are restored afterwards by
+    releases/public_accounts.py.
+
+    Only migrations are affected. Reads and writes are left unrouted, so the explicit
+    .using(...) calls throughout the release scripts work as they always have.
+    """
+
+    ALLAUTH_APPS = frozenset({'account', 'socialaccount'})
+
+    def allow_migrate(self, db, app_label, **hints):
+        if app_label in self.ALLAUTH_APPS and db != 'default':
+            return False
+        return None
+
+
+DATABASE_ROUTERS = [AllauthMigrationRouter()]
+
+# Opt-in safeguard for commands that must not write to production. Set ALYX_DEFAULT_READ_ONLY
+# on the docker exec that runs them; releases/01a_download_database.sh does this for the buffer
+# migration.
+#
+# It is needed because field defaults that query the database (Subject.species,
+# Dataset.dataset_type and friends) are evaluated against `default` regardless of which alias
+# `migrate --database` names, and three of them use get_or_create - so a cross-database migrate
+# can write to production without anyone intending it. This makes Postgres refuse the write,
+# turning a silent mistake into a loud failure. Same purpose as _enforce_default_read_only in
+# 01b_prune_public_db.py, but applied at connection setup, which a shell-invoked manage.py
+# command has no other way to reach.
+if os.getenv('ALYX_DEFAULT_READ_ONLY', '').lower() in ('true', '1', 't'):
+    _logger.warning('ALYX_DEFAULT_READ_ONLY set: the default database will refuse writes')
+    DATABASES['default'].setdefault('OPTIONS', {})['options'] = (
+        '-c default_transaction_read_only=on')
+
 # %% S3 access to write cache tables
 # the s3 access details are provided in the form of a JSON string. The variable looks like:
 # S3_ACCESS={"access_key":"xxxxx", "secret_key":"xxxxx", "region":"us-east-1"}
@@ -177,6 +223,17 @@ INSTALLED_APPS = (
     'jobs',
     'subjects',
     'drf_spectacular',
+    # django-allauth, so that `migrate --database public` creates its tables in the release
+    # buffer. openalyx enables single sign-on and therefore has these tables; production does
+    # not, so the copy the buffer is built from arrives without them and the migration is what
+    # puts them there before the buffer is dumped into the new openalyx database.
+    # This container never serves requests, so the apps are installed without SSO_ENABLED: no
+    # provider credentials are needed and no sign-in policy is active. AccountMiddleware is
+    # required all the same - allauth.account refuses to start without it.
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.orcid',
     'django_cleanup.apps.CleanupConfig',  # needs to be last in the list
 )
 
@@ -190,6 +247,7 @@ MIDDLEWARE = (
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'alyx.base.QueryPrintingMiddleware',
+    'allauth.account.middleware.AccountMiddleware',  # required by allauth.account
 )
 
 ROOT_URLCONF = 'alyx.urls'

@@ -2,3 +2,6 @@ google-api-python-client
 iblatlas
 oauth2client
 iblutil>=1.13
+# Installed so that `migrate --database public` can create the single sign-on tables
+# in the release buffer; openalyx has them, production does not. See docker/settings.py.
+django-allauth[socialaccount]
