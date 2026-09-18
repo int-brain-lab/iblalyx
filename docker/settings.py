@@ -75,36 +75,6 @@ DATABASES = {
     },
 }
 
-class AllauthMigrationRouter:
-    """Keep django-allauth's migrations off every database but `default`.
-
-    allauth's account.0006_emailaddress_lower is a data migration that queries through the
-    default manager without honouring schema_editor.connection.alias, so under
-    `migrate --database public` it runs its UPDATE against production instead of the buffer and
-    fails with "relation account_emailaddress does not exist". Nothing here can make that
-    migration target the right database, so it is kept out of the multi-database migrations
-    altogether.
-
-    openalyx still gets the tables: 02_upload_public_db.sh runs `migrate` on the openalyx
-    instance itself after the swap, where the database being migrated *is* `default` and the
-    upstream migration behaves. The release buffer never needs them - production has no single
-    sign-on data to carry, and the public database's own identities are restored afterwards by
-    releases/public_accounts.py.
-
-    Only migrations are affected. Reads and writes are left unrouted, so the explicit
-    .using(...) calls throughout the release scripts work as they always have.
-    """
-
-    ALLAUTH_APPS = frozenset({'account', 'socialaccount'})
-
-    def allow_migrate(self, db, app_label, **hints):
-        if app_label in self.ALLAUTH_APPS and db != 'default':
-            return False
-        return None
-
-
-DATABASE_ROUTERS = [AllauthMigrationRouter()]
-
 # Opt-in safeguard for commands that must not write to production. Set ALYX_DEFAULT_READ_ONLY
 # on the docker exec that runs them; releases/01a_download_database.sh does this for the buffer
 # migration.
@@ -227,6 +197,8 @@ INSTALLED_APPS = (
     # buffer. openalyx enables single sign-on and therefore has these tables; production does
     # not, so the copy the buffer is built from arrives without them and the migration is what
     # puts them there before the buffer is dumped into the new openalyx database.
+    # Needs allauth >= 65.19.3, whose data migrations honour the --database alias; earlier
+    # versions ran them against production.
     # This container never serves requests, so the apps are installed without SSO_ENABLED: no
     # provider credentials are needed and no sign-in policy is active. AccountMiddleware is
     # required all the same - allauth.account refuses to start without it.
