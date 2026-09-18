@@ -40,6 +40,9 @@ else
       -c "drop database \"$PREV_DB\";"
 fi
 
+echo "... removing exported openalyx account files (they hold password hashes and API tokens)"
+docker exec ibl_alyx_apache sh -c 'rm -f /home/iblalyx/releases/openalyx_accounts_*.json' || true
+
 # ... measuring local openalyx buffer volume size
 BUFFER_SIZE=$(docker system df -v | awk '/docker_openalyx_buffer_postgres/{print $NF}')
 
