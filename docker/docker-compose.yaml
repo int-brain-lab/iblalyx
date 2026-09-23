@@ -9,6 +9,7 @@ services:
       POSTGRES_USER: ${CORTEXLAB_BUFFER_DB_USER}
       POSTGRES_PASSWORD: ${CORTEXLAB_BUFFER_DB_PASSWORD}
       POSTGRES_DB: ${CORTEXLAB_BUFFER_DB_NAME}
+    restart: always
     # host has 3.8G total and no swap, so this is capped hard (see ibl_alyx_apache's limit
     # for why: an unbounded query once took the whole host down instead of just its container)
     mem_limit: 512m
@@ -26,6 +27,7 @@ services:
       POSTGRES_USER: ${OPENALYX_BUFFER_DB_USER}
       POSTGRES_PASSWORD: ${OPENALYX_BUFFER_DB_PASSWORD}
       POSTGRES_DB: ${OPENALYX_BUFFER_DB_NAME}
+    restart: always
     mem_limit: 1024m
     memswap_limit: 1024m
     volumes:
