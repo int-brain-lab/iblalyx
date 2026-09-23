@@ -27,7 +27,6 @@ services:
       POSTGRES_USER: ${OPENALYX_BUFFER_DB_USER}
       POSTGRES_PASSWORD: ${OPENALYX_BUFFER_DB_PASSWORD}
       POSTGRES_DB: ${OPENALYX_BUFFER_DB_NAME}
-    restart: always
     mem_limit: 1024m
     memswap_limit: 1024m
     volumes:
