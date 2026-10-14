@@ -1,5 +1,7 @@
 #!/bin/bash
 set -e
+# ../docker/.env and the other relative paths below are relative to this folder.
+cd "$(dirname "$0")"
 
 # This script prunes the buffer database (already populated by 01a_download_database.sh) down
 # to only the to-be-released information. 02_upload_public_db.sh dumps the result: once to back

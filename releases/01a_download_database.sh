@@ -1,5 +1,7 @@
 #!/bin/bash
 set -e
+# ../docker/.env and the other relative paths below are relative to this folder.
+cd "$(dirname "$0")"
 
 # This script populates the local openalyx buffer database (container openalyx_buffer_postgres)
 # with a copy of the production database, then migrates it.

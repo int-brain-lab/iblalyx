@@ -1,5 +1,7 @@
 #!/bin/bash
 set -e
+# ../docker/.env and the other relative paths below are relative to this folder.
+cd "$(dirname "$0")"
 # Checks that production alyx, openalyx and the local alyx checkout (the ibl_alyx_apache
 # container used by the rest of these releases/ scripts) are all on the same git commit,
 # and runs Django checks on local container databases.
