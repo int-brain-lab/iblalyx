@@ -1,5 +1,7 @@
 #!/bin/bash
 set -e
+# ../docker/.env and the other relative paths below are relative to this folder.
+cd "$(dirname "$0")"
 
 # Cleans up after a completed release:
 # - drops the dated "_prev_" database that 02_upload_public_db.sh's rename-swap leaves behind
@@ -14,6 +16,7 @@ set -e
 # Source env variables
 export $(grep -v '^#' ../docker/.env | xargs)
 export PGPASSWORD="$OPENALYX_DB_PASSWORD"
+: "${OPENALYX_DB_NAME:?not set, check ../docker/.env}" "${OPENALYX_DB_HOST:?not set, check ../docker/.env}"
 
 DATE="${1:-$(date +%Y-%m-%d)}"
 PREV_DB="${OPENALYX_DB_NAME}_prev_${DATE}"
@@ -39,6 +42,9 @@ else
       -c "select pg_terminate_backend(pid) from pg_stat_activity where datname = '$PREV_DB' and pid <> pg_backend_pid();" \
       -c "drop database \"$PREV_DB\";"
 fi
+
+echo "... removing exported openalyx account files (they hold password hashes and API tokens)"
+docker exec ibl_alyx_apache sh -c 'rm -f /tmp/openalyx_accounts_*.json' || true
 
 # ... measuring local openalyx buffer volume size
 BUFFER_SIZE=$(docker system df -v | awk '/docker_openalyx_buffer_postgres/{print $NF}')

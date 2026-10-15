@@ -1,5 +1,7 @@
 #!/bin/bash
 set -e
+# ../docker/.env and the other relative paths below are relative to this folder.
+cd "$(dirname "$0")"
 
 # This script populates the local openalyx buffer database (container openalyx_buffer_postgres)
 # with a copy of the production database, then migrates it.
@@ -40,6 +42,10 @@ else
 fi
 
 echo "... running migrations"
-docker exec -i ibl_alyx_apache bash -c "python /var/www/alyx/alyx/manage.py migrate --database public"
+# ALYX_DEFAULT_READ_ONLY holds production read-only for the duration: nothing in a
+# migration of the buffer should write to it, and a field default that queries the
+# database would do so silently otherwise (see docker/settings.py).
+docker exec -i -e ALYX_DEFAULT_READ_ONLY=1 ibl_alyx_apache \
+  bash -c "python /var/www/alyx/alyx/manage.py migrate --database public"
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') Finished populating buffer database"

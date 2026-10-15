@@ -61,7 +61,35 @@ DATABASES = {
         'HOST': os.getenv('OPENALYX_BUFFER_DB_HOST', 'openalyx_buffer_postgres'),
         'PORT': os.getenv('OPENALYX_BUFFER_DB_PORT', '5432'),
     },
+    "openalyx": {  # the live openalyx RDS, i.e. the released database members of the public use
+        # Used by releases/public_accounts.py to carry self-registered accounts across a
+        # release. NAME is read from the environment on purpose: 02_upload_public_db.sh builds
+        # the release into <name>_next and swaps it in, so the import step points this alias at
+        # the staged database by overriding OPENALYX_DB_NAME on the docker exec.
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': os.getenv('OPENALYX_DB_NAME', 'openalyx'),
+        'USER': os.getenv('OPENALYX_DB_USER', ''),
+        'PASSWORD': os.getenv('OPENALYX_DB_PASSWORD', ''),
+        'HOST': os.getenv('OPENALYX_DB_HOST', ''),
+        'PORT': os.getenv('OPENALYX_DB_PORT', '5432'),
+    },
 }
+
+# Opt-in safeguard for commands that must not write to production. Set ALYX_DEFAULT_READ_ONLY
+# on the docker exec that runs them; releases/01a_download_database.sh does this for the buffer
+# migration.
+#
+# It is needed because field defaults that query the database (Subject.species,
+# Dataset.dataset_type and friends) are evaluated against `default` regardless of which alias
+# `migrate --database` names, and three of them use get_or_create - so a cross-database migrate
+# can write to production without anyone intending it. This makes Postgres refuse the write,
+# turning a silent mistake into a loud failure. Same purpose as _enforce_default_read_only in
+# 01b_prune_public_db.py, but applied at connection setup, which a shell-invoked manage.py
+# command has no other way to reach.
+if os.getenv('ALYX_DEFAULT_READ_ONLY', '').lower() in ('true', '1', 't'):
+    _logger.warning('ALYX_DEFAULT_READ_ONLY set: the default database will refuse writes')
+    DATABASES['default'].setdefault('OPTIONS', {})['options'] = (
+        '-c default_transaction_read_only=on')
 
 # %% S3 access to write cache tables
 # the s3 access details are provided in the form of a JSON string. The variable looks like:
@@ -166,6 +194,19 @@ INSTALLED_APPS = (
     'jobs',
     'subjects',
     'drf_spectacular',
+    # django-allauth, so that `migrate --database public` creates its tables in the release
+    # buffer. openalyx enables single sign-on and therefore has these tables; production does
+    # not, so the copy the buffer is built from arrives without them and the migration is what
+    # puts them there before the buffer is dumped into the new openalyx database.
+    # Needs allauth >= 65.19.3, whose data migrations honour the --database alias; earlier
+    # versions ran them against production.
+    # This container never serves requests, so the apps are installed without SSO_ENABLED: no
+    # provider credentials are needed and no sign-in policy is active. AccountMiddleware is
+    # required all the same - allauth.account refuses to start without it.
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.orcid',
     'django_cleanup.apps.CleanupConfig',  # needs to be last in the list
 )
 
@@ -179,6 +220,7 @@ MIDDLEWARE = (
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'alyx.base.QueryPrintingMiddleware',
+    'allauth.account.middleware.AccountMiddleware',  # required by allauth.account
 )
 
 ROOT_URLCONF = 'alyx.urls'

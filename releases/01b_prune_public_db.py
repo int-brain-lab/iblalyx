@@ -20,15 +20,21 @@ from pathlib import Path
 
 import django
 
-if __name__ == '__main__' and not os.environ.get('DJANGO_SETTINGS_MODULE'):
+if __name__ == '__main__':
+    # setdefault already leaves an existing DJANGO_SETTINGS_MODULE alone, so there is no need
+    # to guard on it - and guarding on it means that where the environment does define one
+    # (as a container running alyx generally will) django.setup() never runs and every model
+    # import below fails with AppRegistryNotReady.
     sys.path.insert(0, '.')
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'alyx.settings')
     django.setup()
 
 import pandas as pd
 import tqdm
+from django.db import connections
 from django.db.backends.signals import connection_created
 from django.db.models import Q
+from django.apps import apps as django_apps
 from django.contrib.auth.models import Group
 
 from misc.models import LabMember, Lab, LabMembership, LabLocation, Note, CageType, \
@@ -187,6 +193,10 @@ lab_members = LabMember.objects.using('public').filter(
 LabMember.objects.using('public').exclude(pk__in=lab_members).delete()
 
 # Anonymize remaining lab members and build dict for replace names elsewhere
+# These records are kept only so that the sessions and datasets attributed to them stay
+# queryable; they hold no usable credentials. They are recreated by every release, so
+# releases/public_accounts.py does not preserve them - it carries over the is_public_user
+# accounts, which are the ones that exist only on openalyx.
 anon_dict = {}
 for lm in lab_members:
     if lm.username == 'root':
@@ -206,13 +216,54 @@ for lm in lab_members:
     except (AssertionError, LabMember.auth_token.RelatedObjectDoesNotExist):
         pass
     lm.save()
-# Create public user
+
+# root is skipped by the loop above so that it stays a usable administrator login, but it
+# arrives here carrying production's password hash and API token. Neither should travel into a
+# database this widely copied, so scrub them: openalyx's root password is set on the instance
+# itself, not inherited from production.
+for lm in LabMember.objects.using('public').filter(username='root'):
+    lm.password = ''
+    lm.email = ''
+    try:
+        lm.auth_token.delete()
+    except (AssertionError, LabMember.auth_token.RelatedObjectDoesNotExist):
+        pass
+    lm.save()
+
+# Purge single sign-on identity records inherited from production. These arrive in the copy
+# only if production has SSO enabled, but when they do they are exactly the identifying
+# information this script exists to remove: a SocialAccount ties a named person to their ORCID
+# iD, and an EmailAddress to their address. openalyx's own identities are restored afterwards
+# by releases/public_accounts.py, from the live public database rather than from production.
+_public_tables = connections['public'].introspection.table_names()
+for _label in ('socialaccount.SocialToken', 'socialaccount.SocialAccount',
+               'socialaccount.SocialApp', 'account.EmailConfirmation', 'account.EmailAddress'):
+    try:
+        _model = django_apps.get_model(_label)
+    except LookupError:
+        continue  # allauth not installed here; nothing of this kind to purge
+    if _model._meta.db_table not in _public_tables:
+        continue  # production has no single sign-on data, so the copy has no such table
+    _n = _model.objects.using('public').all().delete()[0]
+    print(f"...purged {_n} {_label} record(s) inherited from production")
+
+# Create the shared read-only login
+# The 'Public users' group carries view permissions only and comes across in the copy of
+# production, where `manage.py set_public_permissions` defines it. Writes are refused for
+# is_public_user accounts anyway, but the group is what keeps other people's accounts out of
+# the admin, so a missing one is worth stopping for rather than quietly producing a release in
+# which the shared login can enumerate registered users.
+public_group = Group.objects.using('public').filter(name='Public users').first()
+if public_group is None:
+    raise RuntimeError(
+        "No 'Public users' group found. Run `manage.py set_public_permissions` against "
+        "production, then rebuild the buffer, so the group is included in the copy.")
 public_user = LabMember.objects.using('public').create(username='intbrainlab',
                                                        is_active=True,
                                                        is_staff=True,
                                                        is_public_user=True)
 public_user.set_password('international')
-public_user.groups.add(Group.objects.using('public').filter(name='Lab members')[0])
+public_user.groups.add(public_group)
 public_user.save()
 
 print("...pruning probe insertions")

@@ -1,5 +1,7 @@
 #!/bin/bash
 set -e
+# ../docker/.env and the other relative paths below are relative to this folder.
+cd "$(dirname "$0")"
 
 # This script uploads the pruned buffer database to the real openalyx RDS using a rename-swap:
 # it builds the release into a fresh database, then swaps it in for the live database by
@@ -18,6 +20,7 @@ export $(grep -v '^#' ../docker/.env | xargs)
 # psql looks for PGPASSWORD specifically, not OPENALYX_DB_PASSWORD - without this it prompts
 # interactively and fails non-interactively with "no password supplied".
 export PGPASSWORD="$OPENALYX_DB_PASSWORD"
+: "${OPENALYX_DB_NAME:?not set, check ../docker/.env}" "${OPENALYX_DB_HOST:?not set, check ../docker/.env}"
 
 NEW_DB="${OPENALYX_DB_NAME}_next"
 PREV_DB="${OPENALYX_DB_NAME}_prev_$(date +%Y-%m-%d)"
@@ -39,8 +42,24 @@ echo "... loading pruned buffer database into $NEW_DB"
 docker exec openalyx_buffer_postgres pg_dump -cOx -U "$OPENALYX_BUFFER_DB_USER" -d "$OPENALYX_BUFFER_DB_NAME" \
 | psql -q -U "$OPENALYX_DB_USER" -h "$OPENALYX_DB_HOST" -p "$OPENALYX_DB_PORT" -d "$NEW_DB"
 
+# Accounts that exist only on openalyx - public users who registered at /signup or signed in
+# through ORCID, intbrainlab - live in the database the swap below is about to replace. Carry
+# them over. The maintenance trigger goes on first so that nobody can register between the
+# export and the swap, which is the only window in which a registration could be lost.
 echo "... setting maintenance trigger on openalyx EC2"
 ssh -o BatchMode=yes -o ConnectTimeout=10 openalyx "docker exec alyx_apache touch /var/www/alyx/maintenance.trigger"
+
+# The container's /tmp, not /home/iblalyx: that is this git checkout, bind-mounted.
+ACCOUNTS_FILE="/tmp/openalyx_accounts_$(date +%F).json"
+echo "... exporting openalyx accounts from the live database"
+docker exec ibl_alyx_apache python /home/iblalyx/releases/public_accounts.py export \
+  --output "$ACCOUNTS_FILE"
+
+# Checked against the staged database while the swap is still undone, so that a collision or a
+# missing group can be dealt with without the site having changed underneath anyone.
+echo "... checking the export against $NEW_DB"
+docker exec -e OPENALYX_DB_NAME="$NEW_DB" ibl_alyx_apache \
+  python /home/iblalyx/releases/public_accounts.py import --input "$ACCOUNTS_FILE" --dry-run
 
 echo "... swapping $NEW_DB in for $OPENALYX_DB_NAME (previous kept as $PREV_DB)"
 psql -q -U "$OPENALYX_DB_USER" -h "$OPENALYX_DB_HOST" -p "$OPENALYX_DB_PORT" -d postgres <<SQL
@@ -49,7 +68,50 @@ alter database "$OPENALYX_DB_NAME" rename to "$PREV_DB";
 alter database "$NEW_DB" rename to "$OPENALYX_DB_NAME";
 SQL
 
+# The single sign-on tables are not in the release: production has no such data to copy, and
+# allauth's account.0006 data migration cannot be applied to a non-default database (see the
+# router in iblalyx/docker/settings.py). openalyx creates them itself, where the database being
+# migrated is its own default and that migration behaves. This has to happen before the
+# accounts are restored, since some of them carry an ORCID identity.
+echo "... migrating openalyx (creates the single sign-on tables in the new database)"
+ssh -o BatchMode=yes -o ConnectTimeout=10 openalyx \
+  "docker exec alyx_apache python /var/www/alyx/alyx/manage.py migrate --noinput"
+
+echo "... restoring openalyx accounts into the swapped-in database"
+docker exec ibl_alyx_apache \
+  python /home/iblalyx/releases/public_accounts.py import --input "$ACCOUNTS_FILE"
+
+# The previous database still holds every account as it was before the swap, so the counts must
+# match. On a mismatch openalyx stays in maintenance: rename $PREV_DB back to roll back.
+echo "... checking public and single sign-on accounts against $PREV_DB"
+count() {  # count <database> <table> [where clause]; 0 if the table does not exist
+  local q="select count(*) from $2 ${3:-}"
+  local exists
+  exists=$(psql -q -t -A -U "$OPENALYX_DB_USER" -h "$OPENALYX_DB_HOST" -p "$OPENALYX_DB_PORT" -d "$1" \
+    -c "select to_regclass('public.$2') is not null;") || return 1
+  if [ "$exists" = "t" ]; then
+    psql -q -t -A -U "$OPENALYX_DB_USER" -h "$OPENALYX_DB_HOST" -p "$OPENALYX_DB_PORT" -d "$1" -c "$q"
+  else
+    echo 0
+  fi
+}
+MISMATCH=0
+for check in "misc_labmember|where is_public_user" "socialaccount_socialaccount|" "account_emailaddress|"; do
+  table="${check%%|*}"; where="${check#*|}"
+  # A failed count must stop the script, not read as 0 and match another failed count.
+  before=$(count "$PREV_DB" "$table" "$where") || { echo "Could not count $table in $PREV_DB" >&2; exit 1; }
+  after=$(count "$OPENALYX_DB_NAME" "$table" "$where") || { echo "Could not count $table in $OPENALYX_DB_NAME" >&2; exit 1; }
+  echo "    $table: $before before, $after after"
+  [ "$before" = "$after" ] || MISMATCH=1
+done
+if [ "$MISMATCH" = 1 ]; then
+  echo "ACCOUNT COUNTS DIFFER - openalyx left in maintenance. Investigate before going live." >&2
+  exit 1
+fi
+
 echo "$(date '+%Y-%m-%d %H:%M:%S') Finished uploading database to openalyx RDS"
 echo "... removing maintenance trigger on openalyx EC2"
 ssh -o BatchMode=yes -o ConnectTimeout=10 openalyx "docker exec alyx_apache rm /var/www/alyx/maintenance.trigger"
 echo "Previous database kept as $PREV_DB — drop it manually once you've confirmed the release looks correct."
+echo "Exported accounts kept at $ACCOUNTS_FILE (inside ibl_alyx_apache) — it holds password"
+echo "hashes and API tokens, so delete it once the release is confirmed. 04_cleanup.sh does that."
