@@ -1,0 +1,95 @@
+"""Report on, compact and expire the client usage records.
+
+    manage.py client_usage report [--days 30] [--account intbrainlab]
+    manage.py client_usage purge [--keep-days 400]
+
+`purge` is meant to run daily: it turns each ended day's shared-account fingerprints into a
+count of distinct callers and deletes them, then deletes records older than --keep-days.
+"""
+import datetime
+from collections import defaultdict
+
+from django.conf import settings
+from django.core.management.base import BaseCommand
+from django.db import transaction
+from django.db.models import Count, Sum
+
+from client_usage.middleware import flush
+from client_usage.models import ClientFingerprint, ClientUsage
+from client_usage.router import usage_database
+
+
+class Command(BaseCommand):
+    help = 'Report on, compact and expire client usage records.'
+
+    def add_arguments(self, parser):
+        sub = parser.add_subparsers(dest='action', required=True)
+        report = sub.add_parser('report', help='summarise usage over recent days')
+        report.add_argument('--days', type=int, default=30)
+        report.add_argument('--account', help='only this username')
+        purge = sub.add_parser('purge', help='compact ended days and expire old records')
+        purge.add_argument('--keep-days', type=int,
+                           default=getattr(settings, 'CLIENT_USAGE_RETENTION_DAYS', 400))
+
+    def handle(self, *args, action=None, **options):
+        flush()  # include this process's own buffered counts, if any
+        if action == 'report':
+            self.report(options['days'], options.get('account'))
+        else:
+            self.purge(options['keep_days'])
+
+    def report(self, days, account=None):
+        since = datetime.date.today() - datetime.timedelta(days=days - 1)
+        usage = ClientUsage.objects.using(usage_database()).filter(date__gte=since)
+        if account:
+            usage = usage.filter(username=account)
+        self.stdout.write(f'Since {since} ({days} days){f" for {account}" if account else ""}')
+        rows = (usage.values('client', 'version')
+                .annotate(accounts=Count('user_id', distinct=True), requests=Sum('requests'))
+                .order_by('client', '-requests'))
+        self.stdout.write(f'{"client":<16} {"version":<12} {"accounts":>8} {"requests":>10}')
+        for r in rows:
+            self.stdout.write(f'{r["client"]:<16} {r["version"] or "-":<12} '
+                              f'{r["accounts"]:>8} {r["requests"]:>10}')
+
+        shared = getattr(settings, 'CLIENT_USAGE_SHARED_ACCOUNTS', ())
+        for username in shared if not account else [a for a in shared if a == account]:
+            callers = self._distinct_callers(usage.filter(username=username), since)
+            if not callers:
+                continue
+            self.stdout.write(f'\nDistinct callers per day of shared account {username}')
+            self.stdout.write(f'{"client":<16} {"version":<12} {"days":>5} {"mean":>6} {"max":>5}')
+            for (client, version), per_day in sorted(callers.items()):
+                counts = list(per_day.values())
+                self.stdout.write(f'{client:<16} {version or "-":<12} {len(counts):>5} '
+                                  f'{sum(counts) / len(counts):>6.1f} {max(counts):>5}')
+
+    @staticmethod
+    def _distinct_callers(usage, since):
+        """{(client, version): {date: callers}} from compacted days plus unended ones."""
+        callers = defaultdict(dict)
+        for r in usage.exclude(distinct_clients=None):
+            callers[(r.client, r.version)][r.date] = r.distinct_clients
+        live = (ClientFingerprint.objects.using(usage_database())
+                .filter(user_id__in=usage.values_list('user_id', flat=True), date__gte=since)
+                .values('date', 'client', 'version').annotate(n=Count('fingerprint')))
+        for r in live:
+            callers[(r['client'], r['version'])][r['date']] = r['n']
+        return callers
+
+    def purge(self, keep_days):
+        db = usage_database()
+        today = datetime.date.today()
+        ended = ClientFingerprint.objects.using(db).filter(date__lt=today)
+        groups = ended.values('date', 'user_id', 'client', 'version').annotate(
+            n=Count('fingerprint'))
+        with transaction.atomic(using=db):
+            for g in groups:
+                ClientUsage.objects.using(db).filter(
+                    date=g['date'], user_id=g['user_id'], client=g['client'],
+                    version=g['version']).update(distinct_clients=g['n'])
+            compacted = ended.delete()[0]
+            cutoff = today - datetime.timedelta(days=keep_days)
+            expired = ClientUsage.objects.using(db).filter(date__lt=cutoff).delete()[0]
+        self.stdout.write(f'Compacted {compacted} fingerprint(s) into {len(groups)} count(s); '
+                          f'deleted {expired} record(s) from before {cutoff}.')

@@ -374,4 +374,10 @@ GenotypeTest.objects.using('public').all().delete()
 
 # jobs
 Task.objects.using('public').all().delete()
+
+# Client usage records (iblalyx/client_usage), if production keeps them, never go public. The app
+# is not installed here, so its tables are dropped by name.
+with connections['public'].cursor() as cursor:
+    cursor.execute('DROP TABLE IF EXISTS client_usage_clientusage, client_usage_clientfingerprint')
+    cursor.execute("DELETE FROM django_migrations WHERE app = 'client_usage'")
 print("Finished pruning database\n")

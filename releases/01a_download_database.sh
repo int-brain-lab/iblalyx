@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-# ../docker/.env and the other relative paths below are relative to this folder.
+# Relative paths below are relative to this folder.
 cd "$(dirname "$0")"
 
 # This script populates the local openalyx buffer database (container openalyx_buffer_postgres)
@@ -12,7 +12,8 @@ cd "$(dirname "$0")"
 # Nothing is written to disk — both sources are piped straight into the buffer container.
 
 # Source env variables
-export $(grep -v '^#' ../docker/.env | xargs)
+ENV_FILE="${ALYX_ENV_FILE:-/home/ubuntu/app/.env}"  # the mbox deployment's, see iblsre/alyx/hosts/mbox
+export $(grep -v '^#' "$ENV_FILE" | xargs)
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') Beginning to populate buffer database"
 
@@ -44,7 +45,7 @@ fi
 echo "... running migrations"
 # ALYX_DEFAULT_READ_ONLY holds production read-only for the duration: nothing in a
 # migration of the buffer should write to it, and a field default that queries the
-# database would do so silently otherwise (see docker/settings.py).
+# database would do so silently otherwise (see iblsre/alyx/hosts/mbox/settings_lab.py).
 docker exec -i -e ALYX_DEFAULT_READ_ONLY=1 ibl_alyx_apache \
   bash -c "python /var/www/alyx/alyx/manage.py migrate --database public"
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-# ../docker/.env and the other relative paths below are relative to this folder.
+# Relative paths below are relative to this folder.
 cd "$(dirname "$0")"
 
 # This script prunes the buffer database (already populated by 01a_download_database.sh) down
@@ -12,7 +12,8 @@ cd "$(dirname "$0")"
 # * Record the output of this script in a log file (and submit these logs to github for the record later)
 
 # Source env variables
-export $(grep -v '^#' ../docker/.env | xargs)
+ENV_FILE="${ALYX_ENV_FILE:-/home/ubuntu/app/.env}"  # the mbox deployment's, see iblsre/alyx/hosts/mbox
+export $(grep -v '^#' "$ENV_FILE" | xargs)
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') Beginning to prune buffer database"
 
