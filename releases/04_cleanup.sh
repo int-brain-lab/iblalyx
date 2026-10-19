@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-# ../docker/.env and the other relative paths below are relative to this folder.
+# Relative paths below are relative to this folder.
 cd "$(dirname "$0")"
 
 # Cleans up after a completed release:
@@ -14,9 +14,10 @@ cd "$(dirname "$0")"
 # Defaults to today's date (the date 02_upload_public_db.sh's swap ran on, if run same-day).
 
 # Source env variables
-export $(grep -v '^#' ../docker/.env | xargs)
+ENV_FILE="${ALYX_ENV_FILE:-/home/ubuntu/app/.env}"  # the mbox deployment's, see iblsre/alyx/hosts/mbox
+export $(grep -v '^#' "$ENV_FILE" | xargs)
 export PGPASSWORD="$OPENALYX_DB_PASSWORD"
-: "${OPENALYX_DB_NAME:?not set, check ../docker/.env}" "${OPENALYX_DB_HOST:?not set, check ../docker/.env}"
+: "${OPENALYX_DB_NAME:?not set, check $ENV_FILE}" "${OPENALYX_DB_HOST:?not set, check $ENV_FILE}"
 
 DATE="${1:-$(date +%Y-%m-%d)}"
 PREV_DB="${OPENALYX_DB_NAME}_prev_${DATE}"
@@ -50,11 +51,11 @@ docker exec ibl_alyx_apache sh -c 'rm -f /tmp/openalyx_accounts_*.json' || true
 BUFFER_SIZE=$(docker system df -v | awk '/docker_openalyx_buffer_postgres/{print $NF}')
 
 echo "... dropping local openalyx buffer (container + volume) to free disk"
-docker compose -f ../docker/docker-compose.yaml rm --stop --force openalyx_buffer_postgres
+(cd /home/ubuntu/app && docker compose rm --stop --force openalyx_buffer_postgres)
 docker volume rm docker_openalyx_buffer_postgres
 echo "... freed ${BUFFER_SIZE:-an unknown amount of} disk space"
 
 echo "... recreating empty openalyx buffer, ready for the next release"
-docker compose -f ../docker/docker-compose.yaml up -d openalyx_buffer_postgres
+(cd /home/ubuntu/app && docker compose up -d openalyx_buffer_postgres)
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') Finished cleanup"

@@ -3,7 +3,7 @@ iblatlas
 oauth2client
 iblutil>=1.13
 # Installed so that `migrate --database public` can create the single sign-on tables
-# in the release buffer; openalyx has them, production does not. See docker/settings.py.
+# in the release buffer; openalyx has them, production does not. See iblsre/alyx/hosts/mbox/settings_lab.py.
 # 65.19.3 is the floor, not a preference: before it, allauth's data migrations ignored the
 # --database alias and ran against production instead of the buffer.
 django-allauth[socialaccount]>=65.19.3

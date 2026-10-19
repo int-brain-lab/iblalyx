@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-# ../docker/.env and the other relative paths below are relative to this folder.
+# Relative paths below are relative to this folder.
 cd "$(dirname "$0")"
 # Checks that production alyx, openalyx and the local alyx checkout (the ibl_alyx_apache
 # container used by the rest of these releases/ scripts) are all on the same git commit,
@@ -12,7 +12,8 @@ ALYX_REPO_PATH=/var/www/alyx/alyx
 echo "... checking local environment (db access)"
 
 # load environment variables from.env
-export $(grep -v '^#' ../docker/.env | xargs)
+ENV_FILE="${ALYX_ENV_FILE:-/home/ubuntu/app/.env}"  # the mbox deployment's, see iblsre/alyx/hosts/mbox
+export $(grep -v '^#' "$ENV_FILE" | xargs)
 
 # check the postgres connection for remote public databases
 pg_isready -d $OPENALYX_DB_NAME -h $OPENALYX_DB_HOST -p $OPENALYX_DB_PORT -U $OPENALYX_DB_USER

@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-# ../docker/.env and the other relative paths below are relative to this folder.
+# Relative paths below are relative to this folder.
 cd "$(dirname "$0")"
 
 # This script uploads the pruned buffer database to the real openalyx RDS using a rename-swap:
@@ -12,15 +12,16 @@ cd "$(dirname "$0")"
 # Consult the Alyx playbook before running this, as it requires some careful setup. Minimally:
 # * Make sure you have ssh access to the openalyx EC2 instance to set the maintenance trigger (see the playbook) —
 #   this script does that for you.
-# * Make sure you have the password for the postgres user on the openalyx RDS instance (iblalyx/docker/.env).
+# * Make sure you have the password for the postgres user on the openalyx RDS instance (~/app/.env).
 # * Record the output of this script in a log file and submit these logs to github for the record.
 
 # Source env variables
-export $(grep -v '^#' ../docker/.env | xargs)
+ENV_FILE="${ALYX_ENV_FILE:-/home/ubuntu/app/.env}"  # the mbox deployment's, see iblsre/alyx/hosts/mbox
+export $(grep -v '^#' "$ENV_FILE" | xargs)
 # psql looks for PGPASSWORD specifically, not OPENALYX_DB_PASSWORD - without this it prompts
 # interactively and fails non-interactively with "no password supplied".
 export PGPASSWORD="$OPENALYX_DB_PASSWORD"
-: "${OPENALYX_DB_NAME:?not set, check ../docker/.env}" "${OPENALYX_DB_HOST:?not set, check ../docker/.env}"
+: "${OPENALYX_DB_NAME:?not set, check $ENV_FILE}" "${OPENALYX_DB_HOST:?not set, check $ENV_FILE}"
 
 NEW_DB="${OPENALYX_DB_NAME}_next"
 PREV_DB="${OPENALYX_DB_NAME}_prev_$(date +%Y-%m-%d)"
@@ -69,10 +70,10 @@ alter database "$NEW_DB" rename to "$OPENALYX_DB_NAME";
 SQL
 
 # The single sign-on tables are not in the release: production has no such data to copy, and
-# allauth's account.0006 data migration cannot be applied to a non-default database (see the
-# router in iblalyx/docker/settings.py). openalyx creates them itself, where the database being
-# migrated is its own default and that migration behaves. This has to happen before the
-# accounts are restored, since some of them carry an ORCID identity.
+# allauth's account.0006 data migration cannot be applied to a non-default database. openalyx
+# creates them itself, where the database being migrated is its own default and that migration
+# behaves. This has to happen before the accounts are restored, since some of them carry an
+# ORCID identity.
 echo "... migrating openalyx (creates the single sign-on tables in the new database)"
 ssh -o BatchMode=yes -o ConnectTimeout=10 openalyx \
   "docker exec alyx_apache python /var/www/alyx/alyx/manage.py migrate --noinput"
