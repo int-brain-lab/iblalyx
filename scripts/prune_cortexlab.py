@@ -5,6 +5,7 @@ import json
 import django
 from pathlib import Path
 from collections import defaultdict
+from contextlib import contextmanager
 
 if __name__ == '__main__' and not os.environ.get('DJANGO_SETTINGS_MODULE'):
     sys.path.insert(0, '.')
@@ -14,6 +15,8 @@ if __name__ == '__main__' and not os.environ.get('DJANGO_SETTINGS_MODULE'):
 import numpy as np
 
 from django.core.management import call_command
+from django.db import connections, transaction
+from django.db.backends.signals import connection_created
 from django.db.models import CharField, Q
 from django.db.models.functions import Concat
 from django.contrib.contenttypes.models import ContentType
@@ -29,6 +32,40 @@ from alyx.base import flatten
 CORTEX_LAB_PK = '4027da48-7be3-43ec-a222-f75dffe36872'
 
 
+def _enforce_default_read_only(sender, connection, **kwargs):
+    """Safeguard: production is read-only except within `production_writes()`, so a query that
+    should have used('cortexlab') fails loudly instead of silently writing to production."""
+    if connection.alias == 'default':
+        with connection.cursor() as cursor:
+            cursor.execute('SET default_transaction_read_only = ON;')
+
+
+connection_created.connect(_enforce_default_read_only)
+# the signal only covers new connections, e.g. not one already opened by `manage.py shell`
+if connections['default'].connection is not None:
+    _enforce_default_read_only(None, connections['default'])
+
+
+@contextmanager
+def production_writes():
+    """Run the block in one read-write transaction on the production (default) database."""
+    with transaction.atomic(using='default'):
+        with connections['default'].cursor() as cursor:
+            # must be the transaction's first statement; lapses back to read-only on exit
+            cursor.execute('SET TRANSACTION READ WRITE;')
+        yield
+
+def delete_in_batches(model, pks, using='cortexlab', batch_size=5000):
+    """Delete model records by primary key in batches.
+
+    A single queryset delete over most of the database builds cascade queries with hundreds of
+    thousands of pks, which OOM-kills the memory-capped buffer postgres or this process.
+    """
+    pks = list(pks)
+    for i in range(0, len(pks), batch_size):
+        model.objects.using(using).filter(pk__in=pks[i:i + batch_size]).delete()
+
+
 def fcn_import_projects(ses_ucl):
     """
     This manually imports the relatively simple projects model from the UCL database
@@ -41,24 +78,25 @@ def fcn_import_projects(ses_ucl):
 
     for pk in pk_projs_ucl:
         ucl_project = Project.objects.using('cortexlab').get(pk=pk)
-        # this is the equivalent of get_or_create with specifying the PK
-        alyx_project = Project.objects.using('default').filter(pk=pk)
-        if len(alyx_project) == 0:
-            Project(pk=ucl_project.pk).save(using='default')
-        alyx_project = Project.objects.using('default').get(pk=pk)
-        # here we set the project fields according to UCL one by one
-        alyx_project.name = ucl_project.name
-        alyx_project.description = ucl_project.description
-        alyx_project.json = ucl_project.json
-        ucl_users = set(ucl_project.users.all().values_list('pk', flat=True))
-        alyx_users = set(alyx_project.users.all().values_list('pk', flat=True))
-        # here we intervene only if there are users in UCL that are not in the IBL project
-        if len(ucl_users - alyx_users) > 0:
-            # here we make sure we have the intersection of users in the IBL database
-            for pk_user in alyx_users - ucl_users:
-                # create a dummy user with the IBL pk to maintain the relation
-                alyx_project.users.add(LabMember.objects.using('default').get(pk=pk_user))
-        alyx_project.save()
+        with production_writes():
+            # this is the equivalent of get_or_create with specifying the PK
+            alyx_project = Project.objects.using('default').filter(pk=pk)
+            if len(alyx_project) == 0:
+                Project(pk=ucl_project.pk).save(using='default')
+            alyx_project = Project.objects.using('default').get(pk=pk)
+            # here we set the project fields according to UCL one by one
+            alyx_project.name = ucl_project.name
+            alyx_project.description = ucl_project.description
+            alyx_project.json = ucl_project.json
+            ucl_users = set(ucl_project.users.all().values_list('pk', flat=True))
+            alyx_users = set(alyx_project.users.all().values_list('pk', flat=True))
+            # here we intervene only if there are users in UCL that are not in the IBL project
+            if len(ucl_users - alyx_users) > 0:
+                # here we make sure we have the intersection of users in the IBL database
+                for pk_user in alyx_users - ucl_users:
+                    # create a dummy user with the IBL pk to maintain the relation
+                    alyx_project.users.add(LabMember.objects.using('default').get(pk=pk_user))
+            alyx_project.save()
 
     # any project that is not associated with a selected session nor in the IBL projects is removed from UCL
     Project.objects.using('cortexlab').exclude(pk__in=pk_projs_ibl + pk_projs_ucl).delete()
@@ -72,7 +110,9 @@ def prune():
     sub_ibl = list(ses.values_list('subject', flat=True))
     sub_ibl += list(Subject.objects.values_list('pk', flat=True))
     sub_ibl += list(Subject.objects.using('cortexlab').filter(ibl_proj).values_list('pk', flat=True))
-    Subject.objects.using('cortexlab').exclude(pk__in=sub_ibl).delete()
+    # small batches as each subject cascades to all of its sessions and datasets
+    delete_in_batches(Subject, Subject.objects.using('cortexlab').exclude(pk__in=sub_ibl)
+                      .values_list('pk', flat=True), batch_size=20)
 
     # then remove base Sessions
     Session.objects.using('cortexlab').filter(type='Base').delete()
@@ -81,7 +121,8 @@ def prune():
     SubjectRequest.objects.using('cortexlab').all().delete()
 
     # remove all sessions that are not part of IBL project
-    Session.objects.using('cortexlab').exclude(ibl_proj).delete()
+    delete_in_batches(Session, Session.objects.using('cortexlab').exclude(ibl_proj)
+                      .values_list('pk', flat=True), batch_size=200)
 
     # also if cortexlab sessions have been removed on the server, remove them
     ses_ucl = Session.objects.using('cortexlab').all().values_list('pk', flat=True)
@@ -89,7 +130,8 @@ def prune():
         .exclude(pk__in=list(ses_ucl))
     # but keep histology sessions
     ses_loc2remove = ses_loc2remove.exclude(task_protocol__startswith='SWC_Histology_Serial2P')
-    ses_loc2remove.delete()
+    with production_writes():
+        ses_loc2remove.delete()
 
     # the sessions should also have the cortexlab lab field properly labeled before import
     if Lab.objects.using('cortexlab').filter(name='cortexlab').count() == 0:
@@ -106,14 +148,16 @@ def prune():
 
     # we want to make sure that no other dataset type than those defined in IBL are imported
     dtypes = [dt[0] for dt in DatasetType.objects.all().values_list('name')]
-    Dataset.objects.using('cortexlab').exclude(dataset_type__name__in=dtypes).delete()
+    delete_in_batches(Dataset, Dataset.objects.using('cortexlab').exclude(dataset_type__name__in=dtypes)
+                      .values_list('pk', flat=True))
     Dataset.objects.using('cortexlab').filter(dataset_type__name='Unknown').delete()
     Dataset.objects.using('cortexlab').filter(dataset_type__name='unknown').delete()
 
     # we want to make sure that no other file record than the ones in already existing repositories
     # are imported
     repos = list(DataRepository.objects.all().values_list('pk', flat=True))
-    FileRecord.objects.using('cortexlab').exclude(data_repository__in=repos).delete()
+    delete_in_batches(FileRecord, FileRecord.objects.using('cortexlab').exclude(data_repository__in=repos)
+                      .values_list('pk', flat=True))
     DataRepository.objects.using('cortexlab').exclude(pk__in=repos).delete()
 
     # here we handle the projects
@@ -159,7 +203,8 @@ def prune():
                 t = traj_c.__dict__.copy()
                 t.pop('_state')
                 t['probe_insertion_id'] = pi_ibl.id
-                TrajectoryEstimate.objects.create(**t)
+                with production_writes():
+                    TrajectoryEstimate.objects.create(**t)
         pi_cortexlab.delete()
 
     """
@@ -194,7 +239,8 @@ def prune():
     for dup in duplicates:
         # Get the full dataset entry from the ibl database and delete
         dset = ibl_datasets.get(session=dup[0], collection=dup[1], name=dup[2], revision=dup[3])
-        dset.delete()
+        with production_writes():
+            dset.delete()
 
     """
     Sync the datasets 3/3. Set(IBL) intersection Set(Cortexlab)
@@ -227,7 +273,8 @@ def prune():
     # this is the set of pks for which there is a md5 mismatch - for all the others, do not import
     # anything by deleting many datasets from the cortexlab database
     dpk = [s[0] for s in set(cqs).difference(set(iqs))]
-    Dataset.objects.using('cortexlab').exclude(pk__in=set_cortex_lab_only.union(dpk)).delete()
+    # pks computed here rather than with exclude(pk__in=...), which sends a huge NOT IN to postgres
+    delete_in_batches(Dataset, cds_pk.difference(set_cortex_lab_only, dpk))
 
 
     dfields = ('pk', 'hash', 'auto_datetime')
@@ -271,7 +318,8 @@ def prune():
 
     # For the datasets that will imported from UCL, set the file record status on IBL alyx for all file records to exist=False
     # to re-initiate the file transfer
-    FileRecord.objects.filter(dataset__in=pk2import).update(exists=False, json=None)
+    with production_writes():
+        FileRecord.objects.filter(dataset__in=pk2import).update(exists=False, json=None)
 
     """
     Sync the tasks 1/2: For DLC tasks there might be duplicates, as we sometimes run them as batch on
@@ -309,7 +357,8 @@ def prune():
     pk_del_cortex = list(np.array(dlc_cortex.values_list('pk', flat=True))[keep_ibl])
     pk_del_ibl = list(np.array(dlc_ibl.values_list('pk', flat=True))[keep_cortex])
     Task.objects.using('cortexlab').filter(pk__in=pk_del_cortex, name__in=task_names_to_check).delete()
-    Task.objects.filter(pk__in=pk_del_ibl, name__in=task_names_to_check).delete()
+    with production_writes():
+        Task.objects.filter(pk__in=pk_del_ibl, name__in=task_names_to_check).delete()
 
     """
     Sync the tasks 2/2: For all other tasks, make sure there are no duplicate tasks with different ids
@@ -351,7 +400,8 @@ def prune():
     # delete the duplicates
     for dup in duplicates:
         ts = task_ibl.get(id=dup[0], name=dup[1], session=dup[2])
-        ts.delete()
+        with production_writes():
+            ts.delete()
 
     """
     Sync the notes. When a note is updated (in the behaviour criteria tracking) it is deleted and
@@ -395,14 +445,17 @@ def fix_content_type_ids(fixture):
     for key, value in content_type_mapping_cortexlab.items():
         if key in content_type_mapping_ibl:
             content_type_mapping[value] = content_type_mapping_ibl[key]
-        else:
-            print(f"ERROR: ContentType {key} not found in IBL database. This will cause issues during fixture loading.")
 
     # Update content_type_id for each object with a GenericForeignKey
+    cortexlab_content_types = {v: k for k, v in content_type_mapping_cortexlab.items()}
     for obj in data:
         old_id = obj['fields'].get('content_type')
         if old_id is not None:
-            obj['fields']['content_type'] = content_type_mapping.get(obj['fields']['content_type'], -1)
+            # only unmapped types that are referenced matter, e.g. not those of apps installed on mbox only
+            if old_id not in content_type_mapping:
+                print(f"ERROR: ContentType {cortexlab_content_types.get(old_id, old_id)} of {obj['model']} "
+                      f"{obj['pk']} not found in IBL database. This will cause issues during fixture loading.")
+            obj['fields']['content_type'] = content_type_mapping.get(old_id, -1)
 
     # Save the updated fixture back to disk
     with open(fixture, 'w') as f:
@@ -458,21 +511,22 @@ if __name__ == '__main__':
         ibl_users[(active, staff)].append(user)
 
     # Load into IBL (default) database
-    # NB: This is not an atomic operation. If something fails during loaddata,
-    # the database may be left in a partially updated state.
-    call_command('loaddata', json_file_out, database='default')
-    
+    with production_writes():
+        call_command('loaddata', json_file_out, database='default')
+
     # Post import steps
-    # set the cortex lab json field health report
-    (Lab.objects
-     .filter(name='cortexlab')
-     .update(json=Lab.objects.using('cortexlab').get(name='cortexlab').json)
-    )
+    # NB: These are not atomic with the loaddata above. If one fails, the import stays loaded.
+    lab_json = Lab.objects.using('cortexlab').get(name='cortexlab').json
+    with production_writes():
+        # set the cortex lab json field health report
+        Lab.objects.filter(name='cortexlab').update(json=lab_json)
     # set reverse fk probeinsertion --> dataset
     for pi in ProbeInsertion.objects.filter(session__lab__name='cortexlab'):
-        pi.save()
+        with production_writes():
+            pi.save()
     # Some IBL users are inactive on the cortexlab database, we want to make sure they are active on the IBL database
     # Group by active and staff status to minimize the number of queries
-    for (is_active, is_staff), user_list in ibl_users.items():
-        users = LabMember.objects.filter(username__in=user_list)
-        users.update(is_active=is_active, is_staff=is_staff)
+    with production_writes():
+        for (is_active, is_staff), user_list in ibl_users.items():
+            users = LabMember.objects.filter(username__in=user_list)
+            users.update(is_active=is_active, is_staff=is_staff)
