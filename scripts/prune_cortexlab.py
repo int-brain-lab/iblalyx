@@ -445,14 +445,17 @@ def fix_content_type_ids(fixture):
     for key, value in content_type_mapping_cortexlab.items():
         if key in content_type_mapping_ibl:
             content_type_mapping[value] = content_type_mapping_ibl[key]
-        else:
-            print(f"ERROR: ContentType {key} not found in IBL database. This will cause issues during fixture loading.")
 
     # Update content_type_id for each object with a GenericForeignKey
+    cortexlab_content_types = {v: k for k, v in content_type_mapping_cortexlab.items()}
     for obj in data:
         old_id = obj['fields'].get('content_type')
         if old_id is not None:
-            obj['fields']['content_type'] = content_type_mapping.get(obj['fields']['content_type'], -1)
+            # only unmapped types that are referenced matter, e.g. not those of apps installed on mbox only
+            if old_id not in content_type_mapping:
+                print(f"ERROR: ContentType {cortexlab_content_types.get(old_id, old_id)} of {obj['model']} "
+                      f"{obj['pk']} not found in IBL database. This will cause issues during fixture loading.")
+            obj['fields']['content_type'] = content_type_mapping.get(old_id, -1)
 
     # Save the updated fixture back to disk
     with open(fixture, 'w') as f:
