@@ -29,6 +29,17 @@ from alyx.base import flatten
 CORTEX_LAB_PK = '4027da48-7be3-43ec-a222-f75dffe36872'
 
 
+def delete_in_batches(model, pks, using='cortexlab', batch_size=5000):
+    """Delete model records by primary key in batches.
+
+    A single queryset delete over most of the database builds cascade queries with hundreds of
+    thousands of pks, which OOM-kills the memory-capped buffer postgres or this process.
+    """
+    pks = list(pks)
+    for i in range(0, len(pks), batch_size):
+        model.objects.using(using).filter(pk__in=pks[i:i + batch_size]).delete()
+
+
 def fcn_import_projects(ses_ucl):
     """
     This manually imports the relatively simple projects model from the UCL database
@@ -72,7 +83,9 @@ def prune():
     sub_ibl = list(ses.values_list('subject', flat=True))
     sub_ibl += list(Subject.objects.values_list('pk', flat=True))
     sub_ibl += list(Subject.objects.using('cortexlab').filter(ibl_proj).values_list('pk', flat=True))
-    Subject.objects.using('cortexlab').exclude(pk__in=sub_ibl).delete()
+    # small batches as each subject cascades to all of its sessions and datasets
+    delete_in_batches(Subject, Subject.objects.using('cortexlab').exclude(pk__in=sub_ibl)
+                      .values_list('pk', flat=True), batch_size=20)
 
     # then remove base Sessions
     Session.objects.using('cortexlab').filter(type='Base').delete()
@@ -81,7 +94,8 @@ def prune():
     SubjectRequest.objects.using('cortexlab').all().delete()
 
     # remove all sessions that are not part of IBL project
-    Session.objects.using('cortexlab').exclude(ibl_proj).delete()
+    delete_in_batches(Session, Session.objects.using('cortexlab').exclude(ibl_proj)
+                      .values_list('pk', flat=True), batch_size=200)
 
     # also if cortexlab sessions have been removed on the server, remove them
     ses_ucl = Session.objects.using('cortexlab').all().values_list('pk', flat=True)
@@ -106,14 +120,16 @@ def prune():
 
     # we want to make sure that no other dataset type than those defined in IBL are imported
     dtypes = [dt[0] for dt in DatasetType.objects.all().values_list('name')]
-    Dataset.objects.using('cortexlab').exclude(dataset_type__name__in=dtypes).delete()
+    delete_in_batches(Dataset, Dataset.objects.using('cortexlab').exclude(dataset_type__name__in=dtypes)
+                      .values_list('pk', flat=True))
     Dataset.objects.using('cortexlab').filter(dataset_type__name='Unknown').delete()
     Dataset.objects.using('cortexlab').filter(dataset_type__name='unknown').delete()
 
     # we want to make sure that no other file record than the ones in already existing repositories
     # are imported
     repos = list(DataRepository.objects.all().values_list('pk', flat=True))
-    FileRecord.objects.using('cortexlab').exclude(data_repository__in=repos).delete()
+    delete_in_batches(FileRecord, FileRecord.objects.using('cortexlab').exclude(data_repository__in=repos)
+                      .values_list('pk', flat=True))
     DataRepository.objects.using('cortexlab').exclude(pk__in=repos).delete()
 
     # here we handle the projects
@@ -227,7 +243,8 @@ def prune():
     # this is the set of pks for which there is a md5 mismatch - for all the others, do not import
     # anything by deleting many datasets from the cortexlab database
     dpk = [s[0] for s in set(cqs).difference(set(iqs))]
-    Dataset.objects.using('cortexlab').exclude(pk__in=set_cortex_lab_only.union(dpk)).delete()
+    # pks computed here rather than with exclude(pk__in=...), which sends a huge NOT IN to postgres
+    delete_in_batches(Dataset, cds_pk.difference(set_cortex_lab_only, dpk))
 
 
     dfields = ('pk', 'hash', 'auto_datetime')
