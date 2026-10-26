@@ -24,7 +24,7 @@ from django.contrib.contenttypes.models import ContentType
 from subjects.models import Subject, Project, SubjectRequest
 from actions.models import Session, Surgery, NotificationRule, Notification
 from misc.models import Lab, LabMember, LabLocation, Note
-from data.models import Dataset, DatasetType, DataRepository, FileRecord
+from data.models import Dataset, DatasetType, DataRepository, FileRecord, DataNotice
 from experiments.models import ProbeInsertion, TrajectoryEstimate
 from jobs.models import Task
 from alyx.base import flatten
@@ -153,6 +153,15 @@ def prune():
     Dataset.objects.using('cortexlab').filter(dataset_type__name='Unknown').delete()
     Dataset.objects.using('cortexlab').filter(dataset_type__name='unknown').delete()
 
+    # remove data notices that no longer concern any IBL dataset
+    DataNotice.objects.using('cortexlab').filter(datasets__isnull=True).delete()
+    # the unchanged datasets are pruned from the fixture below, which would unlink them from
+    # their notices on load, so record the links to restore after import
+    notice_datasets = defaultdict(list)
+    through = DataNotice.datasets.through.objects.using('cortexlab')
+    for notice, dataset in through.values_list('datanotice', 'dataset'):
+        notice_datasets[notice].append(dataset)
+
     # we want to make sure that no other file record than the ones in already existing repositories
     # are imported
     repos = list(DataRepository.objects.all().values_list('pk', flat=True))
@@ -177,6 +186,8 @@ def prune():
     users_to_keep = Subject.objects.using('cortexlab').values_list('responsible_user', flat=True)
     users_to_leave = users_to_leave.exclude(pk__in=users_to_keep)
     users_to_keep = Surgery.objects.using('cortexlab').values_list('users', flat=True)
+    users_to_leave = users_to_leave.exclude(pk__in=users_to_keep)
+    users_to_keep = DataNotice.objects.using('cortexlab').values_list('created_by', flat=True)
     users_to_leave = users_to_leave.exclude(pk__in=users_to_keep)
     users_to_leave.delete()
 
@@ -417,6 +428,8 @@ def prune():
     #             .filter(object_id__in=Subject.objects.filter(lab=CORTEX_LAB_PK)))
     # ibl_notes.exclude(pk__in=list(ucl_notes.values_list('pk', flat=True))).count()
 
+    return notice_datasets
+
 
 def fix_content_type_ids(fixture):
     """
@@ -464,7 +477,7 @@ def fix_content_type_ids(fixture):
 
 if __name__ == '__main__':
     # Remove all non-IBL data from cortexlab database
-    prune()
+    notice_datasets = prune()
     """
     Export all the pruned cortexlab database as JSON so it can be loaded back into the IBL one
     those are the init fixtures that could have different names depending on the location
@@ -524,6 +537,10 @@ if __name__ == '__main__':
     for pi in ProbeInsertion.objects.filter(session__lab__name='cortexlab'):
         with production_writes():
             pi.save()
+    # relink data notices to the datasets pruned from the fixture, ignoring any that were deleted
+    with production_writes():
+        for notice in DataNotice.objects.filter(pk__in=notice_datasets):
+            notice.datasets.add(*Dataset.objects.filter(pk__in=notice_datasets[notice.pk]))
     # Some IBL users are inactive on the cortexlab database, we want to make sure they are active on the IBL database
     # Group by active and staff status to minimize the number of queries
     with production_writes():
