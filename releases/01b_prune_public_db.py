@@ -376,8 +376,13 @@ GenotypeTest.objects.using('public').all().delete()
 Task.objects.using('public').all().delete()
 
 # Client usage records (iblalyx/client_usage), if production keeps them, never go public. The app
-# is not installed here, so its tables are dropped by name.
+# is not installed here, so its tables are found by name - all of them, so that a table added by
+# a later migration cannot slip through. CASCADE takes the Grafana views built on them
+# (iblsre/alyx/sql/usage_reader.sql).
 with connections['public'].cursor() as cursor:
-    cursor.execute('DROP TABLE IF EXISTS client_usage_clientusage, client_usage_clientfingerprint')
+    cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'public' "
+                   "AND tablename LIKE 'client\\_usage\\_%'")
+    for (table,) in cursor.fetchall():
+        cursor.execute(f'DROP TABLE IF EXISTS "{table}" CASCADE')
     cursor.execute("DELETE FROM django_migrations WHERE app = 'client_usage'")
 print("Finished pruning database\n")
