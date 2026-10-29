@@ -46,3 +46,24 @@ class ClientFingerprint(models.Model):
         constraints = [models.UniqueConstraint(
             fields=('date', 'user_id', 'client', 'version', 'fingerprint'),
             name='client_fingerprint_unique')]
+
+
+class Signups(models.Model):
+    """Accounts that joined on one day, counted once the day has ended.
+
+    Recorded by `manage.py client_usage purge` from the accounts' join dates, and never revised:
+    an account deleted later still counts on the day it joined. Shared accounts are left out,
+    as a data release recreates them with a new join date.
+    """
+
+    date = models.DateField()
+    #: Self-registered public accounts, as opposed to accounts made by an administrator.
+    public = models.BooleanField()
+    accounts = models.PositiveIntegerField()
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=('date', 'public'), name='client_usage_signups_unique_day')]
+
+    def __str__(self):
+        return f'{self.date} {"public" if self.public else "other"}: {self.accounts}'

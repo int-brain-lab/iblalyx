@@ -5,6 +5,9 @@ authenticated requests: ONE and its version, other HTTP libraries, or a browser.
 attach a notice to every response sent to a given account, and estimate how many distinct
 callers share an account such as `intbrainlab`.
 
+It also records the number of accounts that joined each day (`Signups`), public and otherwise,
+once the day has ended.
+
 Only daily aggregates are stored. For accounts listed as shared, a keyed per-day hash of each
 caller's address and User-Agent is kept until that day is compacted (`client_usage purge`),
 then reduced to a count. Raw addresses and User-Agent strings are never stored.
@@ -64,7 +67,7 @@ then `manage.py migrate client_usage --database usage`.
 
 ```shell
 manage.py client_usage report [--days 30] [--account intbrainlab]
-manage.py client_usage purge [--keep-days 400]  # run daily, e.g. from cron
+manage.py client_usage purge [--keep-days 400]  # run daily, e.g. from cron; also records signups
 ```
 
 ## Tests

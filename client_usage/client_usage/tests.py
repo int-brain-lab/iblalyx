@@ -10,7 +10,7 @@ from rest_framework.authtoken.models import Token
 from client_usage.classify import classify
 from client_usage import middleware
 from client_usage.middleware import NOTICE_HEADER
-from client_usage.models import ClientFingerprint, ClientUsage
+from client_usage.models import ClientFingerprint, ClientUsage, Signups
 from client_usage.router import ClientUsageRouter
 
 
@@ -97,6 +97,50 @@ class TestRecording(TestCase):
         ClientUsage.objects.update(date=datetime.date.today() - datetime.timedelta(days=500))
         call_command('client_usage', 'purge', '--keep-days', '400', stdout=StringIO())
         self.assertFalse(ClientUsage.objects.exists())
+
+
+@override_settings(CLIENT_USAGE_SHARED_ACCOUNTS=('shared',))
+class TestSignups(TestCase):
+
+    def setUp(self):
+        self.today = datetime.date.today()
+        User = get_user_model()
+        self.days_ago = lambda n: datetime.datetime.combine(
+            self.today - datetime.timedelta(days=n), datetime.time(12))
+        User.objects.create_user('a', date_joined=self.days_ago(2), is_public_user=True)
+        User.objects.create_user('b', date_joined=self.days_ago(2), is_public_user=True)
+        User.objects.create_user('c', date_joined=self.days_ago(2))
+        User.objects.create_user('d', date_joined=self.days_ago(0), is_public_user=True)
+        # Recreated at every data release, so must not count as a signup.
+        User.objects.create_user('shared', date_joined=self.days_ago(1), is_public_user=True)
+
+    def _counts(self, days_ago):
+        day = self.today - datetime.timedelta(days=days_ago)
+        return {r.public: r.accounts for r in Signups.objects.filter(date=day)}
+
+    def test_ended_days_are_recorded_once_with_zeros(self):
+        call_command('client_usage', 'purge', stdout=StringIO())
+        self.assertEqual({True: 2, False: 1}, self._counts(2))
+        self.assertEqual({True: 0, False: 0}, self._counts(1), 'shared accounts not counted')
+        self.assertEqual({}, self._counts(0), 'today has not ended')
+        # The first run starts from the earliest account.
+        self.assertEqual(self.today - datetime.timedelta(days=2),
+                         Signups.objects.order_by('date').first().date)
+
+        # Deleting an account later does not rewrite a recorded day.
+        get_user_model().objects.filter(username='a').delete()
+        call_command('client_usage', 'purge', stdout=StringIO())
+        self.assertEqual({True: 2, False: 1}, self._counts(2))
+
+    def test_only_new_days_are_added(self):
+        call_command('client_usage', 'purge', stdout=StringIO())
+        n = Signups.objects.count()
+        call_command('client_usage', 'purge', stdout=StringIO())
+        self.assertEqual(n, Signups.objects.count())
+
+        out = StringIO()
+        call_command('client_usage', 'report', '--days', '7', stdout=out)
+        self.assertIn('Signups (ended days only): 2 public, 1 other', out.getvalue())
 
 
 class TestRouter(SimpleTestCase):
