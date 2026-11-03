@@ -376,9 +376,9 @@ def fix_extra_column_entries(df):
     pandas Dataframe
         The dataframe with fixed columns
     """
-    probs = df[df[24].str.endswith('.amazonaws.com')]  # Host_Header column
+    probs = df[df[24].str.contains('.amazonaws.com', regex=False, na=False)]  # Host_Header column
     if probs.empty:
-        assert df[23].str.endswith('.amazonaws.com').all()
+        assert df[23].str.contains('.amazonaws.com', regex=False, na=False).all()
         # Most columns are correct, just drop the last, extra column
         df = df.drop(columns=[27])
     else:
@@ -426,7 +426,7 @@ def column_qc(df):
         'Error_Code': lambda col: col.isin(common_errors),
         'Bytes_Sent': lambda col: pd.to_numeric(col, errors='coerce').notna(),
         'Object_Size': lambda col: pd.to_numeric(col, errors='coerce').notna(),
-        'Total_Time': lambda col: pd.to_numeric(col, errors='coerce').notna() | col == '-',
+        'Total_Time': lambda col: pd.to_numeric(col, errors='coerce').notna() | (col == '-'),
         'Turn_Around_Time': lambda col: pd.to_numeric(col, errors='coerce').notna() | col.str.match(r'^-$', na=False),
         'Referrer': lambda col: col.str.startswith('http') | col.str.match(r'^-$', na=False),
         'User_Agent': lambda col: col.str.contains('/'),  # e.g. Boto3, Safari, curl, etc. separated by slashes
