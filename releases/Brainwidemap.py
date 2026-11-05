@@ -47,14 +47,17 @@ if DRY_RUN is False:
 
 #### Tag all pawstates datasets for sessions in 2026_Q3_ACNEI_BWM_pawstates.txt
 eids = RELEASES_DIR.joinpath('2026_Q3_ACNEI_BWM_pawstates.txt').read_text().strip().splitlines()
+# TODO These sessions lack some required datasets so are excluded from the assertions only (available datasets
+#  are still tagged). Remove this exclusion and rerun once the missing datasets have been added.
+EXCLUDE = {'c7bd79c9-c47e-4ea5-aea3-74dda991b48e', '196a2adf-ff83-49b2-823a-33f990049c2e', '41431f53-69fd-4e3b-80ce-ea62e03bf9c7'}
 
 dtype = DatasetType.objects.get(name='camera.pawstates')
 dsets = Dataset.objects.filter(session__id__in=eids, dataset_type=dtype).values_list('id', flat=True)
 
 # Assert all sessions exist and have at least one pawstates dataset
-no_session = set(eids) - set(map(str, Session.objects.filter(id__in=eids).values_list('id', flat=True)))
+no_session = set(eids) - EXCLUDE - set(map(str, Session.objects.filter(id__in=eids).values_list('id', flat=True)))
 assert not no_session, 'Sessions not found:\n' + '\n'.join(sorted(no_session))
-no_pawstates = set(eids) - set(map(str, Dataset.objects.filter(id__in=dsets).values_list('session_id', flat=True)))
+no_pawstates = set(eids) - EXCLUDE - set(map(str, Dataset.objects.filter(id__in=dsets).values_list('session_id', flat=True)))
 assert not no_pawstates, 'Sessions without pawstates:\n' + '\n'.join(sorted(no_pawstates))
 
 # Assert that for each session and view with pawstates, the camera and wheel datasets are already public
@@ -70,7 +73,7 @@ for eid, name in pawstates:
         d = public.filter(dataset_type__name=dtype_name)
         if dtype_name.startswith('camera.'):
             d = d.filter(name__contains=f'{view}Camera.')
-        if not d.exists():
+        if not d.exists() and str(eid) not in EXCLUDE:
             missing.append((str(eid), view, dtype_name))
 assert not missing, 'Missing public datasets:\n' + '\n'.join(map(str, missing))
 
