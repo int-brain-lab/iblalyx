@@ -15,7 +15,7 @@ all datasets in the new public database. This public folder will then be synchro
 
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import django
@@ -208,7 +208,8 @@ for lm in lab_members:
     lm.username = str(lm.id)[:8]
     lm.first_name = ''
     lm.last_name = ''
-    lm.date_joined = datetime.now()
+    # Fixed, not now(): openalyx's client_usage counts signups by join day, and these aren't signups.
+    lm.date_joined = datetime(2018, 1, 1, tzinfo=timezone.utc)
     lm.last_login = datetime.now()
     lm.password = ''
     try:

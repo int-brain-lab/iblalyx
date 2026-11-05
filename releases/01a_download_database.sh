@@ -11,9 +11,11 @@ cd "$(dirname "$0")"
 #   recent data. Adds load/time to production at whatever moment you run this.
 # Nothing is written to disk — both sources are piped straight into the buffer container.
 
-# Source env variables
+# Source env variables. A DUMP_SOURCE given by the caller wins over the one in .env.
+CALLER_DUMP_SOURCE="${DUMP_SOURCE:-}"
 ENV_FILE="${ALYX_ENV_FILE:-/home/ubuntu/app/.env}"  # the mbox deployment's, see iblsre/alyx/hosts/mbox
 export $(grep -v '^#' "$ENV_FILE" | xargs)
+DUMP_SOURCE="${CALLER_DUMP_SOURCE:-$DUMP_SOURCE}"
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') Beginning to populate buffer database"
 
