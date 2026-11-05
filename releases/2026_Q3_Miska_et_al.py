@@ -21,22 +21,21 @@ if __name__ == '__main__' and not os.environ.get('DJANGO_SETTINGS_MODULE'):
 
 from django.db.models import Q
 from actions.models import Session
-from data.models import Dataset, Tag
+from data.models import Dataset, Tag, DataNotice
 from experiments.models import ProbeInsertion
 
 import alyx.base
 
-RELEASES_DIR = Path(__file__).resolve().parent
-IBL_ALYX_ROOT = RELEASES_DIR.parent
-# if not IBL_ALYX_ROOT.exists():
-#     IBL_ALYX_ROOT = Path('/home/iblalyx')
-#     RELEASES_DIR = IBL_ALYX_ROOT.joinpath('releases')
-assert IBL_ALYX_ROOT.exists(), 'No IBL_ALYX_ROOT found, it is usually at the same directory level as the alyx repo'
+# NB: under `manage.py shell` __file__ is that of manage.py
+candidates = (Path(globals().get('__file__', '.')).resolve().parents[2], Path('/home/iblalyx'))
+IBL_ALYX_ROOT = next((p for p in candidates if p.joinpath('releases', 'utils.py').exists()), None)
+assert IBL_ALYX_ROOT, 'No IBL_ALYX_ROOT found, it is usually at the same directory level as the alyx repo'
 sys.path.append(str(IBL_ALYX_ROOT.parent))
 import iblalyx.releases.utils
 
 DRY_RUN = True
 TAG_NAME = '2026_Q3_Miska_et_al'
+RELEASES_DIR = IBL_ALYX_ROOT.joinpath('releases')
 PROPOSED_DATASETS = RELEASES_DIR.joinpath('2026_Q3_Miska_et_al_proposed_datasets.csv')
 
 # Session-level datasets, released for every session in the proposed datasets
@@ -90,9 +89,23 @@ for pid, eid, probe_name in df_pids[['pid', 'eid', 'probe_name']].itertuples(ind
     dsets = Dataset.objects.filter(
         session=eid, default_dataset=True, dataset_type__name__in=EPHYS_DTYPES, collection__in=collections)
     df = pd.DataFrame(dsets.values_list(*columns), columns=columns).astype(str)
-    matched.append(df.assign(request='ephys'))
+    matched.append(df.assign(request='ephys', pid=pid))
 
 df_matched = pd.concat(matched, ignore_index=True).rename(columns={'session': 'eid'}).drop_duplicates('id')
+
+# %% Check all insertions have resolved alignments and histology, except those with a missing alignments notice
+notice = DataNotice.objects.get(name='Missing histology probe alignments')
+no_histology = set(map(str, notice.datasets.values_list('session', flat=True).distinct()))
+df_check = df_pids[~df_pids['eid'].isin(no_histology)]
+print(f'Checking histology of {len(df_check)} insertions ({len(df_pids) - len(df_check)} excluded by data notice)')
+resolved = ProbeInsertion.objects.filter(id__in=df_check['pid'], json__extended_qc__alignment_resolved=True)
+unresolved = set(df_check['pid']) - set(map(str, resolved.values_list('id', flat=True)))
+assert not unresolved, f'{len(unresolved)} insertions without resolved alignments: {sorted(unresolved)}'
+# Dataset names without extension are the dataset type names, e.g. electrodeSites.mlapdv
+df_histology = df_matched[df_matched['name'].str.rsplit('.', n=1).str[0].isin(iblalyx.releases.utils.DTYPES_RELEASE_HISTOLOGY)]
+n_histology = df_histology.groupby('pid')['name'].nunique().reindex(df_check['pid'], fill_value=0)
+incomplete = n_histology[n_histology < len(iblalyx.releases.utils.DTYPES_RELEASE_HISTOLOGY)]
+assert incomplete.empty, f'{len(incomplete)} insertions missing histology datasets:\n{incomplete}'
 
 # %% Compare with the proposed datasets
 proposed_ids, matched_ids = set(df_proposed['dataset_id']), set(df_matched['id'])
