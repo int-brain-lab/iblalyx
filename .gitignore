@@ -6,3 +6,4 @@
 /deploy/environment.env
 /deploy/.env.dev
 /deploy/alyx_ec2_bootstrap_install.log
+releases/logs

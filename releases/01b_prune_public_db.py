@@ -102,18 +102,22 @@ print(f"\nStarting to prune public database")
 print("...pruning datasets")
 datasets_to_del = Dataset.objects.using('public').all()
 for fname, tag_id in zip(public_ds_files, public_ds_tags):
-    dataset_ids = pd.read_parquet(IBLALYX_ROOT.joinpath('releases', fname))['dataset_id']
+    dataset_ids = list(pd.read_parquet(IBLALYX_ROOT.joinpath('releases', fname))['dataset_id'])
+    datasets = Dataset.objects.using('public').filter(pk__in=dataset_ids)
     tag = Tag.objects.using('public').filter(id=tag_id)
     if len(tag) != 0:
-        datasets = Dataset.objects.using('public').filter(pk__in=list(dataset_ids))
         if set(tag[0].datasets.values_list('pk', flat=True)) != set(datasets.values_list('pk', flat=True)):
             print(f"{fname} mismatched tags !")
     else:
         print(f"{fname} missing tag !")
-    datasets_to_del = datasets_to_del.exclude(pk__in=list(dataset_ids))
+    if n_private := datasets.exclude(tags__public=True).count():
+        print(f"{fname}: {n_private} datasets have no public tag and will not be released !")
+    datasets_to_del = datasets_to_del.exclude(pk__in=dataset_ids)
 
 # Now delete datasets (cascades to millions of FileRecords - see delete_in_batches above)
 delete_in_batches(datasets_to_del, Dataset, force=True)
+# Only datasets with at least one public tag are released, whatever the release files list
+delete_in_batches(Dataset.objects.using('public').exclude(tags__public=True), Dataset, force=True)
 datasets = Dataset.objects.using('public').all()
 
 # Delete tags that aren't in the list above (released datasets might have additional, not-yet-released tags)
