@@ -8,12 +8,14 @@ import pickle
 from urllib.request import urlopen
 from ipaddress import IPv4Address, IPv6Address
 import json
+import csv
 import time
 
 import pandas as pd
 import numpy as np
 import pyarrow as pa
 import boto3
+from botocore.config import Config
 from botocore.exceptions import ClientError
 from one.alf.path import get_session_path
 from itertools import zip_longest
@@ -70,7 +72,8 @@ def week_of_month(dt):
     return week_number, (start, end)
 
 
-def consolidate_logs(boto_session=None, date='last_month', ipinfo_token=None, profile_name='miles'):
+def consolidate_logs(boto_session=None, date='last_month', ipinfo_token=None, profile_name='miles',
+                     max_workers=64):
     """
     Download last month's log files, upload as parquet table to S3 and delete individual log files.
 
@@ -93,6 +96,8 @@ def consolidate_logs(boto_session=None, date='last_month', ipinfo_token=None, pr
         An API token for using with the ipinfo API to query IP address location.
     profile_name: str
         The profile name of the boto s3 credentials
+    max_workers : int
+        The number of concurrent log file downloads.
 
     Returns
     -------
@@ -100,7 +105,14 @@ def consolidate_logs(boto_session=None, date='last_month', ipinfo_token=None, pr
         The downloaded logs.
     str
         The URI of the uploaded parquet table.
+
+    Notes
+    -----
+    Each run appends a 'started' row to RUN_LOG_FILENAME (in LOCAL_LOG_LOCATION) and, when it
+    ends, a 'succeeded', 'no_logs' or 'failed' row (with the stage reached and the error).  A
+    'started' row with no matching end row means the process was killed (e.g. out of memory).
     """
+    mode = str(date)
     today = datetime.utcnow()
     if date == 'this_month':
         partial = True
@@ -125,8 +137,66 @@ def consolidate_logs(boto_session=None, date='last_month', ipinfo_token=None, pr
         end = (start.replace(day=monthrange(start.year, start.month)[1]) +
                timedelta(hours=23, minutes=59, seconds=59, milliseconds=999))
 
+    # Local folder for downloaded partial / IP tables, temporary upload files and the run log
+    s3io.LOCAL_LOG_LOCATION.mkdir(parents=True, exist_ok=True)
+
+    run = {'mode': mode, 'month': start.strftime('%Y-%m'), 'stage': 'starting'}
+    _log_run('started', run)
+    t0 = time.monotonic()
+    try:
+        session = boto_session or boto3.Session(profile_name=profile_name)
+        df, url = _consolidate_month(start, end, partial, session, ipinfo_token, max_workers, run)
+    except BaseException as ex:  # includes KeyboardInterrupt and MemoryError
+        run['duration_s'] = round(time.monotonic() - t0)
+        run['error'] = f'{type(ex).__name__}: {ex}'.replace('\n', ' ')[:500]
+        _log_run('failed', run)
+        raise
+    run['duration_s'] = round(time.monotonic() - t0)
+    _log_run('succeeded' if url else 'no_logs', run)
+    return df, url
+
+
+RUN_LOG_FILENAME = 'consolidation_runs.csv'
+RUN_LOG_FIELDS = ('time', 'status', 'mode', 'month', 'stage', 'n_files', 'raw_bytes', 'n_rows',
+                  'output', 'duration_s', 'error')
+
+
+def _log_run(status, run, log_file=None):
+    """
+    Append a row to the consolidation run log (CSV).
+
+    Parameters
+    ----------
+    status : str
+        One of 'started', 'succeeded', 'no_logs' or 'failed'.
+    run : dict
+        Run details; keys not in RUN_LOG_FIELDS are ignored.
+    log_file : str, pathlib.Path, optional
+        The log file path. Defaults to LOCAL_LOG_LOCATION / RUN_LOG_FILENAME.
+    """
+    log_file = Path(log_file or s3io.LOCAL_LOG_LOCATION / RUN_LOG_FILENAME)
+    row = {**run, 'time': datetime.utcnow().isoformat(timespec='seconds'), 'status': status}
+    try:
+        new_file = not log_file.exists()
+        with log_file.open('a', newline='') as file:
+            writer = csv.DictWriter(file, fieldnames=RUN_LOG_FIELDS, extrasaction='ignore')
+            if new_file:
+                writer.writeheader()
+            writer.writerow(row)
+    except OSError as ex:  # never let the run log stop a consolidation (e.g. disk full)
+        warnings.warn(f'Failed to write run log {log_file}: {ex}')
+
+
+def _consolidate_month(start, end, partial, session, ipinfo_token, max_workers, run):
+    """
+    Consolidate the logs between start and end (see consolidate_logs).
+
+    The run dict is updated in place with the current stage, file count, raw size, row count
+    and output location, for the run log.
+    """
+    start_date = start.date()
+    run['stage'] = 'checking'
     # Check for parquet file on S3
-    session = boto_session or boto3.Session(profile_name=profile_name)
     dst_bucket_name = 'ibl-brain-wide-map-private'
     s3 = session.resource('s3')
     bucket = s3.Bucket(name=dst_bucket_name)
@@ -136,21 +206,28 @@ def consolidate_logs(boto_session=None, date='last_month', ipinfo_token=None, pr
     assert next(iter(consolidated), False) is False, \
         'logs already consolidated for ' + start.strftime('%B')
 
-    print(f'Reading remote logs for {start.strftime("%B")}' + (' so far' if partial else ''))
-    try:
-        df = s3io.read_remote_logs(date_range=(start, end), log_location=s3io.REMOTE_LOG_LOCATION, s3_bucket=bucket)
-    except pd.errors.ParserError as ex:
-        # pandas.errors.ParserError: Error tokenizing data. C error: Expected 26 fields in line 2, saw 27
-        warnings.warn(f'{ex}\n')
-        df = s3io.read_remote_logs_robust(date_range=(start, end), log_location=s3io.REMOTE_LOG_LOCATION,
-                                          s3_bucket=bucket)
+    run['stage'] = 'listing'
+    print(f'Listing remote logs for {start.strftime("%B")}' + (' so far' if partial else ''))
+    # NB: These keys are the ones deleted after upload, ensuring we never delete unconsolidated logs
+    log_keys, log_sizes = s3io.list_log_keys(
+        s3io.REMOTE_LOG_LOCATION, date_range=(start, end), s3_bucket=bucket, return_sizes=True)
+    total_size = sum(log_sizes)
+    run.update(stage='downloading', n_files=len(log_keys), raw_bytes=total_size)
+    print(f'Reading {len(log_keys):,d} remote log files ({total_size / 1024 ** 3:.2f} GiB raw; '
+          f'expect a peak memory of roughly {8 * total_size / 1024 ** 3:.0f}-'
+          f'{12 * total_size / 1024 ** 3:.0f} GiB)')
+    client = session.client('s3', config=Config(max_pool_connections=max_workers))
+    df = s3io.read_remote_logs(
+        keys=log_keys, s3_bucket=bucket, client=client, max_workers=max_workers)
 
     # Process table
+    run['stage'] = 'processing'
     df = s3io.prepare_for_parquet(df)
     # Check every row was parsed correctly
     assert all(isinstance(x, str) and len(x) == 64 for x in df.Bucket_Owner.unique())
     if df.empty:
         warnings.warn('No logs found!')
+        run.update(stage='done', n_rows=0)
         return df, None
 
     bucket_name, = df['Bucket'].unique()
@@ -158,6 +235,7 @@ def consolidate_logs(boto_session=None, date='last_month', ipinfo_token=None, pr
     s3_url = PurePosixPath(s3io.REMOTE_LOG_LOCATION, 'consolidated', filename)
 
     # Attempt to download the incomplete logs table and merge
+    run['stage'] = 'merging'
     partial_file = s3_url.with_name(s3_url.stem + '_INCOMPLETE.pqt')
     # Download partial month logs
     filepath = s3io.LOCAL_LOG_LOCATION / (partial_file.stem + f'.tmp{np.floor(time.time()):.0f}.pqt')
@@ -165,11 +243,15 @@ def consolidate_logs(boto_session=None, date='last_month', ipinfo_token=None, pr
         # Check for partial log table
         s3.Object(bucket_name=dst_bucket_name, key=partial_file.as_posix()).load()
         print('Downloading partial log table')
-        bucket.download_file(partial_file.as_posix(), str(filepath))
-        df_ = pd.read_parquet(filepath)
+        try:
+            bucket.download_file(partial_file.as_posix(), str(filepath))
+            df_ = pd.read_parquet(filepath)
+        finally:
+            filepath.unlink(missing_ok=True)  # local copy no longer needed (S3 copy is kept)
         assert np.all(df['Bucket'].unique() == bucket_name), 'multiple bucket logs'
         print(f'Concatenating logs ({df_.size} + {df.size} rows)')
         df = pd.concat([df_, df], ignore_index=True)
+        del df_  # free the partial table, it's no longer needed
     except ClientError as ex:
         if ex.response['Error']['Code'] != '404':
             raise ex
@@ -177,14 +259,15 @@ def consolidate_logs(boto_session=None, date='last_month', ipinfo_token=None, pr
     print('Removing duplicate rows')
     df.drop_duplicates(subset=None, keep='first', inplace=True, ignore_index=True)
 
+    output = partial_file if partial else s3_url
+    run.update(stage='uploading', n_rows=len(df), output=f's3://{dst_bucket_name}/{output}')
     print('Uploading table')
-    s3io.upload_table(df, partial_file if partial else s3_url, bucket)
+    s3io.upload_table(df, output, bucket)
 
-    print('Deleting log files')
-    for obj in s3io._iter_objects(s3io.REMOTE_LOG_LOCATION, date_range=(start, end), s3_bucket=bucket):
-        assert PurePosixPath(obj.key).name.startswith(start_date.strftime('%Y-%m'))
-        print(f'deleting {obj.key}')
-        obj.delete()
+    run['stage'] = 'deleting'
+    print(f'Deleting {len(log_keys):,d} log files')
+    assert all(PurePosixPath(k).name.startswith(start_date.strftime('%Y-%m')) for k in log_keys)
+    s3io.delete_logs(log_keys, client, dst_bucket_name)
 
     if not partial:
         try:
@@ -195,6 +278,7 @@ def consolidate_logs(boto_session=None, date='last_month', ipinfo_token=None, pr
             if ex.response['Error']['Code'] != '404':
                 raise ex
 
+    run['stage'] = 'ip_info'
     print('Fetching IP info...')
     # Unique accesses
     unique_ips = df.loc[:, 'Remote_IP'].unique()
@@ -224,7 +308,8 @@ def consolidate_logs(boto_session=None, date='last_month', ipinfo_token=None, pr
         print('Uploading IP table')
         s3io.upload_table(ip_details, ip_table_url, bucket)
 
-    return df, f's3://{dst_bucket_name}/{partial_file if partial else s3_url}'
+    run['stage'] = 'done'
+    return df, run['output']
 
 
 def key2date(key: str) -> datetime:
@@ -286,14 +371,8 @@ def consolidate_logs_by_week(boto_session=None):
             f'logs already consolidated for week {week_number} of ' + start.strftime('%B')
 
         print(f'Reading remote logs for week {week_number} of {start.strftime("%B")}')
-        try:
-            df = s3io.read_remote_logs(date_range=(start, end), log_location=s3io.REMOTE_LOG_LOCATION,
-                                       s3_bucket=bucket)
-        except pd.errors.ParserError as ex:
-            # pandas.errors.ParserError: Error tokenizing data. C error: Expected 26 fields in line 2, saw 27
-            warnings.warn(f'{ex}\n')
-            df = s3io.read_remote_logs_robust(date_range=(start, end), log_location=s3io.REMOTE_LOG_LOCATION,
-                                              s3_bucket=bucket)
+        df = s3io.read_remote_logs(date_range=(start, end), log_location=s3io.REMOTE_LOG_LOCATION,
+                                   s3_bucket=bucket)
 
         # Process table
         df = s3io.prepare_for_parquet(df)

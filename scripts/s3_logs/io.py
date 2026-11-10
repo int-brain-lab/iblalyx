@@ -6,12 +6,14 @@ from io import BytesIO, StringIO
 from typing import Optional
 from itertools import filterfalse
 from tempfile import TemporaryDirectory, gettempdir
+from concurrent.futures import ThreadPoolExecutor
 from ipaddress import ip_address
 import pickle
 
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
+import pyarrow.parquet as pq
 from one.remote import aws
 from one.webclient import AlyxClient
 from one.util import validate_date_range
@@ -206,9 +208,10 @@ def _iter_objects(log_location, date_range=None, s3_bucket=None):
             yield obj
 
 
-def _iter_logs(log_location, date_range=None, s3_bucket=None):
+def list_log_keys(log_location=REMOTE_LOG_LOCATION, date_range=None, s3_bucket=None,
+                  return_sizes=False):
     """
-    Iterate over S3 objects in a collection, yield logs that fall within a given date range.
+    Return the keys of all log files within a given date range.
 
     Parameters
     ----------
@@ -218,18 +221,158 @@ def _iter_logs(log_location, date_range=None, s3_bucket=None):
         An optional date range to filter logs by.
     s3_bucket: s3.bucket
         An s3 bucket instance
+    return_sizes : bool
+        If true, also return the size in bytes of each file (taken from the listing, no extra
+        requests).
 
-    Yields
+    Returns
     -------
-    io.BytesIO
-        A byte string buffer of each log file.
+    list of str
+        The log file keys.
+    list of int
+        The size of each file in bytes (only if return_sizes is true).
     """
-    for obj in _iter_objects(log_location, date_range, s3_bucket=s3_bucket):
-        yield BytesIO(obj.get()['Body'].read())
+    objects = list(_iter_objects(log_location, date_range, s3_bucket=s3_bucket))
+    keys = [obj.key for obj in objects]
+    return (keys, [obj.size for obj in objects]) if return_sizes else keys
 
 
-def read_remote_logs(date_range=None, log_location=REMOTE_LOG_LOCATION, s3_bucket=None) -> pd.DataFrame:
+def fetch_logs(keys, client, bucket_name, max_workers=32):
     """
+    Download log files concurrently.
+
+    Parameters
+    ----------
+    keys : list of str
+        The log file keys to download.
+    client : botocore.client.S3
+        A low-level S3 client (thread safe). Its max_pool_connections should be >= max_workers.
+    bucket_name : str
+        The name of the bucket containing the logs.
+    max_workers : int
+        The number of concurrent downloads.
+
+    Returns
+    -------
+    bytes
+        The raw contents of all log files joined in the same order as keys, each ending with a
+        newline.  The per-file buffers are freed before returning so only one copy is held.
+    """
+    def fetch(key):
+        return client.get_object(Bucket=bucket_name, Key=key)['Body'].read()
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        blobs = list(tqdm(executor.map(fetch, keys), total=len(keys), unit=' files'))
+    return _join_logs(blobs)
+
+
+def _join_logs(blobs):
+    """Join raw log files into a single buffer, ensuring each ends with a newline."""
+    return b''.join(b if b.endswith(b'\n') else b + b'\n' for b in blobs if b)
+
+
+def parse_logs(raw) -> pd.DataFrame:
+    """
+    Parse raw S3 server access logs into a data frame in a single pass.
+
+    AWS occasionally adds columns and some logs (e.g. Feb 2024) contain an extra column, so rows
+    may have N_FIELDS - 1, N_FIELDS or N_FIELDS + 1 fields.  All are parsed into N_FIELDS + 1
+    columns (shorter rows are NaN padded) and the extra column is then resolved.  Rows with more
+    fields (e.g. log poisoning) are skipped and saved to a temporary file.
+
+    Parameters
+    ----------
+    raw : bytes, list of bytes
+        The raw log contents, either joined (as returned by fetch_logs) or one item per file.
+
+    Returns
+    -------
+    pd.DataFrame
+        A pandas data frame of server access logs.
+    """
+    if not isinstance(raw, (bytes, bytearray)):
+        raw = _join_logs(raw)
+    if not raw:
+        return pd.DataFrame(columns=COL_NAMES)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always', pd.errors.ParserWarning)
+        df = pd.read_csv(BytesIO(raw), sep=' ', header=None, dtype=object,
+                         names=range(N_FIELDS + 1), on_bad_lines='warn')
+    # Re-emit any unrelated warnings
+    bad_lines = []
+    for w in caught:
+        if issubclass(w.category, pd.errors.ParserWarning):
+            bad_lines.extend(map(int, re.findall(r'Skipping line (\d+)', str(w.message))))
+        else:
+            warnings.warn_explicit(w.message, w.category, w.filename, w.lineno)
+    if bad_lines:
+        _save_malformed_rows(raw, bad_lines)
+
+    try:
+        if df[N_FIELDS].isna().all():
+            df = df.drop(columns=[N_FIELDS])
+            df.columns = COL_NAMES
+        else:
+            df = fix_extra_column_entries(df)
+    except Exception:
+        temp_dir = Path(gettempdir()).joinpath('s3_logs')
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        pickle_file = temp_dir.joinpath(f'raw_logs_{pd.Timestamp.now():%Y%m%dT%H%M%S}.pkl')
+        print(f'Pickling raw log data to {pickle_file} for later analysis.')
+        with pickle_file.open('wb') as file:
+            pickle.dump(df, file)
+        raise
+    return df
+
+
+def _get_lines(raw, line_numbers):
+    """
+    Return the given (1-based) lines of a bytes buffer without decoding or splitting all of it.
+
+    Parameters
+    ----------
+    raw : bytes
+        A newline separated buffer.
+    line_numbers : iterable of int
+        The 1-based line numbers to extract.
+
+    Returns
+    -------
+    dict of int: str
+        Map of line number to decoded line ('' if out of range).
+    """
+    lines = {}
+    line, pos = 1, 0
+    for target in sorted(set(line_numbers)):
+        while line < target and pos != -1:
+            pos = raw.find(b'\n', pos)
+            if pos != -1:
+                pos += 1
+            line += 1
+        if pos == -1 or target < 1 or pos >= len(raw):
+            lines[target] = ''
+            continue
+        end = raw.find(b'\n', pos)
+        lines[target] = raw[pos:end if end != -1 else len(raw)].decode(errors='replace')
+    return lines
+
+
+def _save_malformed_rows(raw, line_numbers):
+    """Write the skipped log rows to a temporary file and warn."""
+    lines = _get_lines(raw, line_numbers)
+    temp_dir = Path(gettempdir()).joinpath('s3_logs')
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    malformed_file = temp_dir.joinpath(f'malformed_{pd.Timestamp.now():%Y%m%dT%H%M%S}.log')
+    with malformed_file.open('w', encoding='utf-8') as file:
+        for line_no in line_numbers:
+            file.write(f'{line_no}\t{lines[line_no]}\n')
+    warnings.warn(f'Skipped {len(line_numbers)} malformed log rows. Saved malformed rows to {malformed_file}')
+
+
+def read_remote_logs(date_range=None, log_location=REMOTE_LOG_LOCATION, s3_bucket=None,
+                     keys=None, client=None, max_workers=None) -> pd.DataFrame:
+    """
+    Download (concurrently) and parse remote S3 server access logs.
 
     Parameters
     ----------
@@ -239,23 +382,28 @@ def read_remote_logs(date_range=None, log_location=REMOTE_LOG_LOCATION, s3_bucke
         The location of the server access log files on the private bucket.
     s3_bucket: s3.bucket
         An s3 bucket instance
+    keys : list of str, optional
+        The log file keys to read. If None, the keys are listed using the date range.
+    client : botocore.client.S3, optional
+        A low-level S3 client with a connection pool size >= max_workers. Defaults to the bucket's
+        own client (pool size 10).
+    max_workers : int, optional
+        The number of concurrent downloads. Defaults to the client's connection pool size.
 
     Returns
     -------
     pd.DataFrame
         A pandas data frame of remote server access logs.
     """
-    log_files = tqdm(_iter_logs(log_location, date_range, s3_bucket=s3_bucket), unit=' files')
-    logs = (pd.read_csv(log, sep=' ', header=None) for log in log_files)
-    df = pd.concat(logs, ignore_index=True)
-    try:
-        df.columns = COL_NAMES
-    except ValueError as ex:
-        if re.search(rf'Expected axis has {N_FIELDS + 1} elements, new values have {N_FIELDS} elements', str(ex)):
-            df = fix_extra_column_entries(df)
-        else:
-            raise ex
-    return df
+    if s3_bucket is None:
+        s3, bucket_name = aws.get_s3_from_alyx(AlyxClient())
+        s3_bucket = s3.Bucket(name=bucket_name)
+    if keys is None:
+        keys = list_log_keys(log_location, date_range, s3_bucket=s3_bucket)
+    client = client or s3_bucket.meta.client
+    max_workers = max_workers or client.meta.config.max_pool_connections
+    raw = fetch_logs(keys, client, s3_bucket.name, max_workers=max_workers)
+    return parse_logs(raw)
 
 
 def read_remote_logs_robust(date_range=None, log_location=REMOTE_LOG_LOCATION, s3_bucket=None) -> pd.DataFrame:
@@ -357,6 +505,36 @@ def read_remote_logs_robust(date_range=None, log_location=REMOTE_LOG_LOCATION, s
                 pickle.dump(dfs, file)
 
     return df
+
+
+def delete_logs(keys, client, bucket_name, batch_size=1000):
+    """
+    Delete objects in batches of up to 1000 keys per request.
+
+    Parameters
+    ----------
+    keys : list of str
+        The keys to delete.
+    client : botocore.client.S3
+        A low-level S3 client with DELETE permissions.
+    bucket_name : str
+        The name of the bucket containing the keys.
+    batch_size : int
+        The number of keys per request (max 1000).
+
+    Raises
+    ------
+    RuntimeError
+        Any keys failed to delete.
+    """
+    errors = []
+    for i in tqdm(range(0, len(keys), batch_size), unit=' batches'):
+        batch = keys[i:i + batch_size]
+        res = client.delete_objects(
+            Bucket=bucket_name, Delete={'Objects': [{'Key': k} for k in batch], 'Quiet': True})
+        errors.extend(res.get('Errors', []))
+    if errors:
+        raise RuntimeError(f'Failed to delete {len(errors)} log files, e.g. {errors[0]}')
 
 
 def fix_extra_column_entries(df):
@@ -596,11 +774,13 @@ def load_all_local_logs(local_log_location=None, glob_pattern='*.pqt'):
     return all_logs
 
 
-def upload_table(df, key, bucket):
+def upload_table(df, key, bucket, tmp_dir=None):
     """
     Upload a data frame to a given bucket location.
 
-    Writes the table to a temporary directory, then downloads and reads the file after upload.
+    Writes the table to a temporary directory, uploads it, then downloads the file and checks its
+    size and parquet metadata (number of rows and columns) match.  Only the parquet footer is read
+    back, so no second copy of the table is loaded into memory.
 
     Parameters
     ----------
@@ -610,21 +790,31 @@ def upload_table(df, key, bucket):
         The destination location within the bucket.
     bucket : s3.Bucket
         The S3 bucket object.
+    tmp_dir : str, pathlib.Path, optional
+        Where to write the temporary parquet files. Defaults to LOCAL_LOG_LOCATION rather than the
+        system temp directory, which may be RAM backed (tmpfs).
     """
     if isinstance(key, str):
         key = PurePosixPath(key)
-    # df.to_parquet(f's3://{dst_bucket_name}/{s3_url}')
-    with TemporaryDirectory() as tdir:
+    tmp_dir = Path(tmp_dir or LOCAL_LOG_LOCATION)
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    with TemporaryDirectory(dir=tmp_dir) as tdir:
         # Save
         filepath = Path(tdir) / key.name
         df.to_parquet(filepath)
+        local_size = filepath.stat().st_size
         # Upload
         bucket.upload_file(str(filepath), key.as_posix())
 
     # Read after write
-    with TemporaryDirectory() as tdir:
+    with TemporaryDirectory(dir=tmp_dir) as tdir:
         filepath = Path(tdir) / key.name
         # Download
         bucket.download_file(key.as_posix(), str(filepath))
-        df2 = pd.read_parquet(filepath)
-        assert (df2.size == df.size) and (df2.shape == df.shape)
+        assert filepath.stat().st_size == local_size, 'uploaded file size mismatch'
+        metadata = pq.read_metadata(filepath)
+        # Non-range indices (e.g. the IP table's 'ip' index) are stored as extra columns
+        index_cols = (metadata.schema.to_arrow_schema().pandas_metadata or {}).get('index_columns', [])
+        n_index_cols = sum(isinstance(col, str) for col in index_cols)
+        assert metadata.num_rows == df.shape[0], 'uploaded table row count mismatch'
+        assert metadata.num_columns - n_index_cols == df.shape[1], 'uploaded table column count mismatch'
