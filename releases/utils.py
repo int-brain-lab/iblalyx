@@ -153,13 +153,23 @@ DTYPES_RELEASE_SPIKE_SORTING = [
     'waveforms.traces',
 ]
 
+DTYPES_RELEASE_EPHYS_DRIFT_REGISTRATION = [
+    'drift_depths.um',
+    'drift.times',
+    'drift.um'
+]
+
 DTYPES_RELEASE_HISTOLOGY = [
     'electrodeSites.brainLocationIds_ccf_2017',
     'electrodeSites.localCoordinates',
     'electrodeSites.mlapdv'
 ]
 
-DTYPES_RELEASE_EPHYS_ALL = DTYPES_RELEASE_EPHYS_RAW + DTYPES_RELEASE_SPIKE_SORTING + DTYPES_RELEASE_HISTOLOGY
+DTYPES_RELEASE_EPHYS_ALL = (
+    DTYPES_RELEASE_EPHYS_RAW +
+    DTYPES_RELEASE_SPIKE_SORTING +
+    DTYPES_RELEASE_HISTOLOGY +
+    DTYPES_RELEASE_EPHYS_DRIFT_REGISTRATION)
 
 
 def dset2df(dsets_queryset, columns: dict = None):
