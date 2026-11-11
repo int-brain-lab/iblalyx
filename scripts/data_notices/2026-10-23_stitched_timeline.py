@@ -107,7 +107,7 @@ def create_notice(session_refs, **kwargs):
 create_notice(
     SESSIONS,
     name='Stitched Timeline recordings',
-    importance=DataNotice.IMPORTANCE.MAJOR,
+    importance=DataNotice.IMPORTANCE.MINOR,
     description=dedent(DESCRIPTION),
     version_affected='',
 )

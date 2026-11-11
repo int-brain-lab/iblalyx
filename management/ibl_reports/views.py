@@ -2,6 +2,7 @@ from collections import OrderedDict
 from datetime import date
 import logging
 import time
+import uuid
 
 import django_filters
 from django import forms
@@ -9,7 +10,7 @@ from django.http import HttpResponse, JsonResponse
 from django.template import loader
 from django.views.generic import TemplateView
 from django.views.generic.list import ListView
-from django.db.models import Q, F, OuterRef, Exists, UUIDField, Max, Count, Func, Subquery, TextField, Prefetch
+from django.db.models import Q, F, OuterRef, Exists, UUIDField, Max, Count, Func, Subquery, TextField
 from django.db.models.functions import Coalesce, Cast
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.postgres.fields import JSONField, ArrayField
@@ -920,59 +921,65 @@ class SubjectFilter(django_filters.FilterSet):
 
 
 class DataNoticeChangelogView(LoginRequiredMixin, TemplateView):
-    """Display a changelog of data notices for analysis users."""
+    """Display a changelog of data notices for analysis users.
+
+    A notice may cover millions of datasets, so no query here scales with the number of notice
+    datasets: the datasets are not listed, but linked to in the dataset admin list; the notices are
+    filtered with semi-joins (which stop at the first matching dataset) rather than joins; and all
+    tags and projects are offered as filters, rather than only those of notice datasets.
+    """
 
     template_name = 'ibl_reports/datanotice_changelog.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        selected_datasets = [value for value in self.request.GET.getlist('dataset') if value]
+        # Dataset UUIDs may be separated by commas or whitespace
+        selected_datasets, invalid_datasets = [], []
+        for value in ' '.join(self.request.GET.getlist('dataset')).replace(',', ' ').split():
+            try:
+                selected_datasets.append(str(uuid.UUID(value)))
+            except ValueError:
+                invalid_datasets.append(value)
         selected_tags = [value for value in self.request.GET.getlist('tag') if value]
         selected_projects = [value for value in self.request.GET.getlist('project') if value]
 
         notice_dataset_through = DataNotice.datasets.through
         session_project_through = Session.projects.through
 
-        notices = DataNotice.objects.select_related('created_by').prefetch_related(
-            Prefetch('datasets', Dataset._base_manager.only('id', 'name'))
-        )
+        def covers(datasets):
+            """Whether a notice covers any of the given datasets."""
+            return Exists(notice_dataset_through.objects.filter(
+                datanotice_id=OuterRef('id'), dataset_id__in=datasets))
+
+        notices = DataNotice.objects.select_related('created_by').annotate(
+            has_datasets=Exists(notice_dataset_through.objects.filter(datanotice_id=OuterRef('id'))))
 
         if selected_datasets:
-            notices = notices.filter(datasets__id__in=selected_datasets)
+            notices = notices.filter(covers(selected_datasets))
 
         if selected_tags:
-            notices = notices.filter(datasets__tags__name__in=selected_tags)
+            notices = notices.filter(covers(
+                Dataset.tags.through.objects.filter(tag__name__in=selected_tags).values('dataset_id')))
 
         if selected_projects:
             matching_sessions = session_project_through.objects.filter(
                 project_id__in=selected_projects,
             ).values('session_id')
-            matching_datasets = Dataset.objects.filter(session_id__in=matching_sessions).values('id')
-            matching_notice_datasets = notice_dataset_through.objects.filter(
-                datanotice_id=OuterRef('id'),
-                dataset_id__in=matching_datasets,
-            )
-            notices = notices.annotate(_has_project=Exists(matching_notice_datasets)).filter(_has_project=True)
+            notices = notices.filter(covers(
+                Dataset.objects.filter(session_id__in=matching_sessions).values('id')))
 
-        notices = notices.distinct().order_by('-created_datetime', '-importance', 'name')
+        notices = notices.order_by('-created_datetime', '-importance', 'name')
 
-        datasets = Dataset.objects.filter(data_notices__isnull=False).order_by('name').values('id', 'name').distinct()
-        tags = Tag.objects.filter(datasets__data_notices__isnull=False).order_by('name').values('name').distinct()
-        project_ids = session_project_through.objects.filter(
-            session_id__in=Dataset.objects.filter(
-                id__in=notice_dataset_through.objects.values('dataset_id'),
-                session_id__isnull=False,
-            ).values('session_id'),
-        ).values('project_id')
-        projects = Project.objects.filter(id__in=project_ids).order_by('name').values('id', 'name').distinct()
+        tags = Tag.objects.order_by('name').values('name')
+        projects = Project.objects.order_by('name').values('id', 'name')
 
         context.update({
             'notices': notices,
-            'datasets': datasets,
             'tags': tags,
             'projects': projects,
             'selected_datasets': selected_datasets,
+            'invalid_datasets': invalid_datasets,
             'selected_tags': selected_tags,
             'selected_projects': selected_projects,
         })

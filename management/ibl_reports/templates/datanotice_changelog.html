@@ -88,7 +88,8 @@
             font-size: 0.95rem;
         }
 
-        .field select {
+        .field select,
+        .field textarea {
             width: 100%;
             min-height: 150px;
             padding: 10px;
@@ -96,6 +97,18 @@
             border-radius: 12px;
             background: #fff;
             font: inherit;
+        }
+
+        .field textarea {
+            resize: vertical;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+            font-size: 0.85rem;
+        }
+
+        .field-error {
+            margin: 8px 0 0;
+            color: var(--critical);
+            font-size: 0.9rem;
         }
 
         .actions {
@@ -243,19 +256,9 @@
             font-size: 1rem;
         }
 
-        .pill-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .pill {
-            display: inline-block;
-            padding: 6px 10px;
-            border-radius: 999px;
-            background: #dde7f2;
+        .subsection a {
             color: var(--accent);
-            font-size: 0.85rem;
+            font-weight: 700;
         }
 
         .date-range {
@@ -295,19 +298,18 @@
         <header class="hero">
             <p class="eyebrow">Analysis Noticeboard</p>
             <h1>Data notices and known issues</h1>
-            <p>Use this page as a changelog for data quality and analysis-impacting changes. Expand any notice for the full markdown description, affected date range, and related datasets.</p>
+            <p>Use this page as a changelog for data quality and analysis-impacting changes. Expand any notice for the full markdown description, affected date range, and a link to the affected datasets.</p>
         </header>
 
         <form method="get" class="filters">
             <h2>Filter notices</h2>
 
             <div class="field">
-                <label for="dataset">Datasets</label>
-                <select id="dataset" name="dataset" multiple>
-                    {% for dataset in datasets %}
-                    <option value="{{ dataset.id }}" {% if dataset.id|stringformat:"s" in selected_datasets %}selected{% endif %}>{{ dataset.name }}</option>
-                    {% endfor %}
-                </select>
+                <label for="dataset">Dataset UUIDs</label>
+                <textarea id="dataset" name="dataset" placeholder="One or more dataset UUIDs, separated by commas or new lines">{{ selected_datasets|join:", " }}</textarea>
+                {% if invalid_datasets %}
+                <p class="field-error">Ignored invalid UUIDs: {{ invalid_datasets|join:", " }}</p>
+                {% endif %}
             </div>
 
             <div class="field">
@@ -382,18 +384,12 @@
                     </div>
                     {% endif %}
 
-                    {% with related_datasets=notice.datasets.all %}
-                    {% if related_datasets %}
+                    {% if notice.has_datasets %}
                     <div class="subsection">
-                        <h3>Related datasets</h3>
-                        <div class="pill-list">
-                            {% for dataset in related_datasets %}
-                            <span class="pill">{{ dataset.name }}</span>
-                            {% endfor %}
-                        </div>
+                        <h3>Affected datasets</h3>
+                        <a href="{% url 'admin:data_dataset_changelist' %}?data_notices__id__exact={{ notice.pk }}">View the datasets covered by this notice</a>
                     </div>
                     {% endif %}
-                    {% endwith %}
                 </div>
             </details>
             {% empty %}
