@@ -935,15 +935,25 @@ class DataNoticeChangelogView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
+        def parse_uuids(values):
+            """Split values into canonical UUID strings and values that are not UUIDs.
+
+            Filtering a UUID field by a non-UUID value raises a ValidationError, so these are dropped.
+            """
+            valid, invalid = [], []
+            for value in values:
+                try:
+                    valid.append(str(uuid.UUID(value)))
+                except ValueError:
+                    invalid.append(value)
+            return valid, invalid
+
         # Dataset UUIDs may be separated by commas or whitespace
-        selected_datasets, invalid_datasets = [], []
-        for value in ' '.join(self.request.GET.getlist('dataset')).replace(',', ' ').split():
-            try:
-                selected_datasets.append(str(uuid.UUID(value)))
-            except ValueError:
-                invalid_datasets.append(value)
+        selected_datasets, invalid_datasets = parse_uuids(
+            ' '.join(self.request.GET.getlist('dataset')).replace(',', ' ').split())
         selected_tags = [value for value in self.request.GET.getlist('tag') if value]
-        selected_projects = [value for value in self.request.GET.getlist('project') if value]
+        # Project IDs come from the select options, so an invalid one can only be from an edited URL
+        selected_projects, _ = parse_uuids(self.request.GET.getlist('project'))
 
         notice_dataset_through = DataNotice.datasets.through
         session_project_through = Session.projects.through
