@@ -930,6 +930,7 @@ class DataNoticeChangelogView(LoginRequiredMixin, TemplateView):
     """
 
     template_name = 'ibl_reports/datanotice_changelog.html'
+    login_url = LOGIN_URL
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
