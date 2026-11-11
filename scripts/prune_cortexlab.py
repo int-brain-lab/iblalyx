@@ -19,9 +19,10 @@ from django.db import connections, transaction
 from django.db.backends.signals import connection_created
 from django.db.models import CharField, Q
 from django.db.models.functions import Concat
+from django.db.models.signals import post_delete
 from django.contrib.contenttypes.models import ContentType
 
-from subjects.models import Subject, Project, SubjectRequest
+from subjects.models import Subject, Project, SubjectRequest, Litter, BreedingPair
 from actions.models import Session, Surgery, NotificationRule, Notification
 from misc.models import Lab, LabMember, LabLocation, Note
 from data.models import Dataset, DatasetType, DataRepository, FileRecord, DataNotice
@@ -44,6 +45,15 @@ connection_created.connect(_enforce_default_read_only)
 # the signal only covers new connections, e.g. not one already opened by `manage.py shell`
 if connections['default'].connection is not None:
     _enforce_default_read_only(None, connections['default'])
+
+try:  # from alyx 4.2.0, deleting the newest subjects of a line steps its autoname index back
+    from subjects.models import release_deleted_autoname
+except ImportError:
+    pass
+else:
+    # the pruned subjects are not mistakes, and the lines are loaded into production as they are
+    for model in (Subject, Litter, BreedingPair):
+        post_delete.disconnect(release_deleted_autoname, sender=model)
 
 
 @contextmanager
