@@ -9,6 +9,7 @@ from tempfile import TemporaryDirectory, gettempdir
 from concurrent.futures import ThreadPoolExecutor
 from ipaddress import ip_address
 import pickle
+from bisect import bisect_right
 
 from tqdm import tqdm
 import numpy as np
@@ -28,6 +29,8 @@ COL_NAMES = [
 N_FIELDS = len(COL_NAMES)
 """str: default remote log location, can be found in server access logging config page."""
 REMOTE_LOG_LOCATION = 'info/ibl-brain-wide-map-public/logs/server-access-logs/'
+"""str: the bucket whose access logs are consolidated (used in the consolidated file names)."""
+SOURCE_BUCKET = 'ibl-brain-wide-map-public'
 LOCAL_LOG_LOCATION = Path.home().joinpath('s3_logs')
 
 
@@ -257,6 +260,9 @@ def fetch_logs(keys, client, bucket_name, max_workers=32):
     bytes
         The raw contents of all log files joined in the same order as keys, each ending with a
         newline.  The per-file buffers are freed before returning so only one copy is held.
+    list of int
+        The byte offset at which each file starts in the buffer, followed by the buffer length,
+        i.e. file i is raw[offsets[i]:offsets[i + 1]].
     """
     def fetch(key):
         return client.get_object(Bucket=bucket_name, Key=key)['Body'].read()
@@ -267,46 +273,78 @@ def fetch_logs(keys, client, bucket_name, max_workers=32):
 
 
 def _join_logs(blobs):
-    """Join raw log files into a single buffer, ensuring each ends with a newline."""
-    return b''.join(b if b.endswith(b'\n') else b + b'\n' for b in blobs if b)
+    """
+    Join raw log files into a single buffer, ensuring each ends with a newline.
+
+    Returns the buffer and the byte offset of each file start, followed by the buffer length.
+    """
+    blobs = [b if not b or b.endswith(b'\n') else b + b'\n' for b in blobs]
+    offsets = [0]
+    for b in blobs:
+        offsets.append(offsets[-1] + len(b))
+    return b''.join(blobs), offsets
 
 
-def parse_logs(raw) -> pd.DataFrame:
+def parse_logs(raw, keys=None, offsets=None) -> pd.DataFrame:
     """
     Parse raw S3 server access logs into a data frame in a single pass.
 
     AWS occasionally adds columns and some logs (e.g. Feb 2024) contain an extra column, so rows
     may have N_FIELDS - 1, N_FIELDS or N_FIELDS + 1 fields.  All are parsed into N_FIELDS + 1
     columns (shorter rows are NaN padded) and the extra column is then resolved.  Rows with more
-    fields (e.g. log poisoning) are skipped and saved to a temporary file.
+    fields (e.g. log poisoning) are skipped and saved, along with their file name and line number,
+    to a temporary file.
+
+    As the files are joined, a quote left open in one row would swallow the rows after it, even
+    those in the next file.  The number of rows parsed is therefore checked against the number of
+    lines, and an error is raised if they differ, or if any row has too few fields (e.g. truncated).
 
     Parameters
     ----------
     raw : bytes, list of bytes
         The raw log contents, either joined (as returned by fetch_logs) or one item per file.
+    keys : list of str, optional
+        The name of each file, used to report malformed rows.
+    offsets : list of int, optional
+        For joined contents, the start of each file and the buffer length (as returned by
+        fetch_logs).  Without these, malformed rows are reported by line in the joined buffer.
 
     Returns
     -------
     pd.DataFrame
         A pandas data frame of server access logs.
+
+    Raises
+    ------
+    pd.errors.ParserError
+        The logs could not be parsed cleanly: a row has too few fields, or the number of rows
+        doesn't match the number of lines (e.g. a quote left open).
     """
     if not isinstance(raw, (bytes, bytearray)):
-        raw = _join_logs(raw)
-    if not raw:
+        raw, offsets = _join_logs(raw)
+    if offsets is None:
+        offsets = [0, len(raw)]
+    if keys is None or len(keys) != len(offsets) - 1:
+        keys = [f'file {i}' for i in range(len(offsets) - 1)]
+    if not raw.strip():
         return pd.DataFrame(columns=COL_NAMES)
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter('always', pd.errors.ParserWarning)
-        df = pd.read_csv(BytesIO(raw), sep=' ', header=None, dtype=object,
-                         names=range(N_FIELDS + 1), on_bad_lines='warn')
-    # Re-emit any unrelated warnings
-    bad_lines = []
-    for w in caught:
-        if issubclass(w.category, pd.errors.ParserWarning):
-            bad_lines.extend(map(int, re.findall(r'Skipping line (\d+)', str(w.message))))
-        else:
-            warnings.warn_explicit(w.message, w.category, w.filename, w.lineno)
+
+    try:
+        df, bad_lines = _read_logs(raw)
+    except pd.errors.ParserError as ex:
+        raise pd.errors.ParserError(
+            f'Could not parse the logs, possibly due to a quote left open: {ex}') from ex
+    n_lines = _count_rows(raw)
+    if len(df) + len(bad_lines) != n_lines:
+        raise pd.errors.ParserError(
+            f'{n_lines:,} log rows but {len(df):,} parsed and {len(bad_lines):,} skipped: some rows '
+            'were probably merged, e.g. by a quote left open')
+    if (short := df[N_FIELDS - 2].isna()).any():
+        raise pd.errors.ParserError(
+            f'{short.sum():,} log rows have fewer than {N_FIELDS - 1} fields (truncated?), '
+            f'e.g. Request_IDs {list(df.loc[short, 6].head(3))}')
     if bad_lines:
-        _save_malformed_rows(raw, bad_lines)
+        _save_malformed_rows(_locate_lines(raw, bad_lines, keys, offsets))
 
     try:
         if df[N_FIELDS].isna().all():
@@ -323,6 +361,55 @@ def parse_logs(raw) -> pd.DataFrame:
             pickle.dump(df, file)
         raise
     return df
+
+
+def _read_logs(raw):
+    """
+    Read log rows into N_FIELDS + 1 columns of strings, skipping rows with too many fields.
+
+    Returns the data frame and the (1-based) line numbers of the skipped rows.  Raises
+    pd.errors.ParserError if the data can't be tokenized (e.g. a quote left open at the end).
+    """
+    if not raw.strip():
+        return pd.DataFrame(columns=range(N_FIELDS + 1), dtype=object), []
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always', pd.errors.ParserWarning)
+        df = pd.read_csv(BytesIO(raw), sep=' ', header=None, dtype=object,
+                         names=range(N_FIELDS + 1), on_bad_lines='warn')
+    bad_lines = []
+    for w in caught:
+        if issubclass(w.category, pd.errors.ParserWarning):
+            bad_lines.extend(map(int, re.findall(r'Skipping line (\d+)', str(w.message))))
+        else:  # re-emit any unrelated warnings
+            warnings.warn_explicit(w.message, w.category, w.filename, w.lineno)
+    return df, bad_lines
+
+
+def _count_rows(raw):
+    """The number of non-blank lines in a newline terminated buffer."""
+    n_blank = sum(1 for _ in re.finditer(rb'\n(?=\n)', raw)) + raw.startswith(b'\n')
+    return raw.count(b'\n') + (not raw.endswith(b'\n')) - n_blank
+
+
+def _locate_lines(raw, line_numbers, keys, offsets):
+    """
+    Map line numbers in a joined buffer to the file they came from.
+
+    Returns a list of (key, line number within the file, row) tuples.
+    """
+    if not line_numbers:
+        return []
+    rows = _get_lines(raw, line_numbers)
+    # The (1-based) buffer line number on which each file starts
+    first_lines, n = [], 1
+    for i0, i1 in zip(offsets[:-1], offsets[1:]):
+        first_lines.append(n)
+        n += raw.count(b'\n', i0, i1)
+    located = []
+    for line_no in line_numbers:
+        i = bisect_right(first_lines, line_no) - 1
+        located.append((keys[i], line_no - first_lines[i] + 1, rows[line_no]))
+    return located
 
 
 def _get_lines(raw, line_numbers):
@@ -357,16 +444,25 @@ def _get_lines(raw, line_numbers):
     return lines
 
 
-def _save_malformed_rows(raw, line_numbers):
-    """Write the skipped log rows to a temporary file and warn."""
-    lines = _get_lines(raw, line_numbers)
+def _save_malformed_rows(malformed):
+    """
+    Write the skipped log rows to a temporary file and warn.
+
+    Parameters
+    ----------
+    malformed : list of (str, int, str)
+        The file name, line number within that file and contents of each skipped row.
+    """
     temp_dir = Path(gettempdir()).joinpath('s3_logs')
     temp_dir.mkdir(parents=True, exist_ok=True)
     malformed_file = temp_dir.joinpath(f'malformed_{pd.Timestamp.now():%Y%m%dT%H%M%S}.log')
     with malformed_file.open('w', encoding='utf-8') as file:
-        for line_no in line_numbers:
-            file.write(f'{line_no}\t{lines[line_no]}\n')
-    warnings.warn(f'Skipped {len(line_numbers)} malformed log rows. Saved malformed rows to {malformed_file}')
+        for key, line_no, row in malformed:
+            file.write(f'{key}\t{line_no}\t{row}\n')
+    files = sorted({key.rsplit('/', 1)[-1] for key, *_ in malformed})
+    warnings.warn(f'Skipped {len(malformed)} malformed log rows in {len(files)} file(s) '
+                  f'({", ".join(files[:5])}{", ..." if len(files) > 5 else ""}). '
+                  f'Saved malformed rows to {malformed_file}')
 
 
 def read_remote_logs(date_range=None, log_location=REMOTE_LOG_LOCATION, s3_bucket=None,
@@ -402,8 +498,8 @@ def read_remote_logs(date_range=None, log_location=REMOTE_LOG_LOCATION, s3_bucke
         keys = list_log_keys(log_location, date_range, s3_bucket=s3_bucket)
     client = client or s3_bucket.meta.client
     max_workers = max_workers or client.meta.config.max_pool_connections
-    raw = fetch_logs(keys, client, s3_bucket.name, max_workers=max_workers)
-    return parse_logs(raw)
+    raw, offsets = fetch_logs(keys, client, s3_bucket.name, max_workers=max_workers)
+    return parse_logs(raw, keys=keys, offsets=offsets)
 
 
 def read_remote_logs_robust(date_range=None, log_location=REMOTE_LOG_LOCATION, s3_bucket=None) -> pd.DataFrame:
@@ -704,6 +800,13 @@ def prepare_for_parquet(df):
     # In some instance the http status is given as a string, convert to int
     df['HTTP_status'] = df['HTTP_status'].astype(int)
     df.loc[df.ACL_Required.isin(('-', np.nan)), 'ACL_Required'] = pd.NA
+
+    # parse_logs reads every column as object. Where pandas stores text in its own str dtype
+    # (pandas >= 3), convert the remaining text columns so the table (and parquet schema) matches
+    # what read_csv's type inference gives. Done here, as the str dtype rejects the numbers set above.
+    if pd.Series(['']).dtype != object:
+        text_cols = [c for c in df.columns if df[c].dtype == object]
+        df[text_cols] = df[text_cols].astype(str)
     return df
 
 

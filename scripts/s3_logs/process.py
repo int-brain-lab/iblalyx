@@ -1,5 +1,5 @@
 """Module for digesting and performing analytics on S3 public bucket access logs"""
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from calendar import monthrange
 from pathlib import PurePosixPath, Path
 import warnings
@@ -21,6 +21,11 @@ from one.alf.path import get_session_path
 from itertools import zip_longest
 
 from . import io as s3io
+
+
+def _utcnow():
+    """Return the current UTC time as a naive datetime (replaces the deprecated datetime.utcnow)."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 def files_accessed_this_month():
@@ -113,7 +118,7 @@ def consolidate_logs(boto_session=None, date='last_month', ipinfo_token=None, pr
     'started' row with no matching end row means the process was killed (e.g. out of memory).
     """
     mode = str(date)
-    today = datetime.utcnow()
+    today = _utcnow()
     if date == 'this_month':
         partial = True
         start_date = today.replace(day=1).date()
@@ -175,7 +180,7 @@ def _log_run(status, run, log_file=None):
         The log file path. Defaults to LOCAL_LOG_LOCATION / RUN_LOG_FILENAME.
     """
     log_file = Path(log_file or s3io.LOCAL_LOG_LOCATION / RUN_LOG_FILENAME)
-    row = {**run, 'time': datetime.utcnow().isoformat(timespec='seconds'), 'status': status}
+    row = {**run, 'time': _utcnow().isoformat(timespec='seconds'), 'status': status}
     try:
         new_file = not log_file.exists()
         with log_file.open('a', newline='') as file:
@@ -227,6 +232,8 @@ def _consolidate_month(start, end, partial, session, ipinfo_token, max_workers, 
     assert all(isinstance(x, str) and len(x) == 64 for x in df.Bucket_Owner.unique())
     if df.empty:
         warnings.warn('No logs found!')
+        if not partial and (url := _promote_partial_table(start, bucket, run)):
+            return df, url
         run.update(stage='done', n_rows=0)
         return df, None
 
@@ -312,6 +319,55 @@ def _consolidate_month(start, end, partial, session, ipinfo_token, max_workers, 
     return df, run['output']
 
 
+def _promote_partial_table(start, bucket, run):
+    """
+    Make a month's _INCOMPLETE table its complete table, when there are no new logs to add.
+
+    This happens when all of a month's logs were already consolidated into the _INCOMPLETE table,
+    so the run for the complete month finds no log files.  The table is copied server side (no
+    download), the copy's size is checked, then the _INCOMPLETE table is deleted.
+
+    Parameters
+    ----------
+    start : datetime.datetime
+        A datetime within the month.
+    bucket : s3.Bucket
+        The bucket containing the consolidated tables.
+    run : dict
+        The run log details, updated in place.
+
+    Returns
+    -------
+    str, None
+        The URI of the complete table, or None if there is no _INCOMPLETE table.
+    """
+    s3_url = PurePosixPath(s3io.REMOTE_LOG_LOCATION, 'consolidated',
+                           f'{start.strftime("%Y-%m")}_{s3io.SOURCE_BUCKET}.pqt')
+    partial_file = s3_url.with_name(s3_url.stem + '_INCOMPLETE.pqt')
+    partial_obj = bucket.Object(partial_file.as_posix())
+    try:
+        partial_obj.load()
+    except ClientError as ex:
+        if ex.response['Error']['Code'] in ('404', 'NoSuchKey'):
+            print(f'No partial table {partial_file.name} either; nothing to consolidate')
+            return None
+        raise ex
+
+    run['stage'] = 'finalising'
+    print(f'Copying {partial_file.name} to the complete table {s3_url.name}')
+    bucket.copy({'Bucket': bucket.name, 'Key': partial_file.as_posix()}, s3_url.as_posix())
+    complete_obj = bucket.Object(s3_url.as_posix())
+    complete_obj.load()
+    assert complete_obj.content_length == partial_obj.content_length, \
+        f'copied table size mismatch ({complete_obj.content_length} != {partial_obj.content_length})'
+
+    partial_obj.delete()
+    print(f'deleted {partial_file}')
+    url = f's3://{bucket.name}/{s3_url}'
+    run.update(stage='done', output=url)
+    return url
+
+
 def key2date(key: str) -> datetime:
     """
     Convert a access log file key to a datetime object.
@@ -361,7 +417,7 @@ def consolidate_logs_by_week(boto_session=None):
     bucket = s3.Bucket(name=dst_bucket_name)
 
     urls = []
-    while datetime.utcnow() - (dt := _first_log_datetime()) > timedelta(days=7):
+    while _utcnow() - (dt := _first_log_datetime()) > timedelta(days=7):
         week_number, (start, end) = week_of_month(dt)
 
         # Check for parquet file on S3
@@ -438,7 +494,7 @@ def ip_info(ip_address, wait=None, token=None):
     res = urlopen(url)
     assert res
     info = json.load(res)
-    info['accessed'] = datetime.utcnow().isoformat()
+    info['accessed'] = _utcnow().isoformat()
     return info
 
 
