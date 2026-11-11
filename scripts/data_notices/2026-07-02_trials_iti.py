@@ -114,7 +114,7 @@ def create_notice(protocols, ongoing=False, trials=TRIALS_DATASETS, raw=RAW_DATA
                 links = [Link(datanotice_id=notice.pk, dataset_id=pk) for pk, _ in rows]
                 Link.objects.bulk_create(links, batch_size=CHUNK_SIZE, ignore_conflicts=True)
 
-    dates = sorted(start_times[pk] for pk in sessions)
+    dates = sorted(start_times[pk] for pk in sessions if start_times[pk] is not None)
     kwargs.setdefault('affected_date_start', dates[0].date() if dates else None)
     kwargs.setdefault('affected_date_end', None if ongoing or not dates else dates[-1].date())
     print(f'{kwargs["name"]!r}: {len(sessions)} sessions, {n_datasets} datasets, '
