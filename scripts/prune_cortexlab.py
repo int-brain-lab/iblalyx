@@ -19,7 +19,7 @@ from django.db import connections, transaction
 from django.db.backends.signals import connection_created
 from django.db.models import CharField, Q
 from django.db.models.functions import Concat
-from django.db.models.signals import post_delete
+from django.db.models.signals import pre_delete
 from django.contrib.contenttypes.models import ContentType
 
 from subjects.models import Subject, Project, SubjectRequest, Litter, BreedingPair
@@ -53,7 +53,7 @@ except ImportError:
 else:
     # the pruned subjects are not mistakes, and the lines are loaded into production as they are
     for model in (Subject, Litter, BreedingPair):
-        post_delete.disconnect(release_deleted_autoname, sender=model)
+        pre_delete.disconnect(release_deleted_autoname, sender=model)
 
 
 @contextmanager
