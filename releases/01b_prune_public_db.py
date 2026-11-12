@@ -33,6 +33,7 @@ import pandas as pd
 import tqdm
 from django.db import connections
 from django.db.backends.signals import connection_created
+from django.db.models.signals import pre_delete
 from django.db.models import Q
 from django.apps import apps as django_apps
 from django.contrib.auth.models import Group
@@ -63,6 +64,16 @@ def _enforce_default_read_only(sender, connection, **kwargs):
 
 
 connection_created.connect(_enforce_default_read_only)
+
+try:  # from alyx 4.2.0, deleting the newest subjects of a line steps its autoname index back
+    from subjects.models import release_deleted_autoname
+except ImportError:
+    pass
+else:
+    # every line is deleted below anyway, and the revision of a line stepped back would name
+    # the pruned subjects in the public database
+    for model in (Subject, Litter, BreedingPair):
+        pre_delete.disconnect(release_deleted_autoname, sender=model)
 
 
 def delete_in_batches(queryset, model, batch_size=100000, **delete_kwargs):
