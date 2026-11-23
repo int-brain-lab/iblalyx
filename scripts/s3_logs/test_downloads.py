@@ -4,6 +4,8 @@ Run from the scripts folder with ``python -m unittest s3_logs.test_downloads``.
 """
 import unittest
 import tempfile
+import warnings
+from io import BytesIO
 from datetime import datetime
 from pathlib import Path, PurePosixPath
 from types import SimpleNamespace
@@ -220,6 +222,117 @@ class TestFindLogTables(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             self._find([])
 
+
+
+class TestReporting(unittest.TestCase):
+    """get_access_from_downloads and get_file_count_by_ip_from_downloads."""
+
+    def setUp(self):
+        b = s3io.SOURCE_BUCKET
+        # October: 1.2.3.4 fetches a data file in 3 pieces then the cache; a bot fetches a file;
+        # 5.6.7.8 fetches half of another file and a file of a different session
+        oct_log = _log([
+            ('1.2.3.4', 'data/lab/Subjects/sub/2026-10-01/001/alf/a.npy',
+             '2026-10-01 10:00:00', 40, 100),
+            ('1.2.3.4', 'data/lab/Subjects/sub/2026-10-01/001/alf/a.npy',
+             '2026-10-01 10:00:01', 30, 100),
+            ('1.2.3.4', 'data/lab/Subjects/sub/2026-10-01/001/alf/a.npy',
+             '2026-10-01 10:00:02', 30, 100),
+            ('1.2.3.4', 'caches/openalyx/cache.zip', '2026-10-01 10:01:00', 50, 50),
+            ('9.9.9.9', 'data/lab/Subjects/sub/2026-10-01/001/alf/a.npy',
+             '2026-10-01 11:00:00', 100, 100, {'ua': 'facebookexternalhit/1.1'}),
+            ('5.6.7.8', 'data/lab/Subjects/sub/2026-10-01/001/alf/b.npy',
+             '2026-10-02 09:00:00', 50, 100),
+            ('5.6.7.8', 'data/lab/Subjects/sub/2026-10-02/001/alf/a.npy',
+             '2026-10-02 09:00:00', 10, 10),
+        ])
+        nov_log = _log([('1.2.3.4', 'data/lab/Subjects/sub/2026-10-01/001/alf/a.npy',
+                         '2026-11-01 10:00:00', 100, 100)])
+        ip_oct = pd.DataFrame({'ip': ['1.2.3.4', '5.6.7.8', '9.9.9.9'],
+                               'city': ['London', 'Paris', 'Menlo Park'],
+                               'region': ['England', 'IDF', 'California'],
+                               'country': ['GB', 'FR', 'US']}).set_index('ip')
+        folder = PurePosixPath(s3io.REMOTE_LOG_LOCATION)
+        self.files = {
+            f'consolidated/2026-10_{b}.pqt': None,
+            f'consolidated/2026-10_{b}_IP-info.pqt': ip_oct,
+            f'downloads/2026-10_{b}_downloads.pqt': s3io.summarise_downloads(oct_log),
+            f'consolidated/2026-11_{b}_PART1.pqt': None,  # a month split into parts
+            f'consolidated/2026-11_{b}_PART1_IP-info.pqt': ip_oct.iloc[:1],
+            f'consolidated/2026-11_{b}_PART2_IP-info.pqt': ip_oct.iloc[:2],
+            f'downloads/2026-11_{b}_downloads.pqt': s3io.summarise_downloads(nov_log),
+            f'consolidated/2026-09_{b}.pqt': None,  # no downloads table
+            f'consolidated/2026-12_{b}_INCOMPLETE.pqt': None,  # current month
+        }
+
+        def obj(key, table):
+            def get():
+                buffer = BytesIO()
+                table.to_parquet(buffer)
+                return {'Body': BytesIO(buffer.getvalue())}
+            return SimpleNamespace(key=(folder / key).as_posix(), get=get)
+
+        objects = [obj(k, t) for k, t in self.files.items()]
+        bucket = SimpleNamespace(objects=SimpleNamespace(
+            filter=lambda Prefix: [o for o in objects if o.key.startswith(Prefix)]))
+        self.s3 = SimpleNamespace(Bucket=lambda name: bucket)
+
+    def _call(self, func, **kwargs):
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter('always')
+            out = func(s3=self.s3, bucket_name='bucket', **kwargs)
+        return out, [str(w.message) for w in caught]
+
+    def test_get_access(self):
+        (data, unique), warned = self._call(process.get_access_from_downloads)
+        self.assertEqual(['2026-10', '2026-11'], list(data.index))
+        self.assertTrue(any('2026-09' in w for w in warned))  # no downloads table
+        self.assertFalse(any('2026-12' in w for w in warned))  # incomplete month not expected
+        oct_ = data.loc['2026-10']
+        self.assertEqual(3, oct_['total_file_access'])  # 3 pieces -> 1; bot and cache ignored
+        self.assertEqual(2, oct_['complete_file_access'])
+        self.assertEqual(3, oct_['unique_file_access'])
+        self.assertEqual(100 + 50 + 10, oct_['total_bytes_sent'])
+        self.assertEqual(2, oct_['unique_ips'])
+        self.assertEqual(2, oct_['unique_countries'])  # the bot's US IP isn't counted
+        self.assertEqual(2, oct_['unique_cities'])
+        self.assertEqual(2, oct_['unique_sessions'])
+        self.assertEqual(1, oct_['cache_access'])
+        self.assertEqual(1, data.loc['2026-11', 'unique_countries'])  # IP tables of the parts
+        self.assertEqual({'GB', 'FR'}, unique['countries'])
+        # With bots
+        (data, _), _ = self._call(process.get_access_from_downloads, exclude_bots=False)
+        self.assertEqual(4, data.loc['2026-10', 'total_file_access'])
+        self.assertEqual(3, data.loc['2026-10', 'unique_countries'])
+        # One year only
+        (data, _), warned = self._call(process.get_access_from_downloads, YEAR=2025)
+        self.assertTrue(data.empty)
+        self.assertFalse(warned)
+
+    def test_save_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (data, _), _ = self._call(process.get_access_from_downloads, save_path=tmp, save=True)
+            saved = sorted(p.name for p in Path(tmp).iterdir())
+            self.assertEqual(5, len(saved))  # 2 downloads tables + 3 IP tables
+            # Read again with S3 objects that can't be downloaded (get=None): local copies only
+            bucket = SimpleNamespace(objects=SimpleNamespace(filter=lambda Prefix: [
+                SimpleNamespace(key=f'{Prefix}{n}', get=None) for n in saved
+                if ('downloads' in Prefix) == n.endswith('_downloads.pqt')]))
+            local, _ = process.get_access_from_downloads(
+                save_path=tmp, s3=SimpleNamespace(Bucket=lambda name: bucket),
+                bucket_name='bucket')
+            pd.testing.assert_frame_equal(data, local)
+
+    def test_get_file_count_by_ip(self):
+        counts, _ = self._call(process.get_file_count_by_ip_from_downloads)
+        self.assertEqual(['ip', 'count', 'date', 'city', 'region', 'country'],
+                         list(counts.columns))
+        oct_ = counts[counts.date == '2026-10'].set_index('ip')
+        self.assertEqual({'1.2.3.4': 2, '5.6.7.8': 2}, oct_['count'].to_dict())  # incl. cache
+        self.assertEqual('London', oct_.loc['1.2.3.4', 'city'])
+        self.assertEqual(1, counts[counts.date == '2026-11']['count'].sum())
+        counts, _ = self._call(process.get_file_count_by_ip_from_downloads, exclude_bots=False)
+        self.assertEqual(5, counts[counts.date == '2026-10']['count'].sum())
 
 
 class TestMonthlyJob(unittest.TestCase):

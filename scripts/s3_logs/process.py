@@ -613,7 +613,12 @@ def grouper(iterable, n, *, incomplete='fill', fillvalue=None):
 
 def get_access(YEAR=None, save_path=None, save=False):
     """
-    Get summary of data for all data or given year
+    Get summary of data for all data or given year, from the consolidated log tables.
+
+    NB: total_file_access and cache_access count GET requests, not downloads: large files are
+    fetched in many pieces, each a request, and failed requests are included, so these over-report
+    downloads by roughly 3-6x.  See get_access_from_downloads for counts of downloads.
+
     :param YEAR:
     :return:
     """
@@ -707,6 +712,12 @@ def get_access(YEAR=None, save_path=None, save=False):
 
 
 def get_file_count_by_ip(save_path=None, save=False):
+    """
+    Count the GET requests by each IP address for each month, from the consolidated log tables.
+
+    NB: These count requests, not downloads, so over-report downloads by roughly 3-6x (see
+    get_access).  See get_file_count_by_ip_from_downloads for counts of downloads.
+    """
 
     all_df = pd.DataFrame()
     for log_obj, ip_obj in grouper(s3io.iter_log_tables(), 2):
@@ -754,14 +765,238 @@ def get_file_count_by_ip(save_path=None, save=False):
 
     return all_df
 
+
+"""str: regular expression matching the public ONE cache files."""
+CACHE_KEY_PATTERN = r'caches/openalyx/[a-zA-Z0-9_/]*cache.zip'
+
+
+def get_access_from_downloads(YEAR=None, save_path=None, save=False, exclude_bots=True,
+                              s3=None, bucket_name=None):
+    """
+    Summarise the data downloads for each month, for all months or a given year.
+
+    The counts come from the monthly downloads tables (see make_downloads_table), so a file
+    fetched in many pieces counts as one download and failed requests are not counted.  Months
+    without a downloads table (including the current month) are skipped with a warning.
+
+    This replaces get_access, which counts GET requests from the consolidated log tables and so
+    over-reports downloads by roughly 3-6x (large files are fetched in pieces, and failed requests
+    are included).  The columns are the same, plus complete_file_access.
+
+    Parameters
+    ----------
+    YEAR : int, str, optional
+        Only summarise the months of this year.
+    save_path : str, pathlib.Path, optional
+        A local folder in which to look for the tables before downloading them.
+    save : bool
+        If true, save downloaded tables to `save_path`.
+    exclude_bots : bool
+        If true, ignore downloads by bots and crawlers (see s3io.BOT_USER_AGENT_PATTERN).
+    s3 : s3.ServiceResource, optional
+        An S3 resource; by default the credentials are fetched from Alyx.
+    bucket_name : str, optional
+        The bucket containing the tables (required if `s3` is given).
+
+    Returns
+    -------
+    pd.DataFrame
+        One row per month (index 'date', 'YYYY-MM') with the columns:
+        - total_file_access: the number of data file downloads;
+        - complete_file_access: of these, the number where the whole file was sent;
+        - unique_file_access: the number of different data files downloaded;
+        - total_bytes_sent: the bytes sent for data file downloads;
+        - unique_ips: the number of IP addresses that downloaded data;
+        - unique_countries, unique_cities: the number of places these IPs are in (NaN if the
+          month has no IP table);
+        - unique_sessions: the number of different sessions that data was downloaded from;
+        - cache_access: the number of downloads of the public ONE cache.
+    dict of set
+        The unique 'file_access', 'ips', 'countries', 'cities' and 'sessions' over all months.
+    """
+    columns = [
+        'total_file_access', 'complete_file_access', 'unique_file_access', 'total_bytes_sent',
+        'date', 'unique_ips', 'unique_countries', 'unique_cities', 'unique_sessions',
+        'cache_access']
+    total_unique = {k: set() for k in ['file_access', 'ips', 'countries', 'cities', 'sessions']}
+    rows = []
+    for month, downloads, ip_info in _iter_monthly_tables(
+            YEAR, save_path, save, exclude_bots, s3=s3, bucket_name=bucket_name):
+        data = downloads[downloads['Key'].str.startswith('data/', na=False)]
+        datasets = data['Key'].unique()
+        ips = data['Remote_IP'].unique()
+        sessions = set(filter(None, map(get_session_path, datasets)))
+        row = {
+            'date': month,
+            'total_file_access': len(data),
+            'complete_file_access': int(data['complete'].sum()),
+            'unique_file_access': len(datasets),
+            'total_bytes_sent': int(data['bytes_sent'].sum()),
+            'unique_ips': len(ips),
+            'unique_sessions': len(sessions),
+            'cache_access': int(downloads['Key'].str.match(CACHE_KEY_PATTERN, na=False).sum()),
+        }
+        print(f'{row["total_file_access"]:,} downloads ({row["complete_file_access"]:,} complete) '
+              f'of {row["unique_file_access"]:,} different datasets for the month of {month}')
+        print(f'Data was downloaded from {len(ips):,} unique devices, '
+              f'{len(sessions):,} unique sessions accessed')
+        print(f'Public ONE cache was downloaded a total of {row["cache_access"]:,} times')
+
+        if ip_info is not None:
+            located = ip_info[ip_info.index.isin(ips)]  # only the IPs that downloaded data
+            cities = located['city'].str.cat(
+                located[['region', 'country']], sep='/', na_rep='Unknown').unique()
+            countries = located['country'].unique()
+            row.update(unique_cities=len(cities), unique_countries=len(countries))
+            total_unique['cities'].update(cities)
+            total_unique['countries'].update(countries)
+        total_unique['ips'].update(ips)
+        total_unique['sessions'].update(sessions)
+        total_unique['file_access'].update(datasets)
+        rows.append(row)
+
+    print(
+        f'So far data accessed from {len(total_unique["cities"])} different cities '
+        f'across {len(total_unique["countries"])} countries'
+    )
+    download_data = pd.DataFrame(rows, columns=columns).set_index('date')
+    return download_data, total_unique
+
+
+def get_file_count_by_ip_from_downloads(save_path=None, save=False, exclude_bots=True,
+                                        YEAR=None, s3=None, bucket_name=None):
+    """
+    Count the file downloads by each IP address for each month, with the IP's location.
+
+    The counts come from the monthly downloads tables (see make_downloads_table), so a file
+    fetched in many pieces counts as one download and failed requests are not counted.  All
+    files are counted, not only those in data/.  Months without a downloads table are skipped
+    with a warning.
+
+    This replaces get_file_count_by_ip, which counts GET requests from the consolidated log tables
+    and so over-reports downloads by roughly 3-6x (and includes IPs with no downloads, with a NaN
+    count).  The columns are the same.
+
+    Parameters
+    ----------
+    save_path : str, pathlib.Path, optional
+        A local folder in which to look for the tables before downloading them.
+    save : bool
+        If true, save downloaded tables to `save_path`.
+    exclude_bots : bool
+        If true, ignore downloads by bots and crawlers (see s3io.BOT_USER_AGENT_PATTERN).
+    YEAR : int, str, optional
+        Only count the months of this year.
+    s3 : s3.ServiceResource, optional
+        An S3 resource; by default the credentials are fetched from Alyx.
+    bucket_name : str, optional
+        The bucket containing the tables (required if `s3` is given).
+
+    Returns
+    -------
+    pd.DataFrame
+        One row per IP address per month, with the columns 'ip', 'count' (the number of
+        downloads), 'date' ('YYYY-MM'), 'city', 'region' and 'country' (NaN if unknown).
+    """
+    columns = ['ip', 'count', 'date', 'city', 'region', 'country']
+    tables = []
+    for month, downloads, ip_info in _iter_monthly_tables(
+            YEAR, save_path, save, exclude_bots, s3=s3, bucket_name=bucket_name):
+        counts = downloads['Remote_IP'].value_counts()
+        df_ip = pd.DataFrame({'ip': counts.index, 'count': counts.values, 'date': month})
+        if ip_info is not None:
+            location = ip_info.reindex(columns=['city', 'region', 'country'])
+            df_ip = df_ip.merge(location.rename_axis('ip').reset_index(), how='left', on='ip')
+        tables.append(df_ip.reindex(columns=columns))
+    if not tables:
+        return pd.DataFrame(columns=columns)
+    return pd.concat(tables, ignore_index=True)
+
+
+def _iter_monthly_tables(year=None, save_path=None, save=False, exclude_bots=True, s3=None,
+                         bucket_name=None):
+    """
+    Yield each month's downloads table and IP table, in date order.
+
+    Parameters
+    ----------
+    year : int, str, optional
+        Only yield the months of this year.
+    save_path, save, exclude_bots, s3, bucket_name
+        See get_access_from_downloads.
+
+    Yields
+    ------
+    str
+        The month, 'YYYY-MM'.
+    pd.DataFrame
+        The month's downloads table (without bots if `exclude_bots` is true).
+    pd.DataFrame, None
+        The location of the month's IP addresses (indexed by IP), or None if there is no IP
+        table.  For months split into parts, the parts' IP tables are combined.
+    """
+    if not s3:
+        s3, bucket_name = s3io.aws.get_s3_from_alyx(s3io.AlyxClient())
+    bucket = s3.Bucket(name=bucket_name)
+    folder = PurePosixPath(s3io.REMOTE_LOG_LOCATION)
+    month_pattern = r'(\d{4}-\d{2})_'
+
+    downloads = {}
+    for obj in bucket.objects.filter(Prefix=(folder / 'downloads').as_posix() + '/'):
+        name = PurePosixPath(obj.key).name
+        if m := re.fullmatch(month_pattern + re.escape(s3io.SOURCE_BUCKET) + r'_downloads\.pqt',
+                             name):
+            downloads[m[1]] = obj
+    ip_tables, log_months = {}, set()
+    for obj in bucket.objects.filter(Prefix=(folder / 'consolidated').as_posix() + '/'):
+        name = PurePosixPath(obj.key).name
+        if not (m := re.match(month_pattern, name)):
+            continue
+        if name.endswith('_IP-info.pqt'):
+            ip_tables.setdefault(m[1], []).append(obj)
+        elif not name.endswith('_INCOMPLETE.pqt'):
+            log_months.add(m[1])
+
+    def in_year(month):
+        return year is None or month.startswith(f'{year}-')
+
+    if missing := sorted(filter(in_year, log_months - set(downloads))):
+        warnings.warn(f'No downloads table for {", ".join(missing)}; these months are skipped '
+                      '(make them with make_downloads_table or process_s3_downloads.py)')
+
+    for month in sorted(filter(in_year, downloads)):
+        table = _read_table(downloads[month], save_path, save)
+        if exclude_bots:
+            is_bot = table['User_Agent'].str.contains(
+                s3io.BOT_USER_AGENT_PATTERN, case=False, na=False)
+            table = table[~is_bot]
+        ip_info = None
+        if month in ip_tables:
+            ip_info = pd.concat(_read_table(obj, save_path, save) for obj in ip_tables[month])
+            ip_info = ip_info[~ip_info.index.duplicated()]
+        yield month, table, ip_info
+
+
+def _read_table(obj, save_path=None, save=False):
+    """Read a parquet table from S3, or from a local copy in `save_path` if there is one."""
+    local = None if save_path is None else Path(save_path, PurePosixPath(obj.key).name)
+    if local is not None and local.exists():
+        return pd.read_parquet(local)
+    table = pd.read_parquet(pa.BufferReader(obj.get()['Body'].read()))
+    if local is not None and save:
+        table.to_parquet(local)
+    return table
+
+
 def make_downloads_table(year, month, max_gap=300, boto_session=None, profile_name='miles',
                          source=None, table=None, upload=True, overwrite=False):
     """
     Build a month's downloads table from its consolidated log table and upload it to S3.
 
     The downloads table has one row per file download (see s3io.summarise_downloads) and is
-    saved to <REMOTE_LOG_LOCATION>/downloads/<YYYY-MM>_<bucket>_downloads.pqt.  It is kept out of
-    the 'consolidated' folder, as code such as get_access expects only the log and IP tables there.
+    saved to <REMOTE_LOG_LOCATION>/downloads/<YYYY-MM>_<bucket>_downloads.pqt, apart from the log
+    and IP tables in 'consolidated'.  These tables are what get_access_from_downloads and
+    get_file_count_by_ip_from_downloads report on.
 
     Some months' log tables are split into parts (<YYYY-MM>_<bucket>_PART1.pqt, _PART2, ...).
     The parts are processed one at a time, to limit memory use, then combined with
