@@ -15,6 +15,7 @@ import time
 import pandas as pd
 import numpy as np
 import pyarrow as pa
+import pyarrow.parquet as pq
 import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
@@ -91,6 +92,10 @@ def consolidate_logs(boto_session=None, date='last_month', ipinfo_token=None, pr
     downloads/YYYY-MM_<BUCKET-NAME>_downloads.pqt (see make_downloads_table).
 
     Individual log files are only deleted once the consolidated logs are uploaded and verified.
+
+    The Host_Id column (the AWS x-amz-id-2 request ID) is not stored: it was dropped in November
+    2026 as it was over half the size of the tables and not used.  Consolidated tables from 2026-11
+    onwards therefore have 26 columns instead of 27 (see s3io.DROPPED_COLUMNS).
 
     Parameters
     ----------
@@ -232,6 +237,9 @@ def _consolidate_month(start, end, partial, session, ipinfo_token, max_workers, 
     client = session.client('s3', config=Config(max_pool_connections=max_workers))
     df = s3io.read_remote_logs(
         keys=log_keys, s3_bucket=bucket, client=client, max_workers=max_workers)
+    # Drop unused columns as soon as possible to free memory.  Host_Id was dropped in Nov 2026, so
+    # consolidated tables from 2026-11 onwards don't have it (see s3io.DROPPED_COLUMNS)
+    s3io.drop_unused_columns(df)
 
     # Process table
     run['stage'] = 'processing'
@@ -263,7 +271,10 @@ def _consolidate_month(start, end, partial, session, ipinfo_token, max_workers, 
         print('Downloading partial log table')
         try:
             bucket.download_file(partial_file.as_posix(), str(filepath))
-            df_ = pd.read_parquet(filepath)
+            # Skip the dropped columns, in case this table was made before they were dropped
+            columns = [c for c in pq.read_schema(filepath).names
+                       if c not in s3io.DROPPED_COLUMNS and not c.startswith('__index_level_')]
+            df_ = pd.read_parquet(filepath, columns=columns)
         finally:
             filepath.unlink(missing_ok=True)  # local copy no longer needed (S3 copy is kept)
         assert np.all(df['Bucket'].unique() == bucket_name), 'multiple bucket logs'
@@ -460,6 +471,7 @@ def consolidate_logs_by_week(boto_session=None):
         print(f'Reading remote logs for week {week_number} of {start.strftime("%B")}')
         df = s3io.read_remote_logs(date_range=(start, end), log_location=s3io.REMOTE_LOG_LOCATION,
                                    s3_bucket=bucket)
+        s3io.drop_unused_columns(df)  # e.g. Host_Id, dropped from Nov 2026 (see s3io.DROPPED_COLUMNS)
 
         # Process table
         df = s3io.prepare_for_parquet(df)

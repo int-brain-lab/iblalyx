@@ -27,6 +27,13 @@ COL_NAMES = [
     'TLS_version', 'Access_Point_ARN', 'ACL_Required'
 ]
 N_FIELDS = len(COL_NAMES)
+"""list of str: log columns parsed but not stored in the consolidated tables.
+
+Host_Id (the x-amz-id-2 request ID, only useful in an AWS support ticket about a recent request)
+was dropped in November 2026: it is a random 87 character string that barely compresses, so it was
+over half the size of the consolidated tables (e.g. 760 MB of the 1.4 GB October 2026 table).
+Consolidated tables from 2026-11 onwards don't have this column; earlier tables still do."""
+DROPPED_COLUMNS = ['Host_Id']
 """str: default remote log location, can be found in server access logging config page."""
 REMOTE_LOG_LOCATION = 'info/ibl-brain-wide-map-public/logs/server-access-logs/'
 """str: the bucket whose access logs are consolidated (used in the consolidated file names)."""
@@ -762,6 +769,29 @@ def get_remote_log_date_range(log_location=REMOTE_LOG_LOCATION, s3_bucket=None):
     """
     log_files = sorted(map(lambda x: x.key, _iter_objects(log_location, s3_bucket=s3_bucket)))
     return _timestamp(log_files[0]), _timestamp(log_files[-1])
+
+
+def drop_unused_columns(df):
+    """
+    Remove the DROPPED_COLUMNS (e.g. Host_Id) from a log table, in place, to free their memory.
+
+    Call this once the logs are parsed: the columns must not be removed while reading, as rows
+    with an extra field are repaired by column position (see fix_extra_column_entries).
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        A log table, with or without the columns.
+
+    Returns
+    -------
+    pd.DataFrame
+        The same data frame, without the dropped columns.
+    """
+    for col in DROPPED_COLUMNS:
+        if col in df.columns:
+            del df[col]
+    return df
 
 
 def prepare_for_parquet(df):
