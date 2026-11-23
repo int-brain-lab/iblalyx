@@ -921,3 +921,220 @@ def upload_table(df, key, bucket, tmp_dir=None):
         n_index_cols = sum(isinstance(col, str) for col in index_cols)
         assert metadata.num_rows == df.shape[0], 'uploaded table row count mismatch'
         assert metadata.num_columns - n_index_cols == df.shape[1], 'uploaded table column count mismatch'
+
+
+"""list of str: the log table columns needed to build the downloads table."""
+DOWNLOAD_SOURCE_COLUMNS = [
+    'Time', 'Time_Offset', 'Remote_IP', 'Requester_ARN/Canonical_ID', 'Operation', 'Key',
+    'HTTP_status', 'Bytes_Sent', 'Object_Size', 'Total_Time', 'User_Agent']
+"""str: case-insensitive pattern of user agents that are bots rather than people (NB: 'bot\\b' so
+that Boto3 and botocore don't match).  Not stored in the downloads table, so that the definition can
+change without rebuilding past tables; filter with e.g.
+``dl[~dl.User_Agent.str.contains(BOT_USER_AGENT_PATTERN, case=False, na=False)]``."""
+BOT_USER_AGENT_PATTERN = r'facebookexternalhit|(?:bot|crawler|spider)\b'
+
+
+DOWNLOADS_COLUMNS = [
+    'Remote_IP', 'Key', 'start_time', 'end_time', 'n_requests', 'HTTP_status',
+    'bytes_sent', 'object_size', 'fraction', 'complete', 'total_time_ms', 'User_Agent',
+    'Requester_ARN/Canonical_ID']
+
+
+def summarise_downloads(df, max_gap=300, complete_tol=0.05) -> pd.DataFrame:
+    """
+    Summarise a log table into one row per file download.
+
+    Only successful object downloads are kept (REST.GET.OBJECT with HTTP status 200 or 206).
+    A 200 request is for the whole file, so each one is a download of its own.  Large files are
+    often fetched in many pieces (ranged requests, status 206), each logged separately, so these
+    are grouped: pieces from the same IP for the same file belong to the same download unless more
+    than `max_gap` seconds pass between the end of the previous pieces (start time + Total_Time)
+    and the start of the next one.  Pieces are never grouped with 200 requests.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        A consolidated log table (needs the DOWNLOAD_SOURCE_COLUMNS columns).
+    max_gap : float
+        The maximum gap in seconds between requests of the same download.
+    complete_tol : float
+        A download is marked complete if the bytes sent are at least (1 - complete_tol) times the
+        object size.
+
+    Returns
+    -------
+    pd.DataFrame
+        One row per download, sorted by start time, with the columns:
+        - Remote_IP, Key: the IP address and the file downloaded;
+        - start_time, end_time: the (UTC) start of the first request and end of the last;
+        - n_requests: the number of requests (pieces);
+        - HTTP_status: 200 for a single whole-file request, 206 for a download fetched in pieces;
+        - bytes_sent, object_size: the total bytes sent and the size of the file;
+        - fraction: bytes_sent / object_size (NaN if the size is unknown or 0); about 1 for a
+          whole file, < 1 for a partial read or interrupted download, > 1 when pieces of repeat
+          downloads (e.g. from several people behind the same IP) were grouped together;
+        - complete: whether fraction >= 1 - complete_tol;
+        - total_time_ms: the summed Total_Time of the requests;
+        - User_Agent, Requester_ARN/Canonical_ID: of the first request (to filter out bots, see
+          BOT_USER_AGENT_PATTERN).
+        The max_gap used is stored in the attrs (saved in the parquet metadata).
+
+    See Also
+    --------
+    merge_downloads : combine the downloads tables of a log table split into parts.
+    """
+    is_download = (df['Operation'] == 'REST.GET.OBJECT') & df['HTTP_status'].isin([200, 206])
+    # Copy only the columns needed (a full log table has 27)
+    g = df.loc[is_download, ['Time', 'Time_Offset', 'Remote_IP', 'Requester_ARN/Canonical_ID',
+                             'Key', 'HTTP_status', 'Bytes_Sent', 'Object_Size', 'Total_Time',
+                             'User_Agent']]
+    if g.empty:
+        return _empty_downloads(max_gap)
+
+    # Request start in ms since epoch (UTC). Time is e.g. '[30/Sep/2026:23:11:27', offset '+0000]'
+    start = pd.to_datetime(g['Time'].str.lstrip('[') + g['Time_Offset'].str.rstrip(']'),
+                           format='%d/%b/%Y:%H:%M:%S%z', utc=True)
+    start_ms = _to_ms(start)
+    duration_ms = g['Total_Time'].fillna(0).to_numpy(dtype=float)
+    requests = pd.DataFrame({
+        'Remote_IP': g['Remote_IP'].to_numpy(),
+        'Key': g['Key'].to_numpy(),
+        'start_ms': start_ms,
+        'end_ms': start_ms + np.ceil(duration_ms).astype(np.int64),
+        'n_requests': np.ones(len(g), dtype=np.int64),
+        'ranged': (g['HTTP_status'] == 206).to_numpy(),
+        'bytes_sent': g['Bytes_Sent'].to_numpy(dtype=np.int64),
+        'object_size': g['Object_Size'].to_numpy(dtype=float),
+        'total_time_ms': duration_ms,
+        'User_Agent': g['User_Agent'].to_numpy(),
+        'Requester_ARN/Canonical_ID': g['Requester_ARN/Canonical_ID'].to_numpy(),
+    })
+    return _group_downloads(requests, max_gap, complete_tol)
+
+
+def merge_downloads(tables, max_gap=None, complete_tol=0.05) -> pd.DataFrame:
+    """
+    Combine the downloads tables made from the parts of one month's log table.
+
+    A download may be split across parts (e.g. some pieces in PART1 and the rest in PART2), so the
+    downloads are grouped again using the same rule.  The result is the same as summarising all
+    the parts as one log table, without having to load them all at once.
+
+    Parameters
+    ----------
+    tables : iterable of pd.DataFrame
+        The downloads tables returned by summarise_downloads for each part.
+    max_gap : float, optional
+        The maximum gap in seconds between requests of the same download.  Defaults to the one
+        the tables were made with; they must all have used the same.
+    complete_tol : float
+        A download is marked complete if the bytes sent are at least (1 - complete_tol) times the
+        object size.
+
+    Returns
+    -------
+    pd.DataFrame
+        The combined downloads table (see summarise_downloads).
+    """
+    tables = list(tables)
+    gaps = {t.attrs.get('max_gap_s') for t in tables}
+    if max_gap is None:
+        if len(gaps) != 1 or None in gaps:
+            raise ValueError(f'tables were made with different or unknown max gaps: {gaps}')
+        max_gap, = gaps
+    elif gaps - {max_gap}:
+        raise ValueError(f'tables were made with max gaps {gaps}, not {max_gap}')
+    tables = [t for t in tables if not t.empty]
+    if not tables:
+        return _empty_downloads(max_gap)
+    df = pd.concat(tables, ignore_index=True)
+    rows = pd.DataFrame({
+        'Remote_IP': df['Remote_IP'].to_numpy(),
+        'Key': df['Key'].to_numpy(),
+        'start_ms': _to_ms(df['start_time']),
+        'end_ms': _to_ms(df['end_time']),
+        'n_requests': df['n_requests'].to_numpy(dtype=np.int64),
+        'ranged': (df['HTTP_status'] == 206).to_numpy(),
+        'bytes_sent': df['bytes_sent'].to_numpy(dtype=np.int64),
+        'object_size': df['object_size'].to_numpy(dtype=float),
+        'total_time_ms': df['total_time_ms'].to_numpy(dtype=float),
+        'User_Agent': df['User_Agent'].to_numpy(),
+        'Requester_ARN/Canonical_ID': df['Requester_ARN/Canonical_ID'].to_numpy(),
+    })
+    del df
+    return _group_downloads(rows, max_gap, complete_tol)
+
+
+def _to_ms(times):
+    """Convert a series of UTC datetimes to integer milliseconds since the epoch."""
+    times = pd.Series(times)
+    if times.dt.tz is not None:
+        times = times.dt.tz_convert('UTC').dt.tz_localize(None)
+    return times.to_numpy(dtype='datetime64[ms]').astype(np.int64)
+
+
+def _empty_downloads(max_gap):
+    out = pd.DataFrame(columns=DOWNLOADS_COLUMNS)
+    out.attrs['max_gap_s'] = max_gap
+    return out
+
+
+def _group_downloads(rows, max_gap, complete_tol):
+    """
+    Group requests (or downloads) into downloads.
+
+    Parameters
+    ----------
+    rows : pd.DataFrame
+        Requests or downloads, with the columns Remote_IP, Key, start_ms, end_ms, n_requests,
+        ranged, bytes_sent, object_size, total_time_ms, User_Agent and
+        Requester_ARN/Canonical_ID; ranged is True for 206 pieces.  Only ranged rows are grouped;
+        others (200 requests) stay on their own.
+    max_gap : float
+        The maximum gap in seconds between rows of the same download.
+    complete_tol : float
+        See summarise_downloads.
+
+    Returns
+    -------
+    pd.DataFrame
+        The downloads table (see summarise_downloads).
+    """
+    r = rows.sort_values(['Remote_IP', 'Key', 'ranged', 'start_ms'], kind='stable',
+                         ignore_index=True)
+    # Ranged rows continuing the same IP and file as the (ranged) row above
+    ip, key, ranged = r['Remote_IP'].to_numpy(), r['Key'].to_numpy(), r['ranged'].to_numpy()
+    same = np.zeros(len(r), dtype=bool)
+    same[1:] = (ip[1:] == ip[:-1]) & (key[1:] == key[:-1]) & ranged[1:] & ranged[:-1]
+    # Gap from the latest end of the previous rows (pieces overlap when fetched in parallel)
+    start_ms, end_ms = r['start_ms'].to_numpy(), r['end_ms'].to_numpy()
+    latest_end = pd.Series(end_ms).groupby(np.cumsum(~same)).cummax().to_numpy()
+    gap_s = np.full(len(r), np.inf)
+    gap_s[1:] = (start_ms[1:] - latest_end[:-1]) / 1000
+    new_download = ~same | (gap_s > max_gap)
+
+    # One row per download
+    first = np.flatnonzero(new_download)
+    download_id = np.cumsum(new_download) - 1
+    bytes_sent = np.add.reduceat(r['bytes_sent'].to_numpy(), first)
+    object_size = pd.Series(r['object_size'].to_numpy()).groupby(download_id).max().to_numpy()
+    with np.errstate(divide='ignore', invalid='ignore'):
+        fraction = np.where(object_size > 0, bytes_sent / object_size, np.nan)
+    out = pd.DataFrame({
+        'Remote_IP': ip[first],
+        'Key': key[first],
+        'start_time': pd.to_datetime(start_ms[first], unit='ms', utc=True),
+        'end_time': pd.to_datetime(np.maximum.reduceat(end_ms, first), unit='ms', utc=True),
+        'n_requests': np.add.reduceat(r['n_requests'].to_numpy(), first),
+        'HTTP_status': np.where(ranged[first], 206, 200),
+        'bytes_sent': bytes_sent,
+        'object_size': object_size,
+        'fraction': fraction,
+        'complete': fraction >= 1 - complete_tol,
+        'total_time_ms': np.add.reduceat(r['total_time_ms'].to_numpy(), first),
+        'User_Agent': r['User_Agent'].iloc[first].to_numpy(),
+        'Requester_ARN/Canonical_ID': r['Requester_ARN/Canonical_ID'].iloc[first].to_numpy(),
+    })
+    out = out.sort_values('start_time', kind='stable', ignore_index=True)
+    out.attrs['max_gap_s'] = max_gap
+    return out

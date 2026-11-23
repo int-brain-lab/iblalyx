@@ -2,6 +2,7 @@
 from datetime import datetime, timedelta, timezone
 from calendar import monthrange
 from pathlib import PurePosixPath, Path
+import re
 import warnings
 from time import sleep
 import pickle
@@ -78,7 +79,7 @@ def week_of_month(dt):
 
 
 def consolidate_logs(boto_session=None, date='last_month', ipinfo_token=None, profile_name='miles',
-                     max_workers=64):
+                     max_workers=64, max_gap=300):
     """
     Download last month's log files, upload as parquet table to S3 and delete individual log files.
 
@@ -86,8 +87,10 @@ def consolidate_logs(boto_session=None, date='last_month', ipinfo_token=None, pr
         consolidated/YYYY-MM_<BUCKET-NAME>.pqt
     If the logs are consolidated for the current month, the file will end with '_INCOMPLETE.pqt'.
     The IP address locations are stored in a file with the same name, ending with '_IP-info.pqt'.
+    For complete months, a downloads table (one row per file download) is also uploaded to
+    downloads/YYYY-MM_<BUCKET-NAME>_downloads.pqt (see make_downloads_table).
 
-    Individual log files are only deleted once the consolidated logs are
+    Individual log files are only deleted once the consolidated logs are uploaded and verified.
 
     Parameters
     ----------
@@ -103,6 +106,8 @@ def consolidate_logs(boto_session=None, date='last_month', ipinfo_token=None, pr
         The profile name of the boto s3 credentials
     max_workers : int
         The number of concurrent log file downloads.
+    max_gap : float
+        For the downloads table, the maximum gap in seconds between requests of the same download.
 
     Returns
     -------
@@ -116,6 +121,8 @@ def consolidate_logs(boto_session=None, date='last_month', ipinfo_token=None, pr
     Each run appends a 'started' row to RUN_LOG_FILENAME (in LOCAL_LOG_LOCATION) and, when it
     ends, a 'succeeded', 'no_logs' or 'failed' row (with the stage reached and the error).  A
     'started' row with no matching end row means the process was killed (e.g. out of memory).
+    If only the downloads table fails, the run still succeeds, with the error noted in the run log;
+    the table can be made later with make_downloads_table (or scripts/process_s3_downloads.py).
     """
     mode = str(date)
     today = _utcnow()
@@ -150,7 +157,8 @@ def consolidate_logs(boto_session=None, date='last_month', ipinfo_token=None, pr
     t0 = time.monotonic()
     try:
         session = boto_session or boto3.Session(profile_name=profile_name)
-        df, url = _consolidate_month(start, end, partial, session, ipinfo_token, max_workers, run)
+        df, url = _consolidate_month(start, end, partial, session, ipinfo_token, max_workers, run,
+                                     max_gap=max_gap)
     except BaseException as ex:  # includes KeyboardInterrupt and MemoryError
         run['duration_s'] = round(time.monotonic() - t0)
         run['error'] = f'{type(ex).__name__}: {ex}'.replace('\n', ' ')[:500]
@@ -192,7 +200,7 @@ def _log_run(status, run, log_file=None):
         warnings.warn(f'Failed to write run log {log_file}: {ex}')
 
 
-def _consolidate_month(start, end, partial, session, ipinfo_token, max_workers, run):
+def _consolidate_month(start, end, partial, session, ipinfo_token, max_workers, run, max_gap=300):
     """
     Consolidate the logs between start and end (see consolidate_logs).
 
@@ -233,6 +241,9 @@ def _consolidate_month(start, end, partial, session, ipinfo_token, max_workers, 
     if df.empty:
         warnings.warn('No logs found!')
         if not partial and (url := _promote_partial_table(start, bucket, run)):
+            # No table in memory: the downloads table is made from the promoted table on S3
+            _try_make_downloads_table(start, max_gap, session, run)
+            run['stage'] = 'done'
             return df, url
         run.update(stage='done', n_rows=0)
         return df, None
@@ -315,8 +326,28 @@ def _consolidate_month(start, end, partial, session, ipinfo_token, max_workers, 
         print('Uploading IP table')
         s3io.upload_table(ip_details, ip_table_url, bucket)
 
+    if not partial:  # last, as the IP lookup above still needs the full table
+        _try_make_downloads_table(start, max_gap, session, run, table=df)
+
     run['stage'] = 'done'
     return df, run['output']
+
+
+def _try_make_downloads_table(start, max_gap, session, run, table=None):
+    """
+    Make and upload a month's downloads table as part of a consolidation run.
+
+    Failures are only warned about and noted in the run log, as the logs themselves are already
+    consolidated; the table can be made later with make_downloads_table.
+    """
+    run['stage'] = 'downloads'
+    try:
+        make_downloads_table(start.year, start.month, max_gap=max_gap, boto_session=session,
+                             table=table, overwrite=True)
+    except Exception as ex:
+        message = f'downloads table failed: {type(ex).__name__}: {ex}'.replace('\n', ' ')[:500]
+        warnings.warn(f'{message}; run make_downloads_table({start.year}, {start.month}) to retry')
+        run['error'] = message
 
 
 def _promote_partial_table(start, bucket, run):
@@ -710,3 +741,156 @@ def get_file_count_by_ip(save_path=None, save=False):
         all_df = pd.concat([all_df, df_ip.merge(ip_info, how='outer', on='ip')])
 
     return all_df
+
+def make_downloads_table(year, month, max_gap=300, boto_session=None, profile_name='miles',
+                         source=None, table=None, upload=True, overwrite=False):
+    """
+    Build a month's downloads table from its consolidated log table and upload it to S3.
+
+    The downloads table has one row per file download (see s3io.summarise_downloads) and is
+    saved to <REMOTE_LOG_LOCATION>/downloads/<YYYY-MM>_<bucket>_downloads.pqt.  It is kept out of
+    the 'consolidated' folder, as code such as get_access expects only the log and IP tables there.
+
+    Some months' log tables are split into parts (<YYYY-MM>_<bucket>_PART1.pqt, _PART2, ...).
+    The parts are processed one at a time, to limit memory use, then combined with
+    s3io.merge_downloads so that downloads spanning two parts are counted once.
+
+    Parameters
+    ----------
+    year, month : int
+        The month to process.  Its complete consolidated log table, or its parts, must exist.
+    max_gap : float
+        The maximum gap in seconds between requests of the same download.
+    boto_session : boto3.Session, optional
+        A boto3 session with access to the private bucket.
+    profile_name : str
+        The boto3 profile name, used if no session is given.
+    source : str, pathlib.Path, list, optional
+        Local copies of the consolidated log table, or of all its parts, to use instead of
+        downloading them.
+    table : pd.DataFrame, optional
+        The month's complete log table, already loaded (e.g. by consolidate_logs), to use instead
+        of downloading it.
+    upload : bool
+        If true, upload the downloads table to S3, otherwise save it to LOCAL_LOG_LOCATION.
+    overwrite : bool
+        If true, replace an existing downloads table on S3.
+
+    Returns
+    -------
+    pd.DataFrame
+        The downloads table.
+    str
+        The S3 URI or local path the table was saved to.
+    """
+    dst_bucket_name = 'ibl-brain-wide-map-private'
+    name = f'{year:04d}-{month:02d}_{s3io.SOURCE_BUCKET}'
+    dst_key = PurePosixPath(s3io.REMOTE_LOG_LOCATION, 'downloads', f'{name}_downloads.pqt')
+    s3io.LOCAL_LOG_LOCATION.mkdir(parents=True, exist_ok=True)
+
+    if source is not None and table is not None:
+        raise ValueError('pass either source or table, not both')
+    bucket = None
+    if upload or (source is None and table is None):
+        session = boto_session or boto3.Session(profile_name=profile_name)
+        bucket = session.resource('s3').Bucket(name=dst_bucket_name)
+    if upload and not overwrite and _s3_object_exists(bucket, dst_key):
+        raise FileExistsError(f's3://{dst_bucket_name}/{dst_key} already exists '
+                              '(pass overwrite=True to replace it)')
+
+    if table is not None:
+        print(f'Grouping {len(table):,} requests into downloads (max gap {max_gap:g} s)')
+        downloads = s3io.summarise_downloads(table, max_gap=max_gap)
+        sources = [None]
+    elif source is None:
+        sources = _find_log_tables(bucket, name)
+    else:
+        sources = [Path(source)] if isinstance(source, (str, Path)) else list(map(Path, source))
+
+    if table is None:
+        # Summarise each table (part) in turn, loading only the columns needed
+        tables = []
+        for i, src in enumerate(sources, 1):
+            part = f' (part {i} of {len(sources)})' if len(sources) > 1 else ''
+            tables.append(_summarise_log_table(src, bucket, name, max_gap, part))
+        downloads = tables[0] if len(tables) == 1 else s3io.merge_downloads(tables, max_gap=max_gap)
+        del tables
+    if len(sources) > 1:
+        print(f'Combined the parts into {len(downloads):,} downloads')
+    print(f'{downloads["n_requests"].sum():,} successful file requests -> '
+          f'{len(downloads):,} downloads ({downloads["complete"].mean():.1%} complete)')
+
+    if upload:
+        print(f'Uploading {dst_key.name}')
+        s3io.upload_table(downloads, dst_key, bucket)
+        return downloads, f's3://{dst_bucket_name}/{dst_key}'
+    filepath = s3io.LOCAL_LOG_LOCATION / dst_key.name
+    downloads.to_parquet(filepath)
+    print(f'Saved to {filepath}')
+    return downloads, str(filepath)
+
+
+def _find_log_tables(bucket, name):
+    """
+    Return the S3 keys of a month's consolidated log table, or of its parts in order.
+
+    Parameters
+    ----------
+    bucket : s3.Bucket
+        The bucket containing the consolidated tables.
+    name : str
+        The table name without extension, e.g. '2026-04_ibl-brain-wide-map-public'.
+
+    Returns
+    -------
+    list of PurePosixPath
+        The key of the complete table, or the keys of PART1, PART2, ...
+    """
+    folder = PurePosixPath(s3io.REMOTE_LOG_LOCATION, 'consolidated')
+    whole = folder / f'{name}.pqt'
+    parts = {}
+    for obj in bucket.objects.filter(Prefix=(folder / f'{name}_PART').as_posix()):
+        if m := re.fullmatch(rf'{re.escape(name)}_PART(\d+)\.pqt', PurePosixPath(obj.key).name):
+            parts[int(m.group(1))] = PurePosixPath(obj.key)
+    has_whole = _s3_object_exists(bucket, whole)
+    if has_whole and parts:
+        raise RuntimeError(f'Both {whole.name} and {len(parts)} part tables exist; '
+                           'not sure which to use')
+    if has_whole:
+        return [whole]
+    if parts:
+        if sorted(parts) != list(range(1, len(parts) + 1)):
+            raise RuntimeError(f'Parts of {name} are not numbered 1 to {len(parts)} '
+                               f'(found {sorted(parts)}); is one missing?')
+        return [parts[i] for i in sorted(parts)]
+    hint = (' (only a partial table exists; wait until the month is consolidated)'
+            if _s3_object_exists(bucket, folder / f'{name}_INCOMPLETE.pqt') else '')
+    raise FileNotFoundError(f's3://{bucket.name}/{whole} not found{hint}')
+
+
+def _summarise_log_table(src, bucket, name, max_gap, part=''):
+    """Load one consolidated log table (an S3 key or a local path) and summarise its downloads."""
+    if isinstance(src, PurePosixPath) and not isinstance(src, Path):  # S3 key
+        filepath = s3io.LOCAL_LOG_LOCATION / f'{name}.tmp{np.floor(time.time()):.0f}.pqt'
+        print(f'Downloading {src.name}{part}')
+        try:
+            bucket.download_file(src.as_posix(), str(filepath))
+            df = pd.read_parquet(filepath, columns=s3io.DOWNLOAD_SOURCE_COLUMNS)
+        finally:
+            filepath.unlink(missing_ok=True)
+    else:
+        print(f'Reading {src}{part}')
+        df = pd.read_parquet(src, columns=s3io.DOWNLOAD_SOURCE_COLUMNS)
+    print(f'Grouping {len(df):,} requests into downloads (max gap {max_gap:g} s)')
+    return s3io.summarise_downloads(df, max_gap=max_gap)
+
+
+def _s3_object_exists(bucket, key):
+    """Return True if the key exists in the bucket."""
+    try:
+        bucket.Object(PurePosixPath(key).as_posix()).load()
+    except ClientError as ex:
+        if ex.response['Error']['Code'] in ('404', 'NoSuchKey'):
+            return False
+        raise ex
+    return True
