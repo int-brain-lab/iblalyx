@@ -67,12 +67,15 @@ class Command(BaseCommand):
                 self.stdout.write(f'...no file record for dataset with ID: {str(diff)}')
 
         # Create symlinks for all file records
-        self.stdout.write(self.style.SUCCESS(f'Creating symlinks for {file_records.count()} file records...'))
+        n_records = file_records.count()
+        self.stdout.write(self.style.SUCCESS(f'Creating symlinks for {n_records} file records...'))
         created = 0
         skipped = 0
         missing = 0
 
-        for fr in tqdm.tqdm(file_records):
+        # fr.data_url reads both relations: without select_related that is two DB round trips per record.
+        records = file_records.select_related('data_repository', 'dataset').iterator(chunk_size=2000)
+        for fr in tqdm.tqdm(records, total=n_records):
             rel_path = fr.data_url.split('public')[1].strip('/')
             source = Path('/mnt/ibl').joinpath(rel_path)
             dest = Path('/mnt/ibl/public').joinpath(rel_path)

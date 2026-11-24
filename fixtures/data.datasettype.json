@@ -1208,5 +1208,16 @@
       "description": "A table of all chronically-tracked ROIs for a given subject. Rows include 'roi_id', 'cluster_id', 'group_id', 'FOV_path', 'session_path', 'eid'.",
       "filename_pattern": ""
     }
+  },
+  {
+    "model": "data.datasettype",
+    "pk": "3fa53dd6-5707-4f2a-a09c-50ef17789896",
+    "fields": {
+      "json": null,
+      "name": "_iblqc_mpciROIs.metrics",
+      "created_by": null,
+      "description": "A table of ROI-level quality metrics, with one row per ROI.",
+      "filename_pattern": ""
+    }
   }
 ]

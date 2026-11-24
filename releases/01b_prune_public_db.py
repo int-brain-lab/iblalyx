@@ -15,7 +15,7 @@ all datasets in the new public database. This public folder will then be synchro
 
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import django
@@ -102,18 +102,22 @@ print(f"\nStarting to prune public database")
 print("...pruning datasets")
 datasets_to_del = Dataset.objects.using('public').all()
 for fname, tag_id in zip(public_ds_files, public_ds_tags):
-    dataset_ids = pd.read_parquet(IBLALYX_ROOT.joinpath('releases', fname))['dataset_id']
+    dataset_ids = list(pd.read_parquet(IBLALYX_ROOT.joinpath('releases', fname))['dataset_id'])
+    datasets = Dataset.objects.using('public').filter(pk__in=dataset_ids)
     tag = Tag.objects.using('public').filter(id=tag_id)
     if len(tag) != 0:
-        datasets = Dataset.objects.using('public').filter(pk__in=list(dataset_ids))
         if set(tag[0].datasets.values_list('pk', flat=True)) != set(datasets.values_list('pk', flat=True)):
             print(f"{fname} mismatched tags !")
     else:
         print(f"{fname} missing tag !")
-    datasets_to_del = datasets_to_del.exclude(pk__in=list(dataset_ids))
+    if n_private := datasets.exclude(tags__public=True).count():
+        print(f"{fname}: {n_private} datasets have no public tag and will not be released !")
+    datasets_to_del = datasets_to_del.exclude(pk__in=dataset_ids)
 
 # Now delete datasets (cascades to millions of FileRecords - see delete_in_batches above)
 delete_in_batches(datasets_to_del, Dataset, force=True)
+# Only datasets with at least one public tag are released, whatever the release files list
+delete_in_batches(Dataset.objects.using('public').exclude(tags__public=True), Dataset, force=True)
 datasets = Dataset.objects.using('public').all()
 
 # Delete tags that aren't in the list above (released datasets might have additional, not-yet-released tags)
@@ -208,7 +212,8 @@ for lm in lab_members:
     lm.username = str(lm.id)[:8]
     lm.first_name = ''
     lm.last_name = ''
-    lm.date_joined = datetime.now()
+    # Fixed, not now(): openalyx's client_usage counts signups by join day, and these aren't signups.
+    lm.date_joined = datetime(2018, 1, 1, tzinfo=timezone.utc)
     lm.last_login = datetime.now()
     lm.password = ''
     try:
@@ -376,8 +381,13 @@ GenotypeTest.objects.using('public').all().delete()
 Task.objects.using('public').all().delete()
 
 # Client usage records (iblalyx/client_usage), if production keeps them, never go public. The app
-# is not installed here, so its tables are dropped by name.
+# is not installed here, so its tables are found by name - all of them, so that a table added by
+# a later migration cannot slip through. CASCADE takes the Grafana views built on them
+# (iblsre/alyx/sql/usage_reader.sql).
 with connections['public'].cursor() as cursor:
-    cursor.execute('DROP TABLE IF EXISTS client_usage_clientusage, client_usage_clientfingerprint')
+    cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'public' "
+                   "AND tablename LIKE 'client\\_usage\\_%'")
+    for (table,) in cursor.fetchall():
+        cursor.execute(f'DROP TABLE IF EXISTS "{table}" CASCADE')
     cursor.execute("DELETE FROM django_migrations WHERE app = 'client_usage'")
 print("Finished pruning database\n")

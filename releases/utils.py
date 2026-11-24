@@ -47,6 +47,7 @@ PUBLIC_DS_FILES = ['2021_Q1_IBL_et_al_Behaviour_datasets.pqt',
                    '2026_Q2_Ghani_et_al_datasets.pqt',
                    '2026_Q3_Großmann_et_al.pqt',
                    '2026_Q3_IBL_et_al_BWM_refined_alignments_datasets.pqt',
+                   'Brainwidemap_datasets.pqt',
                    ]
 
 PUBLIC_DS_TAGS = [
@@ -77,7 +78,8 @@ PUBLIC_DS_TAGS = [
     "dcc4b8f1-570f-43cb-9960-246ec5e558ee",  # 2026_Q1_Miska_Zapit
     "3d788949-b148-482f-a510-387e44e7bd25",  # 2026_Q2_Ghani_et_al
     "7622b5b5-e0cf-4c33-b696-cf0f419e638a",  # 2026_Q3_Großmann_et_al
-    "b424344e-9c28-42fc-8bb3-1160bb47652b"  # 2026_Q3_IBL_et_al_BWM_refined_alignments
+    "b424344e-9c28-42fc-8bb3-1160bb47652b",  # 2026_Q3_IBL_et_al_BWM_refined_alignments
+    "91e97ebe-d7c4-4111-b92a-5b3f80e262b6",  # Brainwidemap
 ]
 
 

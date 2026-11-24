@@ -2,11 +2,13 @@ from collections import OrderedDict
 from datetime import date
 import logging
 import time
+import uuid
 
 import django_filters
 from django import forms
 from django.http import HttpResponse, JsonResponse
 from django.template import loader
+from django.views.generic import TemplateView
 from django.views.generic.list import ListView
 from django.db.models import Q, F, OuterRef, Exists, UUIDField, Max, Count, Func, Subquery, TextField
 from django.db.models.functions import Coalesce, Cast
@@ -20,6 +22,7 @@ from misc.models import Note, Lab
 from subjects.models import Project, Subject
 from actions.models import Session
 from jobs.models import Task
+from data.models import DataNotice, Dataset, Tag
 
 import pyarrow.parquet as pq
 import pandas as pd
@@ -915,3 +918,81 @@ class SubjectFilter(django_filters.FilterSet):
 
     def filter_alive_since(self, queryset, name, value):
         return queryset.exclude(death_date__lte=value)
+
+
+class DataNoticeChangelogView(LoginRequiredMixin, TemplateView):
+    """Display a changelog of data notices for analysis users.
+
+    A notice may cover millions of datasets, so no query here scales with the number of notice
+    datasets: the datasets are not listed, but linked to in the dataset admin list; the notices are
+    filtered with semi-joins (which stop at the first matching dataset) rather than joins; and all
+    tags and projects are offered as filters, rather than only those of notice datasets.
+    """
+
+    template_name = 'ibl_reports/datanotice_changelog.html'
+    login_url = LOGIN_URL
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        def parse_uuids(values):
+            """Split values into canonical UUID strings and values that are not UUIDs.
+
+            Filtering a UUID field by a non-UUID value raises a ValidationError, so these are dropped.
+            """
+            valid, invalid = [], []
+            for value in values:
+                try:
+                    valid.append(str(uuid.UUID(value)))
+                except ValueError:
+                    invalid.append(value)
+            return valid, invalid
+
+        # Dataset UUIDs may be separated by commas or whitespace
+        selected_datasets, invalid_datasets = parse_uuids(
+            ' '.join(self.request.GET.getlist('dataset')).replace(',', ' ').split())
+        selected_tags = [value for value in self.request.GET.getlist('tag') if value]
+        # Project IDs come from the select options, so an invalid one can only be from an edited URL
+        selected_projects, _ = parse_uuids(self.request.GET.getlist('project'))
+
+        notice_dataset_through = DataNotice.datasets.through
+        session_project_through = Session.projects.through
+
+        def covers(datasets):
+            """Whether a notice covers any of the given datasets."""
+            return Exists(notice_dataset_through.objects.filter(
+                datanotice_id=OuterRef('id'), dataset_id__in=datasets))
+
+        notices = DataNotice.objects.select_related('created_by').annotate(
+            has_datasets=Exists(notice_dataset_through.objects.filter(datanotice_id=OuterRef('id'))))
+
+        if selected_datasets:
+            notices = notices.filter(covers(selected_datasets))
+
+        if selected_tags:
+            notices = notices.filter(covers(
+                Dataset.tags.through.objects.filter(tag__name__in=selected_tags).values('dataset_id')))
+
+        if selected_projects:
+            matching_sessions = session_project_through.objects.filter(
+                project_id__in=selected_projects,
+            ).values('session_id')
+            notices = notices.filter(covers(
+                Dataset.objects.filter(session_id__in=matching_sessions).values('id')))
+
+        notices = notices.order_by('-created_datetime', '-importance', 'name')
+
+        tags = Tag.objects.order_by('name').values('name')
+        projects = Project.objects.order_by('name').values('id', 'name')
+
+        context.update({
+            'notices': notices,
+            'tags': tags,
+            'projects': projects,
+            'selected_datasets': selected_datasets,
+            'invalid_datasets': invalid_datasets,
+            'selected_tags': selected_tags,
+            'selected_projects': selected_projects,
+        })
+
+        return context
