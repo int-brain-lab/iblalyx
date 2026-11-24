@@ -1,15 +1,18 @@
 import datetime
 from io import StringIO
+from unittest import mock
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.management import call_command
-from django.test import SimpleTestCase, TestCase, override_settings
+from django.http import HttpResponse
+from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from rest_framework.authtoken.models import Token
 
 from client_usage.classify import classify
 from client_usage import middleware
-from client_usage.middleware import NOTICE_HEADER
+from client_usage.middleware import NOTICE_HEADER, OUTDATED_STATUS, is_outdated
 from client_usage.models import ClientFingerprint, ClientUsage, Signups
 from client_usage.router import ClientUsageRouter
 
@@ -74,6 +77,17 @@ class TestRecording(TestCase):
         self.assertIn('register your own', self._get(self.shared).headers[NOTICE_HEADER])
         self.assertNotIn(NOTICE_HEADER, self._get(self.user).headers)
 
+    def test_notices_join_any_already_given(self):
+        """ONE raises a notice as a warning only if the header starts with '!!!'."""
+        for notice, expected in (('Please register.', 'Page capped. Please register.'),
+                                 ('!!!Please register.', '!!!Please register. Page capped.')):
+            with self.subTest(notice), override_settings(CLIENT_USAGE_NOTICES={'shared': notice}):
+                view = mock.Mock(return_value=HttpResponse(headers={NOTICE_HEADER: 'Page capped.'}))
+                request = RequestFactory().get(self.url)
+                request.user = self.shared
+                response = middleware.ClientUsageMiddleware(view)(request)
+                self.assertEqual(expected, response[NOTICE_HEADER])
+
     def test_shared_account_callers_are_counted_then_compacted(self):
         for ip in ('192.0.2.1', '192.0.2.1', '192.0.2.2'):
             self._get(self.shared, ip=ip, HTTP_ONE_API_VERSION='3.6.0')
@@ -97,6 +111,114 @@ class TestRecording(TestCase):
         ClientUsage.objects.update(date=datetime.date.today() - datetime.timedelta(days=500))
         call_command('client_usage', 'purge', '--keep-days', '400', stdout=StringIO())
         self.assertFalse(ClientUsage.objects.exists())
+
+
+class TestOutdated(SimpleTestCase):
+
+    def test_outdated_releases(self):
+        cases = {
+            ('', 'python-requests/2.32.3'): True,  # ONE before 3.6.0, or another script
+            ('3.6.0', 'python-requests/2.32.3'): True,
+            ('3.6.1', 'python-requests/2.32.3'): False,
+            ('3.10.0', 'python-requests/2.32.3'): False,  # compared as numbers, not text
+            ('', 'ONE/3.5.2 python-requests/2.32.3'): True,
+            ('unreadable', 'python-requests/2.32.3'): False,
+            ('', 'curl/8.5.0'): False,
+            ('', 'Mozilla/5.0 (X11; Linux x86_64) Firefox/131.0'): False,
+        }
+        for (one, agent), expected in cases.items():
+            with self.subTest(agent=agent, one=one):
+                headers = {'User-Agent': agent}
+                if one:
+                    headers['ONE-API-Version'] = one
+                self.assertEqual(expected, is_outdated(headers))
+        with override_settings(CLIENT_USAGE_MIN_ONE_VERSION='3.7'):
+            self.assertTrue(is_outdated({'ONE-API-Version': '3.6.2'}))
+            self.assertFalse(is_outdated({'ONE-API-Version': '3.7.0'}))
+
+
+OLD = {'HTTP_USER_AGENT': 'python-requests/2.32.3'}
+NEW = {'HTTP_USER_AGENT': 'python-requests/2.32.3', 'HTTP_ONE_API_VERSION': '3.6.1'}
+
+
+@override_settings(CLIENT_USAGE_FLUSH_SECONDS=0,
+                   CLIENT_USAGE_OUTDATED_RATE=1,
+                   CLIENT_USAGE_OUTDATED_NOTICES={'shared': 'Register your own account.'})
+class TestOutdatedClients(TestCase):
+
+    def setUp(self):
+        middleware._counts.clear()
+        middleware._fingerprints.clear()
+        cache.clear()  # holds the cooldowns, and isn't emptied between tests
+        self.user = get_user_model().objects.create_user(username='ada', password='x')
+        self.shared = get_user_model().objects.create_user(username='shared', password='x')
+        self.url = reverse('subject-list')
+
+    def _auth(self, user):
+        token, _ = Token.objects.get_or_create(user=user)
+        return {'HTTP_AUTHORIZATION': f'Token {token.key}'}
+
+    def _get(self, user, **headers):
+        return self.client.get(self.url, **self._auth(user), **headers)
+
+    def _view_ran(self, method, path, **headers):
+        """Pass a request straight through the middleware; return whether the view ran."""
+        view = mock.Mock(return_value=HttpResponse())
+        request = RequestFactory().generic(method, path, **headers)
+        middleware.ClientUsageMiddleware(view)(request)
+        return view.called
+
+    def test_outdated_clients_are_told_to_update(self):
+        response = self._get(self.user, **OLD)
+        self.assertEqual(OUTDATED_STATUS, response.status_code)
+        self.assertIn('pip install -U ONE-api', response.json()['detail'])
+        self.assertEqual(200, self._get(self.user, **NEW).status_code)
+        # A refused request still counts as a request by that client
+        self.assertTrue(ClientUsage.objects.filter(
+            user_id=self.user.pk, client='python-requests').exists())
+
+    def test_account_message(self):
+        response = self._get(self.shared, **OLD)
+        self.assertEqual(OUTDATED_STATUS, response.status_code)
+        self.assertEqual('Register your own account.', response.json()['detail'])
+
+    def test_cooldown(self):
+        """Each caller is refused at most once per CLIENT_USAGE_OUTDATED_COOLDOWN."""
+        self.assertEqual(OUTDATED_STATUS, self._get(self.user, **OLD).status_code)
+        self.assertEqual(200, self._get(self.user, **OLD).status_code)
+        # Another caller of the same account, and another account, each have their own
+        self.assertEqual(OUTDATED_STATUS,
+                         self._get(self.user, REMOTE_ADDR='192.0.2.9', **OLD).status_code)
+        self.assertEqual(OUTDATED_STATUS, self._get(self.shared, **OLD).status_code)
+        cache.clear()  # as when the cooldown expires
+        self.assertEqual(OUTDATED_STATUS, self._get(self.user, **OLD).status_code)
+
+    def test_rate(self):
+        with override_settings(CLIENT_USAGE_OUTDATED_RATE=0.1, CLIENT_USAGE_OUTDATED_COOLDOWN=0), \
+                mock.patch('client_usage.middleware.random.random', side_effect=(0.05, 0.5)):
+            self.assertEqual(OUTDATED_STATUS, self._get(self.user, **OLD).status_code)
+            self.assertEqual(200, self._get(self.user, **OLD).status_code)
+        with override_settings(CLIENT_USAGE_OUTDATED_RATE=0):
+            self.assertEqual(200, self._get(self.user, **OLD).status_code)
+
+    def test_refused_requests_do_no_work(self):
+        self.assertFalse(self._view_ran('GET', '/subjects', **self._auth(self.user), **OLD))
+        self.assertTrue(self._view_ran('GET', '/subjects', **self._auth(self.user), **NEW))
+
+    def test_exempt_requests(self):
+        """Logins, writes, invalid tokens and the cache tables are never refused."""
+        auth = self._auth(self.user)
+        cases = {
+            'anonymous': ('GET', '/subjects', OLD),
+            'login': ('POST', '/auth-token', OLD),
+            'write': ('POST', '/subjects', {**auth, **OLD}),
+            'invalid token': ('GET', '/subjects', {'HTTP_AUTHORIZATION': 'Token nope', **OLD}),
+            'cache info': ('GET', '/cache/info/', {**auth, **OLD}),
+            'cache tables': ('GET', '/cache.zip', {**auth, **OLD}),
+        }
+        for case, (method, path, headers) in cases.items():
+            with self.subTest(case):
+                self.assertTrue(self._view_ran(method, path, **headers))
 
 
 @override_settings(CLIENT_USAGE_SHARED_ACCOUNTS=('shared',))
