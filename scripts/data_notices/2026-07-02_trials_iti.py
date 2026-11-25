@@ -30,7 +30,7 @@ TRIALS_DATASETS = (
 RAW_DATASETS = ('_iblrig_taskData.raw.jsonable',)
 
 ITI_PREAMBLE = """\
-    Inter-trial interval (ITI) is defined as the closed-loop period of grey screen between stimulus offset and enforced quiescence.
+    Inter-trial interval (ITI) is defined as the open-loop period of grey screen between stimulus offset and enforced quiescence.
     During this time there is no visual stimulus and the subject is free to move the wheel.
 
     The ITI can be loaded with [brainbox.io.one.load_iti](https://github.com/int-brain-lab/ibllib/blob/78e82df8a51de0be880ee4076d2bb093bbc1d2c1/brainbox/io/one.py#L719-L738):
